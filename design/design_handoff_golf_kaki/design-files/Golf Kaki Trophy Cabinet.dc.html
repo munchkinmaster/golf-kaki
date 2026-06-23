@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/base.css">
+  <script src="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/_ds_bundle.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    /* inline DS token fallback — a dropped token-file load cannot break render */
+    :root{
+    --green-950:#0A2C0C;--green-900:#0E3A10;--green-800:#134914;--green-700:#195C12;--green-600:#1E6E16;--green-500:#237E1A;--green-400:#499A3E;--green-300:#7AB86F;--green-200:#AED4A9;--green-100:#DFEEDC;--green-50:#F0F6EE;
+    --orange-700:#C75F1E;--orange-600:#E0742E;--orange-500:#FF914D;--orange-400:#FFA86E;--orange-300:#FFC79E;--orange-200:#FFDCC2;--orange-100:#FFEEE0;
+    --sand-50:#FCFAF3;--sand-100:#F7F2E6;--sand-200:#EFE8D5;--sand-300:#E3D9C0;--sand-400:#CFC3A4;--sand-500:#B3A581;
+    --ink-900:#1C2B22;--ink-700:#3A4A40;--ink-500:#5E6B62;--ink-400:#8A958C;--ink-300:#B4BCB5;--white:#FFFFFF;
+    --score-eagle:#C98A23;--score-birdie:#E0742E;--score-par:#1E6E16;--score-bogey:#4E6E8E;--score-double:#B23B2E;
+    --status-success:#237E1A;--status-warning:#E0742E;--status-danger:#B23B2E;--status-info:#4E6E8E;
+    --primary:var(--green-800);--primary-hover:var(--green-900);--primary-active:var(--green-950);--accent:var(--orange-500);--accent-hover:var(--orange-600);--accent-active:var(--orange-700);
+    --surface-page:var(--sand-100);--surface-card:var(--white);--surface-raised:var(--sand-50);--surface-sunken:var(--sand-200);--surface-inverse:var(--green-800);--surface-accent-soft:var(--orange-100);--surface-brand-soft:var(--green-50);
+    --text-primary:var(--ink-900);--text-secondary:var(--ink-700);--text-muted:var(--ink-500);--text-disabled:var(--ink-400);--text-inverse:var(--sand-50);--text-brand:var(--green-800);--text-accent:var(--orange-600);--text-on-accent:var(--white);
+    --border-subtle:var(--sand-200);--border-default:var(--sand-300);--border-strong:var(--sand-400);--border-brand:var(--green-800);--border-focus:var(--green-500);
+    --overlay-scrim:rgba(14,58,40,0.45);--focus-ring:rgba(26,126,72,0.35);
+    --space-0:0;--space-1:0.25rem;--space-2:0.5rem;--space-3:0.75rem;--space-4:1rem;--space-5:1.25rem;--space-6:1.5rem;--space-7:2rem;--space-8:2.5rem;--space-9:3rem;--space-10:4rem;--space-12:6rem;
+    --container-sm:480px;--container-md:768px;--container-lg:1100px;--gutter:var(--space-4);--control-sm:32px;--control-md:44px;--control-lg:54px;
+    --radius-xs:4px;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:24px;--radius-2xl:32px;--radius-pill:999px;--radius-circle:50%;
+    --shadow-xs:0 1px 2px rgba(14,58,40,0.06);--shadow-sm:0 2px 6px rgba(14,58,40,0.08);--shadow-md:0 6px 16px rgba(14,58,40,0.10);--shadow-lg:0 14px 32px rgba(14,58,40,0.14);--shadow-xl:0 24px 56px rgba(14,58,40,0.18);
+    --shadow-accent:0 8px 20px rgba(255,145,77,0.35);--shadow-inset:inset 0 1px 0 rgba(255,255,255,0.6);
+    --border-thin:1px;--border-med:1.5px;--border-thick:2px;
+    --ease-out:cubic-bezier(0.22,1,0.36,1);--ease-in-out:cubic-bezier(0.65,0,0.35,1);--ease-bounce:cubic-bezier(0.34,1.56,0.64,1);--dur-fast:120ms;--dur-base:200ms;--dur-slow:320ms;
+    --font-display:'Quicksand','Plus Jakarta Sans',system-ui,sans-serif;--font-body:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;--font-numeric:'Space Grotesk','Plus Jakarta Sans',monospace;
+    --weight-regular:400;--weight-medium:500;--weight-semibold:600;--weight-bold:700;
+    --text-2xs:0.6875rem;--text-xs:0.75rem;--text-sm:0.875rem;--text-md:1rem;--text-lg:1.125rem;--text-xl:1.375rem;--text-2xl:1.75rem;--text-3xl:2.25rem;--text-4xl:3rem;--text-5xl:4rem;
+    --leading-tight:1.1;--leading-snug:1.25;--leading-normal:1.5;--leading-relaxed:1.65;
+    --tracking-tight:-0.02em;--tracking-normal:0;--tracking-wide:0.04em;--tracking-wider:0.12em;--tracking-widest:0.2em;
+    }
+    *{box-sizing:border-box}
+    .gkscreen::-webkit-scrollbar{width:0;height:0}
+    .gkscreen{scrollbar-width:none}
+    .lbl{font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:.04em;color:#5E6B62;text-transform:uppercase;margin-bottom:10px}
+    .phone{width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 22px 60px rgba(14,58,40,.22),0 4px 14px rgba(14,58,40,.12);overflow:hidden;position:relative;display:flex;flex-direction:column}
+    @keyframes gkpop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+    @keyframes gkshine{0%{transform:translateX(-120%) rotate(8deg)}100%{transform:translateX(220%) rotate(8deg)}}
+  </style>
+</helmet>
+
+<div style="min-width:100%;min-height:100vh;box-sizing:border-box;padding:48px;background:#DAD3C4;width:max-content;font-family:var(--font-body)">
+
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:6px">
+    <div style="font-family:var(--font-display);font-weight:700;font-size:26px;color:var(--green-800);letter-spacing:-.01em">Golf Kaki</div>
+    <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.18em;color:var(--green-600);text-transform:uppercase">Trophies · Earn the brag</div>
+  </div>
+  <div style="font-family:var(--font-body);font-size:14px;color:var(--text-muted);margin-bottom:36px">Achievement system · Tier legend → Badge states → Trophy cabinet on profile. Every trophy is kaki-attested.</div>
+
+  <div style="display:flex;gap:40px;align-items:flex-start">
+
+    <!-- ============ A · TIER LEGEND ============ -->
+    <div style="flex:none;width:360px">
+      <div class="lbl">A · Tier system</div>
+      <div style="background:#fff;border:1px solid var(--border-subtle);border-radius:20px;box-shadow:var(--shadow-sm);padding:22px">
+        <div style="font-family:var(--font-display);font-weight:700;font-size:19px;color:var(--ink-900);margin-bottom:5px">Three tiers of flex</div>
+        <div style="font-family:var(--font-body);font-size:13.5px;color:var(--text-muted);line-height:1.5;margin-bottom:20px">Rarity drives colour. Gold is sacred — only once-in-a-lifetime shots earn it.</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <sc-for list="{{ tiers }}" as="t" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:14px;padding:13px 14px;border:1.5px solid var(--border-subtle);border-radius:14px;background:var(--sand-50)">
+              <span style="{{ t.swatch }}">{{ t.glyph }}</span>
+              <div style="flex:1">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--ink-900)">{{ t.name }}</span>
+                  <span style="{{ t.chip }}">{{ t.count }}</span>
+                </div>
+                <div style="font-family:var(--font-body);font-size:12.5px;color:var(--text-muted);margin-top:2px">{{ t.desc }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:9px;margin-top:18px;padding-top:16px;border-top:1px solid var(--border-subtle)">
+          <i data-lucide="users" style="width:16px;height:16px;color:var(--green-700);flex:none;margin-top:1px"></i>
+          <div style="font-family:var(--font-body);font-size:12.5px;color:var(--ink-700);line-height:1.5"><b style="color:var(--ink-900)">Kaki-attested.</b> A trophy only counts once a playing partner in your fourball taps to confirm it.</div>
+        </div>
+      </div>
+
+      <!-- Badge anatomy / states -->
+      <div class="lbl" style="margin-top:32px">B · Badge states</div>
+      <div style="background:#fff;border:1px solid var(--border-subtle);border-radius:20px;box-shadow:var(--shadow-sm);padding:22px">
+        <div style="display:flex;justify-content:space-around;align-items:flex-end;text-align:center">
+          <div>
+            <div style="{{ medalLegendary }}">
+              <span style="position:absolute;inset:0;border-radius:50%;overflow:hidden"><span style="position:absolute;top:0;left:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:gkshine 2.6s ease-in-out infinite"></span></span>
+              <img src="uploads/albatross_svg_white.svg" alt="Albatross" style="width:40px;height:auto;position:relative">
+            </div>
+            <div style="font-family:var(--font-body);font-size:11.5px;font-weight:600;color:var(--ink-700);margin-top:9px">Earned</div>
+          </div>
+          <div>
+            <div style="width:66px;height:66px;border-radius:50%;background:var(--sand-100);border:2px dashed var(--border-default);display:flex;align-items:center;justify-content:center;position:relative">
+              <i data-lucide="lock" style="width:22px;height:22px;color:var(--ink-400)"></i>
+            </div>
+            <div style="font-family:var(--font-body);font-size:11.5px;font-weight:600;color:var(--ink-500);margin-top:9px">Locked</div>
+          </div>
+          <div>
+            <div style="width:66px;height:66px;border-radius:50%;background:var(--sand-100);border:2px solid var(--orange-300);display:flex;align-items:center;justify-content:center;position:relative">
+              <img src="uploads/albatross_svg_white.svg" alt="Albatross" style="width:34px;height:auto;filter:brightness(0) saturate(100%) invert(72%) sepia(38%) saturate(900%) hue-rotate(327deg) brightness(101%) contrast(101%)">
+              <span style="position:absolute;bottom:-4px;right:-4px;width:24px;height:24px;border-radius:50%;background:var(--orange-500);border:2px solid #fff;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-xs)"><i data-lucide="clock" style="width:12px;height:12px;color:#fff"></i></span>
+            </div>
+            <div style="font-family:var(--font-body);font-size:11.5px;font-weight:600;color:var(--ink-700);margin-top:9px">Pending kaki</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ C · TROPHY CABINET (phone) ============ -->
+    <div style="flex:none">
+      <div class="lbl">C · Trophy cabinet · Profile</div>
+      <div class="phone" style="background:var(--surface-page)">
+        <!-- status bar -->
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600;flex:none">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+
+        <!-- header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 12px;flex:none">
+          <div style="display:flex;align-items:center;gap:8px">
+            <i data-lucide="chevron-left" style="width:22px;height:22px;color:var(--ink-700)"></i>
+            <span style="font-family:var(--font-display);font-weight:700;font-size:18px;color:var(--ink-900)">Trophies</span>
+          </div>
+          <i data-lucide="share-2" style="width:20px;height:20px;color:var(--green-700)"></i>
+        </div>
+
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:2px 18px 26px">
+
+          <!-- profile mini -->
+          <div style="display:flex;align-items:center;gap:13px;margin-bottom:16px">
+            <div style="width:52px;height:52px;border-radius:50%;background:#DFEEDC;border:2px solid #fff;box-shadow:0 0 0 2px var(--score-eagle),0 0 14px 1px rgba(201,138,35,.5),0 1px 4px rgba(14,58,40,.18);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:var(--green-800);font-size:18px">WL</div>
+            <div style="flex:1">
+              <div style="font-family:var(--font-display);font-weight:700;font-size:18px;color:var(--ink-900);line-height:1.1">Wei Liang</div>
+              <div style="font-family:var(--font-body);font-size:12.5px;color:var(--text-muted)">3 of 8 trophies earned</div>
+            </div>
+            <div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:12px;color:var(--green-800);background:var(--green-50);border:1px solid var(--green-200);padding:7px 11px;border-radius:999px"><i data-lucide="trophy" style="width:13px;height:13px;color:var(--score-eagle)"></i><span style="font-family:var(--font-numeric)">1</span> gold</div>
+          </div>
+
+          <!-- progress -->
+          <div style="height:8px;border-radius:999px;background:var(--sand-200);overflow:hidden;margin-bottom:22px">
+            <div style="width:38%;height:100%;border-radius:999px;background:var(--green-700)"></div>
+          </div>
+
+          <!-- featured earned trophy -->
+          <div style="background:var(--green-800);border-radius:18px;padding:18px;color:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow-md);margin-bottom:22px">
+            <img src="assets/golf-kaki-mark.svg" alt="" style="position:absolute;right:-30px;top:-26px;width:140px;opacity:.10;filter:brightness(0) invert(1);pointer-events:none">
+            <div style="display:flex;align-items:center;gap:15px;position:relative">
+              <div style="{{ medalLegendary }}">
+                <span style="position:absolute;inset:0;border-radius:50%;overflow:hidden"><span style="position:absolute;top:0;left:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:gkshine 2.8s ease-in-out infinite"></span></span>
+                <i data-lucide="target" style="width:32px;height:32px;color:#fff;position:relative"></i>
+              </div>
+              <div style="flex:1">
+                <div style="font-family:var(--font-body);font-weight:600;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--orange-300)">Legendary · latest</div>
+                <div style="font-family:var(--font-display);font-weight:700;font-size:21px;line-height:1.1;margin-top:3px">Hole-in-One</div>
+                <div style="display:flex;align-items:center;gap:6px;font-family:var(--font-body);font-size:12px;color:rgba(255,255,255,.7);margin-top:5px"><i data-lucide="map-pin" style="width:12px;height:12px"></i>Tanah Merah · 7th · 2 weeks ago</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.14);position:relative">
+              <div style="display:flex;align-items:center;margin-right:2px">
+                <span style="width:22px;height:22px;border-radius:50%;background:#C2603A;border:1.5px solid var(--green-800);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:9px;color:#fff">MK</span>
+                <span style="width:22px;height:22px;border-radius:50%;background:#3E6E8E;border:1.5px solid var(--green-800);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:9px;color:#fff;margin-left:-7px">JL</span>
+              </div>
+              <span style="font-family:var(--font-body);font-size:12px;color:rgba(255,255,255,.82)">Attested by Marcus &amp; Jun Long</span>
+              <i data-lucide="badge-check" style="width:15px;height:15px;color:var(--orange-300);margin-left:auto"></i>
+            </div>
+          </div>
+
+          <!-- cabinet grid -->
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:var(--ink-500);text-transform:uppercase;margin-bottom:13px">The cabinet</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+            <sc-for list="{{ cabinet }}" as="b" hint-placeholder-count="9">
+              <div style="{{ b.cardStyle }}">
+                <div style="{{ b.medal }}">
+                  {{ b.glyph }}
+                  <sc-if value="{{ b.pending }}" hint-placeholder-val="{{ false }}">
+                    <span style="position:absolute;bottom:-3px;right:-3px;width:20px;height:20px;border-radius:50%;background:var(--orange-500);border:2px solid #fff;display:flex;align-items:center;justify-content:center"><i data-lucide="clock" style="width:10px;height:10px;color:#fff"></i></span>
+                  </sc-if>
+                  <sc-if value="{{ b.earned }}" hint-placeholder-val="{{ false }}">
+                    <span style="position:absolute;bottom:-3px;right:-3px;width:20px;height:20px;border-radius:50%;background:var(--green-700);border:2px solid #fff;display:flex;align-items:center;justify-content:center"><i data-lucide="check" style="width:11px;height:11px;color:#fff"></i></span>
+                  </sc-if>
+                </div>
+                <div style="{{ b.nameStyle }}">{{ b.name }}</div>
+                <div style="{{ b.metaStyle }}">{{ b.meta }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:20px;font-family:var(--font-body);font-size:12px;color:var(--text-muted)">
+            <i data-lucide="lock" style="width:13px;height:13px"></i>5 more to chase
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ D · UNLOCK MOMENT (phone) ============ -->
+    <div style="flex:none">
+      <div class="lbl">D · Unlock moment</div>
+      <div class="phone" style="background:var(--green-800)">
+        <div style="position:absolute;inset:0;background:radial-gradient(120% 70% at 50% 12%,rgba(201,138,35,.42) 0%,rgba(19,73,20,0) 58%);pointer-events:none;z-index:1"></div>
+        <img src="assets/golf-kaki-mark.svg" alt="" style="position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);width:340px;opacity:.06;filter:brightness(0) invert(1);pointer-events:none;z-index:1">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:rgba(255,255,255,.85);font-family:var(--font-numeric);font-size:13px;font-weight:600;position:relative;z-index:2;flex:none">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 32px;position:relative;z-index:2;text-align:center">
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.22em;color:var(--orange-300);text-transform:uppercase;margin-bottom:22px">Trophy unlocked</div>
+          <div style="width:148px;height:148px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#E8C66B 0%,var(--score-eagle) 55%,#A06E18 100%);box-shadow:0 18px 44px rgba(201,138,35,.5),inset 0 2px 4px rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;position:relative;animation:gkpop .6s var(--ease-bounce, cubic-bezier(.34,1.56,.64,1)) both;overflow:hidden">
+            <span style="position:absolute;inset:0;border-radius:50%;overflow:hidden"><span style="position:absolute;top:0;left:0;width:36%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:gkshine 2.4s ease-in-out infinite"></span></span>
+            <img src="uploads/albatross_svg_white.svg" alt="Albatross" style="width:92px;height:auto;position:relative">
+          </div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:36px;color:#fff;letter-spacing:-.01em;margin-top:28px;line-height:1.05">Albatross!</div>
+          <div style="font-family:var(--font-body);font-size:15px;line-height:1.5;color:rgba(255,255,255,.78);margin-top:10px;max-width:260px">Three under on a single hole. That's one for the clubhouse stories, kaki.</div>
+          <div style="display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);padding:8px 14px;border-radius:999px;margin-top:20px">
+            <i data-lucide="users" style="width:14px;height:14px;color:#fff"></i>
+            <span style="font-family:var(--font-body);font-size:12.5px;color:#fff">Attested by Marcus &amp; Jun Long</span>
+          </div>
+        </div>
+        <div style="padding:0 26px 40px;position:relative;z-index:2;display:flex;flex-direction:column;gap:11px;flex:none">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:52px;background:var(--orange-500);border-radius:999px;box-shadow:0 6px 20px rgba(255,145,77,.4);font-family:var(--font-body);font-weight:600;font-size:16px;color:#fff"><i data-lucide="share-2" style="width:18px;height:18px"></i>Brag to the group chat</div>
+          <div style="text-align:center;font-family:var(--font-body);font-weight:600;font-size:14px;color:rgba(255,255,255,.66);padding:8px">Add to cabinet</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() { this.icons(); }
+  componentDidUpdate() { this.icons(); }
+  icons() { try { if (window.lucide) window.lucide.createIcons(); } catch (e) {} }
+
+  renderVals() {
+    const GOLD = 'var(--score-eagle)', ORANGE = 'var(--orange-500)', GREEN = 'var(--green-700)';
+
+    const medal = (c1, c2, size) => ({
+      width: size + 'px', height: size + 'px', borderRadius: '50%',
+      background: 'radial-gradient(circle at 50% 32%,' + c1 + ' 0%,' + c2 + ' 100%)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      position: 'relative', flex: 'none',
+      boxShadow: '0 6px 16px rgba(14,58,40,.28),inset 0 2px 3px rgba(255,255,255,.45)',
+    });
+    const medalLegendary = medal('#E8C66B', GOLD, 60);
+
+    const tierChip = (bg, fg) => ({ fontFamily: 'var(--font-numeric)', fontWeight: 700, fontSize: '11px', color: fg, background: bg, borderRadius: '999px', padding: '1px 8px' });
+    const tierGlyph = (src, name) => React.createElement('img', { src: src, alt: name, style: { width: '26px', height: '26px', objectFit: 'contain' } });
+    const tiers = [
+      { name: 'Legendary', glyph: tierGlyph('uploads/Legendary_White.svg', 'Legendary'), count: '3', desc: 'Albatross · Hole-in-one · Bogey-free nine', swatch: medal('#E8C66B', GOLD, 42), chip: tierChip('var(--sand-200)', '#9A6B12') },
+      { name: 'Epic', glyph: tierGlyph('uploads/Epic_White.svg', 'Epic'), count: '3', desc: 'Eagle · Broke 80 · Birdie streak', swatch: medal('#FFB07A', ORANGE, 42), chip: tierChip('var(--orange-100)', '#C2603A') },
+      { name: 'Great', glyph: tierGlyph('uploads/Great_White.svg', 'Great'), count: '2', desc: 'Par streak · Broke 90', swatch: medal('#5FA858', GREEN, 42), chip: tierChip('var(--green-100)', 'var(--green-700)') },
+    ];
+
+    // tier color helpers for cabinet medals
+    const tierMedal = {
+      legendary: ['#E8C66B', GOLD],
+      epic: ['#FFB07A', ORANGE],
+      great: ['#5FA858', GREEN],
+    };
+
+    const data = [
+      { name: 'Hole-in-One', meta: 'Tanah Merah', icon: 'target', tier: 'legendary', state: 'earned' },
+      { name: 'Albatross', meta: 'Locked', icon: 'bird', bird: 'uploads/albatross_svg_white.svg', tier: 'legendary', state: 'locked' },
+      { name: 'Eagle', meta: 'Sentosa', icon: 'feather', bird: 'uploads/Eagle_white.svg', tier: 'epic', state: 'earned' },
+      { name: 'Broke 80', meta: 'Awaiting kaki', icon: 'gauge', tier: 'epic', state: 'pending' },
+      { name: 'Birdie Streak', meta: '3 in a row', icon: 'flame', tier: 'epic', state: 'earned' },
+      { name: 'Par Streak', meta: 'Locked', icon: 'repeat', tier: 'great', state: 'locked' },
+      { name: 'Bogey-Free Nine', meta: 'Locked', icon: 'shield-check', tier: 'legendary', state: 'locked' },
+      { name: 'Broke 90', meta: 'Locked', icon: 'trending-down', tier: 'great', state: 'locked' },
+    ];
+
+    const cabinet = data.map(b => {
+      const locked = b.state === 'locked';
+      const pending = b.state === 'pending';
+      const earned = b.state === 'earned';
+      const [c1, c2] = tierMedal[b.tier];
+
+      const medalStyle = locked
+        ? { width: '56px', height: '56px', borderRadius: '50%', background: 'var(--sand-100)', border: '2px dashed var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flex: 'none' }
+        : pending
+        ? { width: '56px', height: '56px', borderRadius: '50%', background: 'var(--sand-100)', border: '2px solid ' + c2, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flex: 'none', opacity: .9 }
+        : { ...medal(c1, c2, 56) };
+
+      const img = (!locked && b.bird) ? b.bird : '';
+      const glyph = img
+        ? React.createElement('img', { src: img, alt: b.name, style: { width: '30px', height: '30px', objectFit: 'contain', position: 'relative' } })
+        : React.createElement('i', { 'data-lucide': locked ? 'lock' : b.icon, key: (locked ? 'lock' : b.icon), style: locked ? { width: '22px', height: '22px', color: 'var(--ink-400)' } : pending ? { width: '24px', height: '24px', color: c2 } : { width: '26px', height: '26px', color: '#fff', position: 'relative' } });
+
+      return {
+        name: b.name, meta: b.meta, glyph,
+        earned, pending, locked,
+        medal: medalStyle,
+        cardStyle: {
+          display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '9px',
+          padding: '15px 8px 13px', borderRadius: '16px',
+          background: earned ? '#fff' : 'var(--sand-50)',
+          border: '1px solid ' + (earned ? 'var(--border-default)' : 'var(--border-subtle)'),
+          boxShadow: earned ? 'var(--shadow-xs)' : 'none',
+          opacity: locked ? .72 : 1,
+        },
+        nameStyle: { fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '12.5px', lineHeight: 1.15, color: locked ? 'var(--ink-500)' : 'var(--ink-900)' },
+        metaStyle: { fontFamily: 'var(--font-body)', fontSize: '10.5px', fontWeight: 500, color: pending ? 'var(--orange-500)' : 'var(--text-muted)' },
+      };
+    });
+
+    return { tiers, cabinet, medalLegendary };
+  }
+}
+</script>
+</body>
+</html>

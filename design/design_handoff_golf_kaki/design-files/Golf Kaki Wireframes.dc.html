@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/base.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/styles.css">
+  <script src="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/_ds_bundle.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    *{box-sizing:border-box}
+    .gkscreen::-webkit-scrollbar{width:0;height:0}
+    .gkscreen{scrollbar-width:none}
+    .lbl{font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:.04em;color:#5E6B62;text-transform:uppercase;margin-bottom:10px}
+    @keyframes gkspin{to{transform:rotate(360deg)}}
+  </style>
+</helmet>
+
+<div style="min-width:100%;min-height:100vh;box-sizing:border-box;padding:48px;background:#DAD3C4;width:max-content;font-family:var(--font-body)">
+
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:6px">
+    <div style="font-family:var(--font-display);font-weight:700;font-size:26px;color:#134914;letter-spacing:-.01em">Golf Kaki</div>
+    <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.18em;color:#1E6E16;text-transform:uppercase">Track score · Add fun</div>
+  </div>
+  <div style="font-family:var(--font-body);font-size:14px;color:#5E6B62;margin-bottom:36px">Styled wireframes · mobile · linear flow — Landing → Home → Profile → Select course → Create → Lobby → In-round → Past game</div>
+
+  <div style="display:flex;gap:40px;align-items:flex-start">
+
+    <!-- ================= 01 LANDING ================= -->
+    <div style="flex:none">
+      <div class="lbl">01 · Landing</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:#134914">
+        <div style="position:absolute;right:-70px;top:120px;width:420px;height:420px;border-radius:50%;border:2px solid rgba(255,255,255,.06)"></div>
+        <div style="position:absolute;left:-90px;bottom:60px;width:340px;height:340px;border-radius:50%;border:2px solid rgba(255,255,255,.05)"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:rgba(255,255,255,.85);font-family:var(--font-numeric);font-size:13px;font-weight:600;position:relative;z-index:2">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 34px;position:relative;z-index:2;text-align:center">
+          <div style="width:96px;height:96px;border-radius:24px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;margin-bottom:30px">
+            <i data-lucide="flag" style="width:46px;height:46px;color:#FF914D"></i>
+          </div>
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.22em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:14px">Track score · Add fun</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:42px;line-height:1.05;color:#fff;letter-spacing:-.01em">Golf with<br>your kaki.</div>
+          <div style="font-family:var(--font-body);font-size:15px;line-height:1.5;color:rgba(255,255,255,.7);margin-top:16px;max-width:250px">Keep score, hand out strokes, and settle the teh tarik — all in one weekend round.</div>
+        </div>
+        <div style="padding:0 28px 46px;position:relative;z-index:2">
+          <div style="display:flex;align-items:center;justify-content:center;gap:12px;height:54px;background:#fff;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.18);font-family:var(--font-body);font-weight:600;font-size:16px;color:#1C2B22">
+            <span style="display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;border-radius:50%;background:#fff;border:1px solid #E3D9C0;font-family:var(--font-display);font-weight:700;color:#4285F4;font-size:15px">G</span>
+            Continue with Google
+          </div>
+          <div style="text-align:center;font-family:var(--font-body);font-size:12px;color:rgba(255,255,255,.5);margin-top:18px;line-height:1.5">By continuing you agree to the<br>Terms &amp; Privacy Policy</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 02 HOME ================= -->
+    <div style="flex:none">
+      <div class="lbl">02 · Home</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 18px 14px">
+          <div style="display:flex;align-items:center;gap:11px">
+            <div style="width:44px;height:44px;border-radius:50%;background:#DFEEDC;border:2px solid #fff;box-shadow:0 1px 4px rgba(14,58,40,.18);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:#134914;font-size:16px">WL</div>
+            <div>
+              <div style="font-family:var(--font-body);font-size:12px;color:#5E6B62">Morning,</div>
+              <div style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#1C2B22;line-height:1.1">Wei Liang</div>
+            </div>
+          </div>
+          <div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:12px;color:#134914;background:#F0F6EE;border:1px solid #AED4A9;padding:7px 11px;border-radius:999px"><span style="color:#8A958C;font-weight:500">HCP</span><span style="font-family:var(--font-numeric)">7.0</span></div>
+        </div>
+
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:4px 18px 22px">
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:22px">
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px;box-shadow:0 6px 18px rgba(255,145,77,.4)"><i data-lucide="plus" style="width:20px;height:20px"></i>Create a game</div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#fff;color:#134914;border:1.5px solid #E3D9C0;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px"><i data-lucide="users" style="width:20px;height:20px"></i>Join a game</div>
+          </div>
+
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin-bottom:9px">In play</div>
+          <div style="background:#134914;border-radius:18px;padding:16px;color:#fff;margin-bottom:24px;position:relative;overflow:hidden">
+            <div style="position:absolute;right:-40px;top:-30px;width:140px;height:140px;border-radius:50%;border:2px solid rgba(255,255,255,.07)"></div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative">
+              <div>
+                <div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.08em;color:#FFC79E;text-transform:uppercase;margin-bottom:6px"><span style="width:7px;height:7px;border-radius:50%;background:#FF914D;display:inline-block"></span>Live</div>
+                <div style="font-family:var(--font-display);font-weight:700;font-size:20px;line-height:1.1">Sat Fourball</div>
+                <div style="font-family:var(--font-body);font-size:13px;color:rgba(255,255,255,.7);margin-top:3px">Sentosa · Serapong · Thru 4</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-family:var(--font-numeric);font-weight:700;font-size:30px;line-height:1;color:#7FE0A6">4</div>
+                <div style="font-family:var(--font-body);font-size:11px;color:rgba(255,255,255,.6)">up</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;position:relative">
+              <div style="display:flex">
+                <span style="width:30px;height:30px;border-radius:50%;background:#DFEEDC;border:2px solid #134914;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:11px;color:#134914">M</span>
+                <span style="width:30px;height:30px;border-radius:50%;background:#FFDCC2;border:2px solid #134914;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:11px;color:#C75F1E;margin-left:-9px">W</span>
+                <span style="width:30px;height:30px;border-radius:50%;background:#EFE8D5;border:2px solid #134914;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:11px;color:#5E6B62;margin-left:-9px">D</span>
+              </div>
+              <div style="display:inline-flex;align-items:center;gap:6px;background:#FF914D;color:#fff;font-family:var(--font-body);font-weight:600;font-size:14px;padding:9px 18px;border-radius:999px">Resume<i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">Past games</div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:12px;color:#134914">See all</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:12px">
+              <div style="width:38px;height:38px;border-radius:10px;background:#F0F6EE;display:flex;align-items:center;justify-content:center"><i data-lucide="trophy" style="width:18px;height:18px;color:#C98A23"></i></div>
+              <div style="flex:1"><div style="font-family:var(--font-display);font-weight:700;font-size:15px;color:#1C2B22">Friday Skins</div><div style="font-family:var(--font-body);font-size:12px;color:#8A958C">Tanah Merah · 14 Jun · Won</div></div>
+              <div style="text-align:right;display:flex;align-items:center;gap:8px"><div><div style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#1C2B22">88</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C">gross</div></div><i data-lucide="chevron-right" style="width:17px;height:17px;color:#C4BCA8"></i></div>
+            </div>
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:12px">
+              <div style="width:38px;height:38px;border-radius:10px;background:#F0F6EE;display:flex;align-items:center;justify-content:center"><i data-lucide="flag" style="width:18px;height:18px;color:#1E6E16"></i></div>
+              <div style="flex:1"><div style="font-family:var(--font-display);font-weight:700;font-size:15px;color:#1C2B22">Sunday Medal</div><div style="font-family:var(--font-body);font-size:12px;color:#8A958C">Laguna · 8 Jun · 2nd</div></div>
+              <div style="text-align:right"><div style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#1C2B22">95</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C">gross</div></div>
+            </div>
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:12px">
+              <div style="width:38px;height:38px;border-radius:10px;background:#F0F6EE;display:flex;align-items:center;justify-content:center"><i data-lucide="flag" style="width:18px;height:18px;color:#1E6E16"></i></div>
+              <div style="flex:1"><div style="font-family:var(--font-display);font-weight:700;font-size:15px;color:#1C2B22">Kaki Cup R2</div><div style="font-family:var(--font-body);font-size:12px;color:#8A958C">Sentosa · 1 Jun · Won</div></div>
+              <div style="text-align:right"><div style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#1C2B22">82</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C">gross</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 03 PROFILE ================= -->
+    <div style="flex:none">
+      <div class="lbl">03 · Profile</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 4px">
+          <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center"><i data-lucide="chevron-left" style="width:20px;height:20px;color:#3A4A40"></i></div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:#1C2B22">Profile</div>
+          <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center"><i data-lucide="settings" style="width:18px;height:18px;color:#3A4A40"></i></div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:14px 18px 24px;display:flex;flex-direction:column;align-items:center">
+          <div style="position:relative;width:96px;height:96px;flex:none">
+            <div style="width:96px;height:96px;min-width:96px;min-height:96px;flex:none;border-radius:50%;background:#DFEEDC;border:3px solid #fff;box-shadow:0 4px 14px rgba(14,58,40,.2);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:#134914;font-size:34px">WL</div>
+            <div style="position:absolute;bottom:0;right:0;width:30px;height:30px;border-radius:50%;background:#134914;border:2px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(14,58,40,.25)"><i data-lucide="camera" style="width:15px;height:15px;color:#fff"></i></div>
+          </div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:23px;color:#1C2B22;margin-top:14px">Wei Liang</div>
+          <div style="font-family:var(--font-body);font-size:13px;color:#8A958C;margin-top:2px">@weiliang · Singapore</div>
+          <div style="display:inline-flex;align-items:center;gap:7px;background:#FFEEE0;border:1px solid #FFDCC2;color:#E0742E;font-family:var(--font-body);font-weight:600;font-size:14px;padding:9px 16px;border-radius:999px;margin-top:14px"><span style="color:#CFA98A;font-weight:500;letter-spacing:.04em;text-transform:uppercase;font-size:11px">Handicap</span><span style="font-family:var(--font-numeric);font-size:17px;font-weight:700">7.0</span></div>
+          <div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:7px;display:flex;align-items:center;gap:5px"><i data-lucide="refresh-cw" style="width:12px;height:12px"></i>Auto-counted from best 8 of last 20 rounds</div>
+
+          <div style="font-family:var(--font-body);font-size:14px;line-height:1.55;color:#3A4A40;text-align:center;margin-top:18px;padding:0 6px">Weekend hacker, fairway optimist. Will play anyone for a teh tarik.</div>
+          <div style="margin-top:9px"><span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body);font-size:13px;font-weight:600;color:#134914;border-bottom:1px solid rgba(19,73,20,.35);padding-bottom:1px;cursor:pointer"><i data-lucide="pencil" style="width:13px;height:13px"></i>Edit bio</span></div>
+
+          <div style="display:flex;gap:10px;width:100%;margin-top:22px">
+            <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:13px 6px;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#1C2B22">42</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:2px">Rounds</div></div>
+            <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:13px 6px;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#1E6E16">78</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:2px">Best</div></div>
+            <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:13px 6px;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#1C2B22">5</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:2px">Wins</div></div>
+          </div>
+
+          <!-- FRIENDS -->
+          <div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin:22px 0 9px">
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">Friends · 3</div>
+            <div style="display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body);font-weight:600;font-size:12px;color:#134914"><i data-lucide="user-plus" style="width:14px;height:14px"></i>Add</div>
+          </div>
+          <div style="width:100%;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ friends }}" as="f" hint-placeholder-count="3">
+              <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:10px 13px;display:flex;align-items:center;gap:11px">
+                <div style="{{ f.avStyle }}">{{ f.initial }}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">{{ f.name }}</div>
+                  <div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP {{ f.h }} · <span style="{{ f.svStyle }}">{{ f.strokeVsYou }}</span></div>
+                </div>
+                <div style="{{ f.chipStyle }}">{{ f.chipLabel }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 04 SELECT COURSE ================= -->
+    <div style="flex:none">
+      <div class="lbl">04 · Select course</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:6px 18px 4px">
+          <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center"><i data-lucide="chevron-left" style="width:20px;height:20px;color:#3A4A40"></i></div>
+          <div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:20px;color:#1C2B22;line-height:1.1">Where are you playing?</div>
+            <div style="display:flex;align-items:center;gap:9px;margin-top:8px">
+              <div style="display:flex;gap:5px;flex:1">
+                <div style="height:5px;flex:1;border-radius:999px;background:#134914"></div>
+                <div style="height:5px;flex:1;border-radius:999px;background:#E3D9C0"></div>
+              </div>
+              <span style="font-family:var(--font-body);font-weight:600;font-size:11px;color:#134914;white-space:nowrap">Course &amp; holes</span>
+            </div>
+          </div>
+        </div>
+        <!-- search -->
+        <div style="padding:10px 18px 8px">
+          <div style="height:48px;background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;display:flex;align-items:center;gap:9px;padding:0 14px">
+            <i data-lucide="search" style="width:18px;height:18px;color:#8A958C"></i>
+            <span style="font-family:var(--font-body);font-size:15px;color:#A89B7C">Search golf clubs</span>
+          </div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:4px 18px 18px">
+          <!-- nearby -->
+          <div style="display:flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin:6px 0 9px"><i data-lucide="navigation" style="width:12px;height:12px;color:#1E6E16"></i>Near you</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <!-- SELECTED course -->
+            <div style="background:#F0F6EE;border:1.5px solid #134914;border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:12px">
+              <div style="width:42px;height:42px;border-radius:11px;background:#134914;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="map-pin" style="width:19px;height:19px;color:#fff"></i></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#134914">Sentosa Golf Club</div>
+                <div style="font-family:var(--font-body);font-size:12px;color:#5E6B62;display:flex;align-items:center;gap:7px"><span>Sentosa Island</span><span style="color:#C7CFC6">·</span><span>2.4 km</span><span style="color:#C7CFC6">·</span><span style="font-family:var(--font-numeric)">36 holes</span></div>
+              </div>
+              <i data-lucide="check-circle-2" style="width:22px;height:22px;color:#134914;flex:none"></i>
+            </div>
+            <!-- other courses -->
+            <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:12px">
+              <div style="width:42px;height:42px;border-radius:11px;background:#F2EEE2;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="map-pin" style="width:19px;height:19px;color:#8A958C"></i></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#1C2B22">Marina Bay Golf Course</div>
+                <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;display:flex;align-items:center;gap:7px"><span>Marina South</span><span style="color:#E3D9C0">·</span><span>3.1 km</span><span style="color:#E3D9C0">·</span><span style="font-family:var(--font-numeric)">18 holes</span></div>
+              </div>
+              <i data-lucide="circle" style="width:22px;height:22px;color:#D8D0BC;flex:none"></i>
+            </div>
+            <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:12px">
+              <div style="width:42px;height:42px;border-radius:11px;background:#F2EEE2;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="map-pin" style="width:19px;height:19px;color:#8A958C"></i></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#1C2B22">Tanah Merah Country Club</div>
+                <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;display:flex;align-items:center;gap:7px"><span>Changi</span><span style="color:#E3D9C0">·</span><span>14 km</span><span style="color:#E3D9C0">·</span><span style="font-family:var(--font-numeric)">36 holes</span></div>
+              </div>
+              <i data-lucide="circle" style="width:22px;height:22px;color:#D8D0BC;flex:none"></i>
+            </div>
+            <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:12px">
+              <div style="width:42px;height:42px;border-radius:11px;background:#F2EEE2;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="map-pin" style="width:19px;height:19px;color:#8A958C"></i></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#1C2B22">Laguna National G&amp;CC</div>
+                <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;display:flex;align-items:center;gap:7px"><span>Tanah Merah</span><span style="color:#E3D9C0">·</span><span>15 km</span><span style="color:#E3D9C0">·</span><span style="font-family:var(--font-numeric)">36 holes</span></div>
+              </div>
+              <i data-lucide="circle" style="width:22px;height:22px;color:#D8D0BC;flex:none"></i>
+            </div>
+            <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:12px">
+              <div style="width:42px;height:42px;border-radius:11px;background:#F2EEE2;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="map-pin" style="width:19px;height:19px;color:#8A958C"></i></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#1C2B22">Orchid Country Club</div>
+                <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;display:flex;align-items:center;gap:7px"><span>Yishun</span><span style="color:#E3D9C0">·</span><span>21 km</span><span style="color:#E3D9C0">·</span><span style="font-family:var(--font-numeric)">27 holes</span></div>
+              </div>
+              <i data-lucide="circle" style="width:22px;height:22px;color:#D8D0BC;flex:none"></i>
+            </div>
+            <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:12px">
+              <div style="width:42px;height:42px;border-radius:11px;background:#F2EEE2;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="map-pin" style="width:19px;height:19px;color:#8A958C"></i></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#1C2B22">Keppel Club</div>
+                <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;display:flex;align-items:center;gap:7px"><span>Bukit Chermin</span><span style="color:#E3D9C0">·</span><span>8 km</span><span style="color:#E3D9C0">·</span><span style="font-family:var(--font-numeric)">18 holes</span></div>
+              </div>
+              <i data-lucide="circle" style="width:22px;height:22px;color:#D8D0BC;flex:none"></i>
+            </div>
+          </div>
+
+          <!-- HOLES + WHICH NINE (for selected course) -->
+          <div style="border-top:1px solid #EFE8D5;margin-top:18px;padding-top:16px">
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-bottom:7px">Select course</div>
+            <div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-bottom:6px;display:flex;align-items:center;gap:5px"><i data-lucide="info" style="width:12px;height:12px"></i>Sentosa has 36 holes — pick which nines</div>
+            <div style="height:50px;background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;margin-bottom:16px">
+              <span style="display:flex;align-items:center;gap:9px;font-family:var(--font-body);font-size:15px;color:#1C2B22"><i data-lucide="layers" style="width:17px;height:17px;color:#1E6E16"></i>Serapong · New 9 + Old 9</span>
+              <i data-lucide="chevron-down" style="width:18px;height:18px;color:#8A958C"></i>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+              <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40">Holes to play</div>
+              <div style="display:flex;align-items:center;gap:4px;font-family:var(--font-body);font-size:13px;color:#5E6B62">Starting from <span style="color:#134914;font-weight:600">Hole 1</span><i data-lucide="chevron-right" style="width:15px;height:15px;color:#134914"></i></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1;height:46px;border-radius:11px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:14px;color:#8A958C">9 holes</div>
+              <div style="flex:1;height:46px;border-radius:11px;background:#134914;border:1.5px solid #134914;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:14px;color:#fff">18 holes</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:12px 18px 22px;background:linear-gradient(to top,var(--surface-page) 70%,transparent)">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px;box-shadow:0 6px 18px rgba(255,145,77,.4)">Continue<i data-lucide="arrow-right" style="width:19px;height:19px"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 04b SELECT STARTING HOLE ================= -->
+    <div style="flex:none">
+      <div class="lbl">04b · Select starting hole</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <!-- dimmed underlying screen -->
+        <div style="position:absolute;inset:0;background:#1C2B22;opacity:.45"></div>
+        <div style="position:absolute;inset:0;padding:18px 18px 0;opacity:.5;pointer-events:none">
+          <div style="font-family:var(--font-display);font-weight:700;font-size:20px;color:#1C2B22;margin-top:46px">Where are you playing?</div>
+          <div style="height:48px;background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;display:flex;align-items:center;gap:9px;padding:0 14px;margin-top:18px"><i data-lucide="search" style="width:18px;height:18px;color:#8A958C"></i><span style="font-family:var(--font-body);font-size:15px;color:#A89B7C">Search golf clubs</span></div>
+        </div>
+        <!-- bottom sheet -->
+        <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;box-shadow:0 -10px 40px rgba(14,58,40,.25);padding:8px 18px 26px">
+          <div style="width:38px;height:4px;border-radius:999px;background:#E3D9C0;margin:0 auto 14px"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#1C2B22">Select starting hole</div>
+            <div style="width:32px;height:32px;border-radius:50%;background:#F2EEE2;display:flex;align-items:center;justify-content:center"><i data-lucide="x" style="width:17px;height:17px;color:#5E6B62"></i></div>
+          </div>
+          <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;margin-bottom:10px">Shotgun starts let your group tee off from any hole.</div>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ startHoles }}" as="h" hint-placeholder-count="6">
+              <div style="{{ h.rowStyle }}">
+                <span style="{{ h.labelStyle }}">Hole {{ h.n }}</span>
+                <span style="font-family:var(--font-body);font-size:11px;color:#A89B7C;flex:1;margin-left:10px">{{ h.meta }}</span>
+                <i data-lucide="{{ h.icon }}" style="{{ h.iconStyle }}"></i>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:52px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:16px;margin-top:14px;box-shadow:0 6px 18px rgba(255,145,77,.4)">Confirm</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 05 CREATE GAME ================= -->
+    <div style="flex:none">
+      <div class="lbl">05 · Create game</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:6px 18px 10px">
+          <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center"><i data-lucide="chevron-left" style="width:20px;height:20px;color:#3A4A40"></i></div>
+          <div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:20px;color:#1C2B22;line-height:1.1">Create a game</div>
+            <div style="display:flex;align-items:center;gap:9px;margin-top:8px">
+              <div style="display:flex;gap:5px;flex:1">
+                <div style="height:5px;flex:1;border-radius:999px;background:#134914"></div>
+                <div style="height:5px;flex:1;border-radius:999px;background:#134914"></div>
+              </div>
+              <span style="font-family:var(--font-body);font-weight:600;font-size:11px;color:#134914;white-space:nowrap">Match details</span>
+            </div>
+          </div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:8px 18px 18px;display:flex;flex-direction:column;gap:16px">
+          <!-- COURSE SUMMARY (chosen in step 1) -->
+          <div style="flex:none;background:#134914;border-radius:14px;padding:14px 15px;display:flex;align-items:flex-start;gap:12px;position:relative;overflow:hidden">
+            <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="flag" style="width:19px;height:19px;color:#FF914D"></i></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#fff;line-height:1.25">Sentosa Golf Club</div>
+              <div style="font-family:var(--font-body);font-size:12px;color:rgba(255,255,255,.72);line-height:1.45;margin-top:3px"><span style="font-family:var(--font-numeric)">18 holes</span> · Serapong · New 9 + Old 9</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;font-family:var(--font-body);font-weight:600;font-size:12px;color:#FFC79E;background:rgba(255,255,255,.1);border-radius:999px;padding:6px 11px;flex:none"><i data-lucide="pencil" style="width:13px;height:13px"></i>Change</div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-bottom:7px">Match name</div>
+            <div style="height:50px;background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;display:flex;align-items:center;padding:0 15px;font-family:var(--font-body);font-size:15px;color:#1C2B22">Sat Fourball</div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-bottom:7px">Match ID <span style="color:#8A958C;font-weight:400">· share to invite</span></div>
+            <div style="height:50px;background:#F0F6EE;border:1.5px dashed #AED4A9;border-radius:12px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 15px">
+              <span style="font-family:var(--font-numeric);font-weight:700;font-size:20px;letter-spacing:.12em;color:#134914">GK-7Q4D</span>
+              <div style="display:flex;gap:6px">
+                <div style="width:38px;height:38px;border-radius:9px;background:#fff;border:1px solid #AED4A9;display:flex;align-items:center;justify-content:center"><i data-lucide="copy" style="width:16px;height:16px;color:#134914"></i></div>
+                <div style="width:38px;height:38px;border-radius:9px;background:#134914;display:flex;align-items:center;justify-content:center"><i data-lucide="share-2" style="width:16px;height:16px;color:#fff"></i></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-bottom:7px">Number of golfers</div>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1;height:46px;border-radius:11px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#8A958C">1</div>
+              <div style="flex:1;height:46px;border-radius:11px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#8A958C">2</div>
+              <div style="flex:1;height:46px;border-radius:11px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#8A958C">3</div>
+              <div style="flex:1;height:46px;border-radius:11px;background:#134914;border:1.5px solid #134914;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#fff">4</div>
+              <div style="flex:1;height:46px;border-radius:11px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#8A958C">5</div>
+              <div style="flex:1;height:46px;border-radius:11px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#8A958C">6</div>
+            </div>
+          </div>
+          <!-- INVITE FRIENDS -->
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+              <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40">Invite friends</div>
+              <div style="font-family:var(--font-body);font-size:12px;color:#8A958C">or share Match ID</div>
+            </div>
+            <div style="height:44px;background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;display:flex;align-items:center;gap:9px;padding:0 13px;margin-bottom:8px">
+              <i data-lucide="search" style="width:16px;height:16px;color:#8A958C"></i>
+              <span style="font-family:var(--font-body);font-size:14px;color:#A89B7C">Search friends by name or @handle</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ inviteFriends }}" as="f" hint-placeholder-count="3">
+                <div style="background:#fff;border:1.5px solid {{ f.borderColor }};border-radius:12px;padding:8px 10px;display:flex;align-items:center;gap:10px">
+                  <div style="{{ f.avStyle }}">{{ f.initial }}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">{{ f.name }}</div>
+                    <div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP {{ f.h }}</div>
+                  </div>
+                  <div style="{{ f.btnStyle }}">{{ f.btnLabel }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px"><span style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40">Game mode</span><i data-lucide="info" style="width:14px;height:14px;color:#134914"></i></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="height:50px;border-radius:12px;background:#F0F6EE;border:1.5px solid #134914;display:flex;align-items:center;justify-content:space-between;padding:0 15px">
+                <span style="font-family:var(--font-body);font-weight:600;font-size:15px;color:#134914">Kaki Match Play</span>
+                <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#134914"></i>
+              </div>
+              <div style="display:flex;gap:8px">
+                <div style="flex:1;height:44px;border-radius:11px;background:#fff;border:1.5px solid #EFE8D5;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-body);font-size:13px;color:#B4BCB5">Stableford<span style="font-size:9px;background:#EFE8D5;color:#8A958C;padding:2px 6px;border-radius:6px;font-weight:600">SOON</span></div>
+                <div style="flex:1;height:44px;border-radius:11px;background:#fff;border:1.5px solid #EFE8D5;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-body);font-size:13px;color:#B4BCB5">Team<span style="font-size:9px;background:#EFE8D5;color:#8A958C;padding:2px 6px;border-radius:6px;font-weight:600">SOON</span></div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <div style="flex:1;height:44px;border-radius:11px;background:#fff;border:1.5px solid #EFE8D5;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-body);font-size:13px;color:#B4BCB5">Tournament<span style="font-size:9px;background:#EFE8D5;color:#8A958C;padding:2px 6px;border-radius:6px;font-weight:600">SOON</span></div>
+                <div style="flex:1;height:44px;border-radius:11px;background:#fff;border:1.5px solid #EFE8D5;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-body);font-size:13px;color:#B4BCB5">Baccarat<span style="font-size:9px;background:#EFE8D5;color:#8A958C;padding:2px 6px;border-radius:6px;font-weight:600">SOON</span></div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <div style="flex:1;height:44px;border-radius:11px;background:#fff;border:1.5px solid #EFE8D5;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-body);font-size:13px;color:#B4BCB5">System 36 Stableford<span style="font-size:9px;background:#EFE8D5;color:#8A958C;padding:2px 6px;border-radius:6px;font-weight:600">SOON</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:12px 18px 22px;background:linear-gradient(to top,var(--surface-page) 70%,transparent)">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px;box-shadow:0 6px 18px rgba(255,145,77,.4)"><i data-lucide="arrow-right" style="width:19px;height:19px"></i>Create &amp; open lobby</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 05b GAME MODE INFO ================= -->
+    <div style="flex:none">
+      <div class="lbl">05b · Game mode info</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="position:absolute;inset:0;background:#1C2B22;opacity:.45"></div>
+        <div style="position:absolute;inset:0;padding:18px 18px 0;opacity:.5;pointer-events:none">
+          <div style="font-family:var(--font-display);font-weight:700;font-size:20px;color:#1C2B22;margin-top:46px">Create a game</div>
+          <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-top:24px">Game mode</div>
+        </div>
+        <!-- bottom sheet -->
+        <div style="position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;box-shadow:0 -10px 40px rgba(14,58,40,.25);padding:8px 18px 26px;max-height:88%;display:flex;flex-direction:column">
+          <div style="width:38px;height:4px;border-radius:999px;background:#E3D9C0;margin:0 auto 14px;flex:none"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex:none">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#1C2B22">Game modes explained</div>
+            <div style="width:32px;height:32px;border-radius:50%;background:#F2EEE2;display:flex;align-items:center;justify-content:center"><i data-lucide="x" style="width:17px;height:17px;color:#5E6B62"></i></div>
+          </div>
+          <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;margin-bottom:12px;flex:none">How each format scores your round.</div>
+          <div style="overflow-y:auto;display:flex;flex-direction:column;gap:11px">
+            <sc-for list="{{ gameModes }}" as="m" hint-placeholder-count="6">
+              <div style="display:flex;gap:11px;align-items:flex-start">
+                <div style="{{ m.iconWrap }}"><i data-lucide="{{ m.icon }}" style="width:18px;height:18px"></i></div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:7px">
+                    <span style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">{{ m.name }}</span>
+                    <span style="{{ m.tagStyle }}">{{ m.tag }}</span>
+                  </div>
+                  <div style="font-family:var(--font-body);font-size:12px;color:#5E6B62;line-height:1.5;margin-top:2px">{{ m.desc }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 05 MATCH LOBBY ================= -->
+    <div style="flex:none">
+      <div class="lbl">06 · Match Lobby</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#fff;font-family:var(--font-numeric);font-size:13px;font-weight:600;background:#134914">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="background:#134914;color:#fff;padding:4px 18px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:9px"><i data-lucide="chevron-left" style="width:20px;height:20px;color:rgba(255,255,255,.8)"></i><div><div style="font-family:var(--font-display);font-weight:700;font-size:17px">Sat Fourball</div><div style="font-family:var(--font-body);font-size:11px;color:rgba(255,255,255,.6)">Sentosa · 18 holes · Match play</div></div></div>
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center"><i data-lucide="refresh-cw" style="width:16px;height:16px;color:#fff"></i></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;background:rgba(255,255,255,.08);border-radius:12px;padding:11px 14px">
+            <div><div style="font-family:var(--font-body);font-size:10px;letter-spacing:.1em;color:rgba(255,255,255,.55);text-transform:uppercase">Match ID</div><div style="font-family:var(--font-numeric);font-weight:700;font-size:19px;letter-spacing:.1em;color:#fff;margin-top:2px">GK-7Q4D</div></div>
+            <div style="display:inline-flex;align-items:center;gap:6px;background:#FF914D;color:#fff;font-family:var(--font-body);font-weight:600;font-size:13px;padding:8px 14px;border-radius:999px"><i data-lucide="copy" style="width:14px;height:14px"></i>Copy invite</div>
+          </div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:16px 18px 18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">Players · 3 of 4</div>
+            <div style="display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body);font-size:11px;color:#C75F1E"><span style="width:6px;height:6px;border-radius:50%;background:#FF914D;display:inline-block"></span>Waiting for 1 more</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:22px">
+            <div style="background:#fff;border:1.5px solid #AED4A9;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
+              <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#FFDCC2;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#C75F1E">W</div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Wei Liang <span style="font-size:10px;font-weight:700;color:#134914;background:#DFEEDC;padding:2px 7px;border-radius:6px;margin-left:4px">HOST</span></div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 7 · joined</div></div>
+              <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+            </div>
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
+              <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#DFEEDC;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#134914">M</div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Marcus</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 2 · joined</div></div>
+              <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+            </div>
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
+              <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#EFE8D5;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#5E6B62">D</div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Dinesh</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 16 · joined</div></div>
+              <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+            </div>
+            <div style="border:1.5px dashed #D8CDB4;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px;background:rgba(255,255,255,.4)">
+              <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#EFE8D5;display:flex;align-items:center;justify-content:center"><i data-lucide="user-plus" style="width:18px;height:18px;color:#A89B7C"></i></div>
+              <div style="flex:1;font-family:var(--font-body);font-size:13px;color:#A89B7C">Waiting for player to join…</div>
+              <div style="font-family:var(--font-body);font-weight:600;font-size:12px;color:#134914">Invite</div>
+            </div>
+          </div>
+
+          <!-- HANDICAPS & STROKES -->
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin-bottom:10px">Handicaps &amp; strokes</div>
+          <div style="background:#FFF9EC;border:1px solid #F0E0B0;border-radius:12px;padding:11px 13px;display:flex;gap:10px;margin-bottom:12px">
+            <i data-lucide="lightbulb" style="width:16px;height:16px;color:#C98A23;flex:none;margin-top:1px"></i>
+            <div style="font-family:var(--font-body);font-size:11px;color:#7A6320;line-height:1.55">
+              <b style="color:#E0742E">Get</b> — Opponent get strokes from you on the hardest holes<br>
+              <b style="color:#1E6E16">Give</b> — Opponent spot strokes to you on the hardest holes
+            </div>
+          </div>
+          <div style="margin-bottom:14px">
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-bottom:7px">Strokes set for</div>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1;height:46px;border-radius:11px;background:#134914;border:1.5px solid #134914;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:14px;color:#fff">9 holes</div>
+              <div style="flex:1;height:46px;border-radius:11px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:14px;color:#8A958C">18 holes</div>
+            </div>
+            <div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:7px">Strokes will be auto-adjusted after 9 holes, 1 stroke adjustment for every 2 holes win</div>
+          </div>
+          <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:2px 13px;margin-bottom:14px">
+            <sc-for list="{{ lobbyPlayers }}" as="p" hint-placeholder-count="3">
+              <div style="{{ p.blockStyle }}">
+                <div style="display:flex;align-items:center;gap:11px">
+                  <div style="{{ p.avStyle }}">{{ p.initial }}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">{{ p.name }}</div>
+                    <div style="font-family:var(--font-body);font-size:11px;color:#8A958C">{{ p.note }}</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #E3D9C0;border-radius:999px;padding:3px">
+                    <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center"><i data-lucide="minus" style="width:15px;height:15px;color:#8A958C"></i></div>
+                    <span style="font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#1C2B22;min-width:20px;text-align:center">{{ p.strokes }}</span>
+                    <div style="width:28px;height:28px;border-radius:50%;background:#F0F6EE;display:flex;align-items:center;justify-content:center"><i data-lucide="plus" style="width:15px;height:15px;color:#134914"></i></div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:9px;margin-top:9px;padding-left:45px">
+                  <span style="font-family:var(--font-body);font-size:11px;color:#8A958C">Strokes</span>
+                  <div style="display:flex;background:#EFE8D5;border-radius:999px;padding:3px">
+                    <div style="{{ p.getStyle }}">Get</div>
+                    <div style="{{ p.giveStyle }}">Give</div>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- STAKES -->
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin-bottom:10px">Stakes</div>
+          <div style="background:#FFEEE0;border:1px solid #FFDCC2;border-radius:14px;padding:13px 15px;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:9px"><i data-lucide="coffee" style="width:18px;height:18px;color:#C75F1E"></i><span style="font-family:var(--font-body);font-size:13px;color:#3A4A40">Per hole</span></div>
+            <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #FFDCC2;border-radius:999px;padding:5px 8px">
+              <i data-lucide="minus" style="width:16px;height:16px;color:#E0742E"></i>
+              <span style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#1C2B22">$2</span>
+              <i data-lucide="plus" style="width:16px;height:16px;color:#E0742E"></i>
+            </div>
+          </div>
+        </div>
+        <div style="padding:12px 18px 22px;background:linear-gradient(to top,var(--surface-page) 70%,transparent)">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px;box-shadow:0 6px 18px rgba(255,145,77,.4)"><i data-lucide="flag" style="width:19px;height:19px"></i>Start round</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 06 IN-GAME SCORECARD ================= -->
+    <div style="flex:none">
+      <div class="lbl">07 · In-game · Scorecard</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#fff;font-family:var(--font-numeric);font-size:13px;font-weight:600;background:#134914">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="background:#134914;color:#fff;padding:4px 18px 16px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:9px"><i data-lucide="chevron-left" style="width:20px;height:20px;color:rgba(255,255,255,.8)"></i><div><div style="font-family:var(--font-display);font-weight:700;font-size:17px">Sat Fourball</div><div style="font-family:var(--font-body);font-size:11px;color:rgba(255,255,255,.6)">Serapong · Match play</div></div></div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:11px;color:#FFC79E;background:rgba(255,255,255,.1);padding:5px 10px;border-radius:999px"><span style="width:6px;height:6px;border-radius:50%;background:#FF914D;display:inline-block"></span>LIVE</div>
+              <div onClick="{{ refresh }}" style="{{ refreshBtnStyle }}">{{ refreshIcon }}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;background:rgba(255,255,255,.08);border-radius:14px;padding:12px 14px">
+            <div>
+              <div style="font-family:var(--font-display);font-weight:700;font-size:22px;line-height:1">Hole {{ curHole }}</div>
+              <div style="font-family:var(--font-body);font-size:12px;color:rgba(255,255,255,.65);margin-top:3px">Par {{ curPar }} · SI {{ curSi }} · your card</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+              <div onClick="{{ dec }}" style="width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="minus" style="width:20px;height:20px;color:#fff"></i></div>
+              <div style="font-family:var(--font-numeric);font-weight:700;font-size:34px;min-width:34px;text-align:center">{{ youScore }}</div>
+              <div onClick="{{ inc }}" style="width:42px;height:42px;border-radius:50%;background:#FF914D;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 10px rgba(255,145,77,.5)"><i data-lucide="plus" style="width:20px;height:20px;color:#fff"></i></div>
+            </div>
+          </div>
+          <div onClick="{{ save }}" style="{{ saveBtnStyle }}"><i data-lucide="{{ saveIcon }}" style="width:17px;height:17px"></i>{{ saveLabel }}</div>
+        </div>
+
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:14px 14px 18px">
+          <div style="overflow-x:auto;overflow-y:hidden">
+          <div style="{{ headerRowStyle }}">
+            <div style="{{ hHStyle }}">H</div>
+            <div style="{{ hParStyle }}">Par</div>
+            <div style="{{ hSiStyle }}">SI</div>
+            <sc-for list="{{ headerCells }}" as="hc" hint-placeholder-count="3">
+              <div style="{{ hc.style }}">{{ hc.label }}</div>
+            </sc-for>
+          </div>
+          <sc-for list="{{ rows }}" as="row" hint-placeholder-count="9">
+            <div style="{{ row.rowStyle }}">
+              <div style="{{ row.numStyle }}">{{ row.n }}</div>
+              <div style="{{ row.metaStylePar }}">{{ row.par }}</div>
+              <div style="{{ row.metaStyleSi }}">{{ row.si }}</div>
+              <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="3">
+                <div style="{{ cell.style }}">{{ cell.flag }}{{ cell.val }}</div>
+              </sc-for>
+            </div>
+          </sc-for>
+          <sc-for list="{{ summaryRows }}" as="srow" hint-placeholder-count="2">
+            <div style="{{ srow.rowStyle }}">
+              <div style="{{ srow.labelStyle }}">{{ srow.label }}</div>
+              <sc-for list="{{ srow.cells }}" as="scell" hint-placeholder-count="3">
+                <div style="{{ scell.style }}">{{ scell.val }}</div>
+              </sc-for>
+            </div>
+          </sc-for>
+          </div>
+          <div style="display:flex;background:#EFE8D5;border-radius:999px;padding:3px;margin-top:14px">
+            <div onClick="{{ showFront }}" style="{{ frontStyle }}">Front 9</div>
+            <div onClick="{{ showBack }}" style="{{ backStyle }}">Back 9</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px;margin-top:14px;padding:0 4px;font-family:var(--font-body);font-size:11px;color:#8A958C">
+            <div style="display:flex;align-items:center;gap:16px">
+              <span style="display:inline-flex;align-items:center;gap:5px">{{ flagGiven }}stroke given</span>
+              <span style="display:inline-flex;align-items:center;gap:5px">{{ flagRecvd }}stroke received</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px">
+              <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:rgba(46,138,76,.18);display:inline-block"></span>you win</span>
+              <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:rgba(224,116,46,.18);display:inline-block"></span>you lose</span>
+              <span style="display:inline-flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:3px;background:rgba(120,130,124,.16);display:inline-block"></span>halved</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;border-top:1px solid #E3D9C0;background:#fff;padding:8px 0 14px">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#134914"><i data-lucide="list" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:600">Scorecard</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="trophy" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Leaderboard</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="users" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Lobby</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="circle-check-big" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Finish</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 07 LEADERBOARD ================= -->
+    <div style="flex:none">
+      <div class="lbl">08 · In-game · Leaderboard</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#fff;font-family:var(--font-numeric);font-size:13px;font-weight:600;background:#134914">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="background:#134914;color:#fff;padding:4px 18px 18px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:9px"><i data-lucide="chevron-left" style="width:20px;height:20px;color:rgba(255,255,255,.8)"></i><div style="font-family:var(--font-display);font-weight:700;font-size:18px">Leaderboard</div></div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:11px;color:#FFC79E;background:rgba(255,255,255,.1);padding:6px 10px;border-radius:999px"><span style="width:6px;height:6px;border-radius:50%;background:#FF914D;display:inline-block"></span>THRU {{ thru }}</div>
+              <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center"><i data-lucide="refresh-cw" style="width:16px;height:16px;color:#fff"></i></div>
+            </div>
+          </div>
+          <div style="font-family:var(--font-body);font-size:11px;color:rgba(255,255,255,.55);margin-top:8px;display:flex;align-items:center;gap:5px"><i data-lucide="circle-dot" style="width:11px;height:11px;color:#7FE0A6"></i>Live · updated just now · pull to refresh</div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:18px 18px 18px">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:14px">
+            <i data-lucide="swords" style="width:15px;height:15px;color:#134914"></i>
+            <span style="font-family:var(--font-body);font-size:12px;color:#5E6B62">Standings counted for</span>
+            <span style="font-family:var(--font-body);font-weight:700;font-size:12px;color:#134914;background:#F0F6EE;border:1px solid #AED4A9;padding:3px 10px;border-radius:999px">Kaki Match Play</span>
+          </div>
+          <sc-for list="{{ lb }}" as="r" hint-placeholder-count="3">
+            <div style="{{ r.rowStyle }}">
+              <div style="{{ r.rankStyle }}">
+                <sc-if value="{{ r.isLeader }}" hint-placeholder-val="{{ false }}"><i data-lucide="crown" style="width:20px;height:20px;color:#8A6A12"></i></sc-if>
+                <sc-if value="{{ r.notLeader }}" hint-placeholder-val="{{ true }}">{{ r.rank }}</sc-if>
+              </div>
+              <div style="{{ r.avStyle }}">{{ r.initial }}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#1C2B22">{{ r.nameLabel }}</div>
+                <div style="font-family:var(--font-body);font-size:11px;color:{{ r.subColor }}">{{ r.subLabel }}</div>
+              </div>
+              <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end">
+                <div style="{{ r.upStyle }}">{{ r.upLabel }}</div>
+                <sc-if value="{{ r.isLeader }}" hint-placeholder-val="{{ false }}"><div style="font-family:var(--font-body);font-weight:700;font-size:9px;letter-spacing:.12em;color:#8A6A12;text-transform:uppercase;margin-top:2px">Leader</div></sc-if>
+              </div>
+              <i data-lucide="chevron-down" style="width:16px;height:16px;color:#B4BCB5;margin-left:2px"></i>
+            </div>
+          </sc-for>
+
+          <div style="margin-top:18px;background:#FFEEE0;border:1px solid #FFDCC2;border-radius:14px;padding:14px 16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:700;font-size:14px;color:#C75F1E"><i data-lucide="coffee" style="width:16px;height:16px"></i>Stakes</div>
+              <div style="font-family:var(--font-body);font-size:11px;color:#C75F1E">set in lobby</div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-family:var(--font-body);font-size:13px;color:#3A4A40">Teh tarik plus your ego</span>
+              <span style="font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#1C2B22;background:#fff;border:1px solid #FFDCC2;border-radius:999px;padding:6px 14px">$2 / hole</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;border-top:1px solid #E3D9C0;background:#fff;padding:8px 0 14px">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="list" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Scorecard</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#134914"><i data-lucide="trophy" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:600">Leaderboard</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="users" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Lobby</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="circle-check-big" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Finish</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 08 LEADERBOARD EXPANDED ================= -->
+    <div style="flex:none">
+      <div class="lbl">09 · Leaderboard · Row expanded</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#fff;font-family:var(--font-numeric);font-size:13px;font-weight:600;background:#134914">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="background:#134914;color:#fff;padding:4px 18px 18px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:9px"><i data-lucide="chevron-left" style="width:20px;height:20px;color:rgba(255,255,255,.8)"></i><div style="font-family:var(--font-display);font-weight:700;font-size:18px">Leaderboard</div></div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:11px;color:#FFC79E;background:rgba(255,255,255,.1);padding:6px 10px;border-radius:999px"><span style="width:6px;height:6px;border-radius:50%;background:#FF914D;display:inline-block"></span>THRU {{ thru }}</div>
+              <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center"><i data-lucide="refresh-cw" style="width:16px;height:16px;color:#fff"></i></div>
+            </div>
+          </div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:18px 18px 18px">
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:14px">
+            <i data-lucide="swords" style="width:15px;height:15px;color:#134914"></i>
+            <span style="font-family:var(--font-body);font-size:12px;color:#5E6B62">Standings counted for</span>
+            <span style="font-family:var(--font-body);font-weight:700;font-size:12px;color:#134914;background:#F0F6EE;border:1px solid #AED4A9;padding:3px 10px;border-radius:999px">Kaki Match Play</span>
+          </div>
+          <sc-for list="{{ lb }}" as="r" hint-placeholder-count="3">
+            <div style="{{ r.rowStyleExp }}">
+              <div style="{{ r.rankStyle }}">
+                <sc-if value="{{ r.isLeader }}" hint-placeholder-val="{{ false }}"><i data-lucide="crown" style="width:20px;height:20px;color:#8A6A12"></i></sc-if>
+                <sc-if value="{{ r.notLeader }}" hint-placeholder-val="{{ true }}">{{ r.rank }}</sc-if>
+              </div>
+              <div style="{{ r.avStyle }}">{{ r.initial }}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#1C2B22">{{ r.nameLabel }}</div>
+                <div style="font-family:var(--font-body);font-size:11px;color:{{ r.subColor }}">{{ r.subLabel }}</div>
+              </div>
+              <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end"><div style="{{ r.upStyle }}">{{ r.upLabel }}</div></div>
+              <i data-lucide="{{ r.chevron }}" style="width:16px;height:16px;color:#B4BCB5;margin-left:4px"></i>
+            </div>
+            <sc-if value="{{ r.isViewer }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff;border:1px solid #AED4A9;border-top:none;border-radius:0 0 14px 14px;margin:-9px 0 9px;padding:14px 14px 13px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                  <div style="font-family:var(--font-body);font-weight:600;font-size:10px;letter-spacing:.08em;color:#5E6B62;text-transform:uppercase">Match status · thru {{ curHole }}</div>
+                  <div style="{{ matchTotalStyle }}">{{ matchTotalLabel }}</div>
+                </div>
+                <div style="display:flex;gap:5px;overflow-x:auto;padding-bottom:2px">
+                  <sc-for list="{{ matchTrack }}" as="c" hint-placeholder-count="9">
+                    <div style="flex:none;width:30px;text-align:center">
+                      <div style="font-family:var(--font-numeric);font-size:10px;color:#8A958C;margin-bottom:4px">{{ c.n }}</div>
+                      <div style="{{ c.chipStyle }}">{{ c.label }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="font-family:var(--font-body);font-size:10px;color:#8A958C;border-top:1px solid #EFE8D5;padding-top:9px;margin-top:8px">Net holes vs all opponents · <b style="color:#1E8A4C">&uarr;</b> you're up · <b style="color:#C0492A">&darr;</b> you're down · AS all square</div>
+              </div>
+            </sc-if>
+          </sc-for>
+        </div>
+        <div style="display:flex;border-top:1px solid #E3D9C0;background:#fff;padding:8px 0 14px">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="list" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Scorecard</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#134914"><i data-lucide="trophy" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:600">Leaderboard</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="users" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Lobby</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="circle-check-big" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Finish</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 10 IN-GAME FINISH ================= -->
+    <div style="flex:none">
+      <div class="lbl">10 · In-game · Finish</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#fff;font-family:var(--font-numeric);font-size:13px;font-weight:600;background:#134914">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="background:#134914;color:#fff;padding:4px 18px 18px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:9px"><i data-lucide="chevron-left" style="width:20px;height:20px;color:rgba(255,255,255,.8)"></i><div><div style="font-family:var(--font-display);font-weight:700;font-size:17px">Finish round</div><div style="font-family:var(--font-body);font-size:11px;color:rgba(255,255,255,.6)">Sat Fourball · Serapong</div></div></div>
+            <div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:11px;color:#7FE0A6;background:rgba(255,255,255,.1);padding:5px 10px;border-radius:999px"><i data-lucide="check" style="width:12px;height:12px"></i>18 holes in</div>
+          </div>
+          <div style="margin-top:14px;background:rgba(255,255,255,.08);border-radius:14px;padding:14px 15px;position:relative;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:44px;height:44px;border-radius:12px;background:#FF914D;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 4px 12px rgba(255,145,77,.45)"><i data-lucide="trophy" style="width:22px;height:22px;color:#fff"></i></div>
+              <div style="flex:1">
+                <div style="font-family:var(--font-body);font-weight:600;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.55)">Match play result</div>
+                <div style="font-family:var(--font-display);font-weight:700;font-size:20px;line-height:1.15;margin-top:2px">You won the match</div>
+                <div style="font-family:var(--font-body);font-size:12px;color:rgba(255,255,255,.7);margin-top:1px">Closed out 3 &amp; 2 — nice finish.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:16px 18px 14px">
+          <!-- confirm scores -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">Confirm scores</div>
+            <div style="display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body);font-size:11px;color:#C75F1E"><span style="width:6px;height:6px;border-radius:50%;background:#FF914D;display:inline-block"></span>3 of 4 confirmed</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px">
+            <div style="background:#fff;border:1.5px solid #AED4A9;border-radius:14px;padding:10px 13px;display:flex;align-items:center;gap:11px">
+              <div style="width:36px;height:36px;border-radius:50%;flex:none;background:#DFEEDC;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;color:#134914">WL</div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Wei Liang <span style="font-size:12px;color:#1E8A4C;font-weight:600">(You)</span></div><div style="font-family:var(--font-body);font-size:11px;color:#1E6E16">Card confirmed · 88 gross</div></div>
+              <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+            </div>
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:10px 13px;display:flex;align-items:center;gap:11px">
+              <div style="width:36px;height:36px;border-radius:50%;flex:none;background:#E8F0E6;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;color:#1E6E16">M</div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Marcus</div><div style="font-family:var(--font-body);font-size:11px;color:#1E6E16">Card confirmed · 79 gross</div></div>
+              <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+            </div>
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:10px 13px;display:flex;align-items:center;gap:11px">
+              <div style="width:36px;height:36px;border-radius:50%;flex:none;background:#F3E0E8;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;color:#9C4A6E">J</div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Jia Hui</div><div style="font-family:var(--font-body);font-size:11px;color:#1E6E16">Card confirmed · 91 gross</div></div>
+              <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+            </div>
+            <div style="background:#FFF9EC;border:1.5px solid #F0E0B0;border-radius:14px;padding:10px 13px;display:flex;align-items:center;gap:11px">
+              <div style="width:36px;height:36px;border-radius:50%;flex:none;background:#EFE8D5;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;color:#5E6B62">D</div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Dinesh</div><div style="font-family:var(--font-body);font-size:11px;color:#C98A23">Waiting to confirm card</div></div>
+              <div style="font-family:var(--font-body);font-weight:600;font-size:12px;color:#fff;background:#FF914D;padding:7px 13px;border-radius:999px">Remind</div>
+            </div>
+          </div>
+
+          <!-- settlement -->
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin-bottom:10px">Settlement</div>
+          <div style="background:#FFF3E9;border:1px solid #FFDCC2;border-radius:16px;padding:13px 15px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:11px;border-bottom:1px solid #FFE3CB">
+              <div style="display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:700;font-size:14px;color:#C75F1E"><i data-lucide="coffee" style="width:16px;height:16px"></i>Teh tarik stakes</div>
+              <div style="font-family:var(--font-body);font-size:11px;color:#9A6B3E">$2 / hole</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:9px;padding:12px 0 2px">
+              <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-family:var(--font-body);font-size:13px;color:#3A4A40">Wei Liang <span style="color:#9A6B3E">(You)</span></span><span style="font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#1E6E16">+$18</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-family:var(--font-body);font-size:13px;color:#3A4A40">Marcus</span><span style="font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#1E6E16">+$4</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-family:var(--font-body);font-size:13px;color:#3A4A40">Jia Hui</span><span style="font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#C0492A">−$2</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-family:var(--font-body);font-size:13px;color:#3A4A40">Dinesh</span><span style="font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#C0492A">−$20</span></div>
+            </div>
+            <div style="margin-top:11px;display:flex;align-items:center;gap:8px;background:#fff;border-radius:10px;padding:9px 12px;font-family:var(--font-body);font-size:12px;color:#C75F1E"><i data-lucide="party-popper" style="width:15px;height:15px"></i>Dinesh buys the teh tarik.</div>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:7px;margin-top:14px;padding:0 2px;font-family:var(--font-body);font-size:11px;color:#8A958C;line-height:1.5"><i data-lucide="lock" style="width:13px;height:13px;flex:none;margin-top:1px"></i>Once finished, scores lock and the round moves to your history.</div>
+        </div>
+        <div style="padding:12px 18px 10px;background:linear-gradient(to top,var(--surface-page) 70%,transparent)">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:54px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:16px;box-shadow:0 6px 18px rgba(255,145,77,.4)"><i data-lucide="flag" style="width:18px;height:18px"></i>Finish &amp; save round</div>
+        </div>
+        <div style="display:flex;border-top:1px solid #E3D9C0;background:#fff;padding:8px 0 14px">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="list" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Scorecard</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="trophy" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Leaderboard</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="users" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Lobby</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#134914"><i data-lucide="circle-check-big" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:600">Finish</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 09 PAST GAME DETAIL ================= -->
+    <div style="flex:none">
+      <div class="lbl">11 · Past game · Recap</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#fff;font-family:var(--font-numeric);font-size:13px;font-weight:600;background:#134914">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+
+        <!-- hero -->
+        <div style="background:#134914;color:#fff;padding:6px 18px 22px;position:relative;overflow:hidden">
+          <div style="position:absolute;right:-40px;top:-30px;width:200px;height:200px;border-radius:50%;border:2px solid rgba(255,255,255,.06)"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2">
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="chevron-left" style="width:20px;height:20px;color:#fff"></i></div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:rgba(255,255,255,.85)">Past game</div>
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="share-2" style="width:16px;height:16px;color:#fff"></i></div>
+          </div>
+          <div style="position:relative;z-index:2;margin-top:16px">
+            <div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:700;font-size:10px;letter-spacing:.14em;color:#FFC79E;text-transform:uppercase">Skins · 18 holes</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:27px;line-height:1.1;margin-top:5px">Friday Skins</div>
+            <div style="display:flex;align-items:center;gap:6px;font-family:var(--font-body);font-size:13px;color:rgba(255,255,255,.72);margin-top:6px"><i data-lucide="map-pin" style="width:14px;height:14px"></i>Tanah Merah · 14 Jun 2026</div>
+          </div>
+          <div style="display:flex;align-items:stretch;gap:0;margin-top:18px;background:rgba(255,255,255,.08);border-radius:14px;padding:12px 4px;position:relative;z-index:2">
+            <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:24px;line-height:1">88</div><div style="font-family:var(--font-body);font-size:10px;color:rgba(255,255,255,.6);margin-top:3px">Gross</div></div>
+            <div style="flex:1;text-align:center;border-left:1px solid rgba(255,255,255,.14);border-right:1px solid rgba(255,255,255,.14)"><div style="font-family:var(--font-numeric);font-weight:700;font-size:24px;line-height:1">81</div><div style="font-family:var(--font-body);font-size:10px;color:rgba(255,255,255,.6);margin-top:3px">Nett</div></div>
+            <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:24px;line-height:1;color:#FFC79E">+16</div><div style="font-family:var(--font-body);font-size:10px;color:rgba(255,255,255,.6);margin-top:3px">To par</div></div>
+          </div>
+        </div>
+
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:14px 18px 22px">
+          <!-- winnings -->
+          <div style="display:flex;align-items:center;gap:12px;background:#FFF3E9;border:1px solid #FFDCC2;border-radius:16px;padding:13px 15px">
+            <div style="width:42px;height:42px;border-radius:12px;background:#FF914D;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 4px 12px rgba(255,145,77,.4)"><i data-lucide="trophy" style="width:21px;height:21px;color:#fff"></i></div>
+            <div style="flex:1">
+              <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:#1C2B22">You won the day</div>
+              <div style="font-family:var(--font-body);font-size:12px;color:#9A6B3E;margin-top:1px">7 skins · up <b style="color:#C75F1E">$18</b> — Dinesh buys the teh tarik</div>
+            </div>
+          </div>
+
+          <!-- final standings -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 10px">
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">Final standings</div>
+            <div style="display:flex;gap:4px;background:#EFE8D5;border-radius:999px;padding:3px">
+              <div style="font-family:var(--font-body);font-weight:600;font-size:11px;color:#fff;background:#134914;border-radius:999px;padding:4px 11px">Match play</div>
+              <div style="font-family:var(--font-body);font-weight:600;font-size:11px;color:#8A958C;padding:4px 11px;cursor:pointer">Skins</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #AED4A9;border-radius:14px;padding:11px 13px">
+              <div style="width:22px;font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#C98A23;text-align:center">1</div>
+              <div style="width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#DFEEDC;color:#134914">WL</div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Wei Liang <span style="color:#1E8A4C;font-size:12px">(You)</span></div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">7 skins · 88 gross</div></div>
+              <div style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#1E6E16">+$18</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px">
+              <div style="width:22px;font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#B4BCB5;text-align:center">2</div>
+              <div style="width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#E8F0E6;color:#1E6E16">M</div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Marcus</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">5 skins · 79 gross</div></div>
+              <div style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#1E6E16">+$4</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px">
+              <div style="width:22px;font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#B4BCB5;text-align:center">3</div>
+              <div style="width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#F3E0E8;color:#9C4A6E">J</div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Jia Hui</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">4 skins · 91 gross</div></div>
+              <div style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#C0492A">−$2</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px">
+              <div style="width:22px;font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#B4BCB5;text-align:center">4</div>
+              <div style="width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#EFE8D5;color:#5E6B62">D</div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Dinesh</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">2 skins · 96 gross</div></div>
+              <div style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#C0492A">−$20</div>
+            </div>
+          </div>
+
+          <!-- your round -->
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin:20px 0 10px">Your round</div>
+          <div style="background:#fff;border:1px solid #EFE8D5;border-radius:16px;padding:14px 15px">
+            <div style="display:flex;align-items:stretch">
+              <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#1C2B22">43</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:2px">Out</div></div>
+              <div style="flex:1;text-align:center;border-left:1px solid #EFE8D5;border-right:1px solid #EFE8D5"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#1C2B22">45</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:2px">In</div></div>
+              <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#134914">88</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:2px">Total</div></div>
+            </div>
+            <div style="display:flex;gap:7px;margin-top:14px;border-top:1px solid #EFE8D5;padding-top:13px">
+              <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#E0742E">2</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:1px">Birdies</div></div>
+              <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#1E6E16">7</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:1px">Pars</div></div>
+              <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#5A7184">6</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:1px">Bogeys</div></div>
+              <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#C0492A">3</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:1px">Double+</div></div>
+            </div>
+          </div>
+
+          <!-- full scorecard -->
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin:20px 0 10px">Scorecard</div>
+          <div style="background:#fff;border:1px solid #EFE8D5;border-radius:16px;overflow:hidden">
+            <div style="display:flex;align-items:center;background:#F4F1E8;padding:9px 10px;border-bottom:1px solid #EAE3D2">
+              <div style="width:26px;text-align:center;font-family:var(--font-body);font-weight:700;font-size:10px;color:#8A958C">H</div>
+              <div style="width:30px;text-align:center;font-family:var(--font-body);font-weight:700;font-size:10px;color:#8A958C">Par</div>
+              <sc-for list="{{ recapHeaderCols }}" as="c" hint-placeholder-count="4">
+                <div style="flex:1;min-width:46px"><div style="{{ c.avStyle }}">{{ c.label }}</div></div>
+              </sc-for>
+            </div>
+            <div style="padding:2px 10px 0">
+              <sc-for list="{{ recapRows }}" as="r" hint-placeholder-count="18">
+                <div style="{{ r.rowStyle }}">
+                  <div style="width:26px;text-align:center;font-family:var(--font-numeric);font-weight:600;font-size:12px;color:#1C2B22">{{ r.n }}</div>
+                  <div style="width:30px;text-align:center;font-family:var(--font-numeric);font-size:12px;color:#8A958C">{{ r.par }}</div>
+                  <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="4">
+                    <div style="{{ c.style }}">{{ c.mark }}<span style="position:relative;z-index:1">{{ c.val }}</span></div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+            <sc-for list="{{ recapSummary }}" as="s" hint-placeholder-count="3">
+              <div style="{{ s.rowStyle }}">
+                <div style="{{ s.labelStyle }}">{{ s.label }}</div>
+                <sc-for list="{{ s.cells }}" as="c" hint-placeholder-count="4">
+                  <div style="{{ c.style }}">{{ c.val }}</div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px 14px;flex-wrap:wrap;margin-top:11px;padding:0 2px;font-family:var(--font-body);font-size:10px;color:#8A958C">
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:13px;height:13px;border:1.5px solid #E0742E;border-radius:50%;display:inline-block;box-sizing:border-box"></span>birdie</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:14px;border:1.5px solid #C98A23;border-radius:50%;box-shadow:inset 0 0 0 1.5px #fff,inset 0 0 0 3px #C98A23;display:inline-block;box-sizing:border-box"></span>eagle</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:13px;height:13px;border:1.5px solid #5A7184;border-radius:3px;display:inline-block;box-sizing:border-box"></span>bogey</span>
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:14px;border:1.5px solid #C0492A;border-radius:3px;box-shadow:inset 0 0 0 1.5px #fff,inset 0 0 0 3px #C0492A;display:inline-block;box-sizing:border-box"></span>double+</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;currentHole&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:6,&quot;min&quot;:1,&quot;max&quot;:18,&quot;tsType&quot;:&quot;number&quot;},&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;B&quot;,&quot;options&quot;:[&quot;A&quot;,&quot;B&quot;,&quot;C&quot;],&quot;tsType&quot;:&quot;'A'|'B'|'C'&quot;}}">
+class Component extends DCLogic {
+  state = { entry: null, saved: false, nine: null, refreshing: false };
+
+  setNine(n) { this.setState({ nine: n }); }
+
+  doRefresh() {
+    if (this.state.refreshing) return;
+    this.setState({ refreshing: true });
+    clearTimeout(this._refreshT);
+    this._refreshT = setTimeout(() => this.setState({ refreshing: false }), 900);
+  }
+
+  componentDidMount() {
+    this._iv = setInterval(() => { if (window.lucide) window.lucide.createIcons(); }, 150);
+    setTimeout(() => clearInterval(this._iv), 4000);
+  }
+  componentDidUpdate() { if (window.lucide) window.lucide.createIcons(); }
+  componentWillUnmount() { clearInterval(this._iv); }
+
+  money(v) { return v > 0 ? ('+$' + v) : (v < 0 ? ('-$' + Math.abs(v)) : '$0'); }
+
+  renderVals() {
+    const players = [
+      { k: 'A', n: 'Marcus', h: 2 },
+      { k: 'B', n: 'Wei Liang', h: 7 },
+      { k: 'C', n: 'Dinesh', h: 16 },
+    ];
+    const byK = {}; players.forEach((p) => { byK[p.k] = p; });
+    const holes = [
+      { n: 1, par: 4, si: 5 }, { n: 2, par: 5, si: 11 }, { n: 3, par: 3, si: 17 },
+      { n: 4, par: 4, si: 1 }, { n: 5, par: 4, si: 7 }, { n: 6, par: 5, si: 3 },
+      { n: 7, par: 3, si: 15 }, { n: 8, par: 4, si: 9 }, { n: 9, par: 4, si: 13 },
+      { n: 10, par: 4, si: 6 }, { n: 11, par: 4, si: 12 }, { n: 12, par: 3, si: 18 },
+      { n: 13, par: 5, si: 2 }, { n: 14, par: 4, si: 8 }, { n: 15, par: 4, si: 4 },
+      { n: 16, par: 3, si: 16 }, { n: 17, par: 5, si: 10 }, { n: 18, par: 4, si: 14 },
+    ];
+    const gross = {
+      A: [4, 5, 2, 4, 4, 6, 3, 5, 4,  4, 5, 3, 5, 4, 4, 3, 5, 4],
+      B: [5, 6, 3, 5, 4, 5, 4, 4, 5,  5, 4, 4, 6, 5, 4, 3, 6, 5],
+      C: [6, 7, 4, 5, 6, 7, 4, 6, 5,  5, 5, 4, 6, 5, 5, 4, 6, 5],
+    };
+    const stake = 2;
+    const avBg = { A: '#DFEEDC', B: '#FFDCC2', C: '#EFE8D5' };
+    const avFg = { A: '#134914', B: '#C75F1E', C: '#5E6B62' };
+    const firstName = (n) => n.split(' ')[0];
+
+    const view = (['A', 'B', 'C'].includes(this.props.view) ? this.props.view : 'B');
+    const current = Math.min(18, Math.max(1, this.props.currentHole != null ? this.props.currentHole : 6));
+    const viewer = byK[view];
+
+    // which nine is shown — auto-follows play onto the back nine past hole 9,
+    // until the player manually picks a nine
+    const nine = this.state.nine || (current > 9 ? 'back' : 'front');
+    const displayHoles = nine === 'back' ? holes.slice(9, 18) : holes.slice(0, 9);
+
+    // live entry override for the viewer's current hole
+    if (this.state.entry != null) {
+      gross[view] = gross[view].slice();
+      gross[view][current - 1] = this.state.entry;
+    }
+
+    // strokes received relative to lowest handicap (for nett / money)
+    const lowest = Math.min.apply(null, players.map((p) => p.h));
+    const recvLow = (p, si) => (si <= (p.h - lowest) ? 1 : 0);
+    const nett = (k, i) => gross[k][i] - recvLow(byK[k], holes[i].si);
+
+    // ---- SCORECARD GRID ----
+    // flags relative to the viewer: orange = viewer gives, green = viewer receives
+    // Manually set strokes per opponent (demo values matching lobby setup)
+    // dir:'recv' = opponent gives to viewer (green flag in their col)
+    // dir:'give' = viewer gives to opponent (orange flag in their col)
+    const manualStrokes = {
+      A: { dir: 'recv', amount: 5 },  // Marcus gives viewer 5
+      C: { dir: 'give', amount: 9 },  // viewer gives Dinesh 9
+    };
+    // rank the holes being played by stroke index (1 = hardest) so strokes are
+    // allocated to the lowest-index holes among those shown
+    // Strokes are set for the FRONT 9 only — rank just the front-nine holes by
+    // stroke index. The back 9 carries no preset flags (it adjusts in play, one
+    // stroke per 2 holes won/lost once the front 9 is complete).
+    const siRank = {};
+    holes.slice(0, 9).map((h) => ({ n: h.n, si: h.si })).sort((a, b) => a.si - b.si)
+      .forEach((h, r) => { siRank[h.n] = r + 1; });
+    // Player columns flex to fill up to 4 players; beyond that they hold a min
+    // width and the player area scrolls horizontally (H/Par/SI stay frozen).
+    const needsScroll = players.length > 4;
+    const colW = needsScroll ? 'flex:none;width:64px;' : 'flex:1;min-width:0;';
+    const rowW = needsScroll ? 'width:max-content;' : '';
+    const cellStyle = (isYou, isCur, played, resultBg) => {
+      const fs = isCur ? 18 : 14;
+      const fw = isCur ? 700 : (isYou ? 600 : 500);
+      let col = '#B4BCB5';
+      if (played) col = isYou ? '#1C2B22' : '#3A4A40';
+      const bg = resultBg || (isYou ? 'rgba(240,246,238,.7)' : 'transparent');
+      return colW + 'position:relative;display:flex;align-items:center;justify-content:center;'
+        + 'font-family:var(--font-numeric);font-variant-numeric:tabular-nums;'
+        + 'font-size:' + fs + 'px;font-weight:' + fw + ';color:' + col + ';'
+        + 'background:' + bg + ';';
+    };
+    // Flags rendered as React-controlled inline SVG (not lucide <i>) so the grid
+    // survives re-render when the Front/Back nine toggle flips.
+    const flagEl = (color, style) => React.createElement('svg', {
+      viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2.5,
+      strokeLinecap: 'round', strokeLinejoin: 'round', style,
+    }, React.createElement('path', { key: 'p', d: 'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z' }),
+       React.createElement('line', { key: 'l', x1: 4, x2: 4, y1: 22, y2: 15 }));
+    const cellFlagStyle = { position: 'absolute', top: '3px', right: '5px', width: '9px', height: '9px' };
+    const flagGiven = flagEl('#E0742E', { width: '11px', height: '11px', flex: 'none' });
+    const flagRecvd = flagEl('#1E8A4C', { width: '11px', height: '11px', flex: 'none' });
+    // Classic scorecard notation: circle = birdie, double circle = eagle+,
+    // square = bogey, double square = double bogey+. Par = no mark.
+    const notationEl = (g, par, isCur) => {
+      const d = g - par;
+      if (d === 0) return null;
+      const under = d < 0;
+      const dbl = Math.abs(d) >= 2;
+      const sz = isCur ? 25 : 19;
+      let color;
+      if (d <= -2) color = '#C98A23';        // eagle+ — gold
+      else if (d === -1) color = '#E0742E';  // birdie — orange
+      else if (d === 1) color = '#5A7184';   // bogey — slate
+      else color = '#C0492A';                // double bogey+ — red
+      const ring = (extra, rad) => React.createElement('div', {
+        key: 'r' + extra, style: {
+          position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
+          width: (sz + extra) + 'px', height: (sz + extra) + 'px',
+          border: '1.5px solid ' + color, borderRadius: rad, pointerEvents: 'none', boxSizing: 'border-box',
+        },
+      });
+      return dbl
+        ? React.createElement(React.Fragment, null, ring(0, under ? '50%' : '4px'), ring(6, under ? '50%' : '6px'))
+        : ring(0, under ? '50%' : '4px');
+    };
+    const rows = displayHoles.map((ho) => {
+      const i = ho.n - 1; // absolute index into the 18-hole gross arrays
+      const isCur = ho.n === current;
+      const played = ho.n <= current;
+      const cells = players.map((p) => {
+        const isYou = p.k === view;
+        let give = false, recv = false;
+        const ms = manualStrokes[p.k];
+        if (isYou) {
+          // viewer's own column: no flags — strokes are shown in the opponents' columns
+        } else if (ms && ho.n <= 9) {
+          // opponent column (front 9 only): green = they give, orange = viewer gives
+          if (ms.dir === 'recv') recv = siRank[ho.n] <= ms.amount;
+          if (ms.dir === 'give') give = siRank[ho.n] <= ms.amount;
+        }
+        let flag = null;
+        if (give) flag = flagEl('#E0742E', cellFlagStyle);
+        else if (recv) flag = flagEl('#1E8A4C', cellFlagStyle);
+        // Match-play result vs the viewer on this hole (opponent cells, played only):
+        // green = viewer wins the hole, orange = viewer loses, grey = halved.
+        let resultBg = null;
+        if (!isYou && played && ho.n <= current) {
+          const youNett = gross[view][i] - (recv ? 1 : 0); // stroke viewer receives here
+          const oppNett = gross[p.k][i] - (give ? 1 : 0);  // stroke viewer gives the opponent
+          if (youNett < oppNett) resultBg = 'rgba(46,138,76,.18)';      // win
+          else if (youNett > oppNett) resultBg = 'rgba(224,116,46,.18)'; // lose
+          else resultBg = 'rgba(120,130,124,.16)';                       // halve
+        }
+        return {
+          val: played ? String(gross[p.k][i]) : '–',
+          flag,
+          style: cellStyle(isYou, isCur, played, resultBg),
+        };
+      });
+      const rowStyle = 'display:flex;align-items:stretch;' + rowW + 'min-height:' + (isCur ? 44 : 32) + 'px;border-bottom:1px solid #EFE8D5;'
+        + (isCur ? 'background:#FFF4EC;border-radius:10px;box-shadow:inset 0 0 0 1.5px #FFC79E;margin:3px 0;' : '');
+      const frzBg = isCur ? '#FFF4EC' : 'var(--surface-page)';
+      const frz = 'position:sticky;z-index:2;background:' + frzBg + ';';
+      const numStyle = frz + 'left:0;width:28px;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-weight:700;font-size:' + (isCur ? 16 : 13) + 'px;color:' + (isCur ? '#C75F1E' : '#1C2B22') + ';';
+      const metaStylePar = frz + 'left:28px;width:26px;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-size:' + (isCur ? 13 : 12) + 'px;color:#8A958C;';
+      const metaStyleSi = frz + 'left:54px;width:26px;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-size:' + (isCur ? 13 : 12) + 'px;color:#8A958C;';
+      return { n: ho.n, par: ho.par, si: ho.si, cells, rowStyle, numStyle, metaStylePar, metaStyleSi };
+    });
+    const headerCells = players.map((p) => ({
+      label: p.k === view ? 'You' : firstName(p.n),
+      style: colW + 'display:flex;align-items:flex-end;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px;'
+        + 'font-family:var(--font-body);font-size:11px;font-weight:700;color:' + (p.k === view ? '#134914' : '#8A958C') + ';',
+    }));
+    // frozen H/Par/SI header cells + header-row width (scrolls with the body)
+    const hFrz = 'position:sticky;z-index:2;background:var(--surface-page);font-family:var(--font-body);font-size:10px;font-weight:700;color:#8A958C;display:flex;align-items:flex-end;justify-content:center;';
+    const headerRowStyle = 'display:flex;align-items:stretch;padding:0 0 8px;border-bottom:1.5px solid #E3D9C0;' + rowW;
+    const hHStyle = hFrz + 'left:0;width:28px;';
+    const hParStyle = hFrz + 'left:28px;width:26px;';
+    const hSiStyle = hFrz + 'left:54px;width:26px;';
+
+    // ---- OUT / IN / TOTAL summary (gross, over holes played) ----
+    const sumRange = (k, a, b) => {
+      let s = 0;
+      for (let i = a; i < b; i++) { if ((i + 1) <= current) s += gross[k][i]; }
+      return s;
+    };
+    const outScores = {}, inScores = {}, totScores = {};
+    players.forEach((p) => {
+      outScores[p.k] = sumRange(p.k, 0, 9);
+      inScores[p.k] = sumRange(p.k, 9, 18);
+      totScores[p.k] = outScores[p.k] + inScores[p.k];
+    });
+    const sumLabelStyle = (strong) => 'position:sticky;left:0;z-index:2;background:#F4F1E8;width:80px;flex:none;'
+      + 'display:flex;align-items:center;padding-left:8px;font-family:var(--font-body);font-weight:700;'
+      + 'font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:' + (strong ? '#134914' : '#5E6B62') + ';';
+    const sumCellStyle = (strong) => colW + 'display:flex;align-items:center;justify-content:center;'
+      + 'font-family:var(--font-numeric);font-variant-numeric:tabular-nums;font-weight:700;'
+      + 'font-size:' + (strong ? 15 : 13) + 'px;color:' + (strong ? '#134914' : '#1C2B22') + ';';
+    const sumRowStyle = (strong) => 'display:flex;align-items:stretch;' + rowW + 'min-height:30px;background:#F4F1E8;'
+      + (strong ? 'border-radius:0 0 10px 10px;' : 'border-bottom:1px solid #EFE8D5;');
+    const mkSummary = (label, scores, strong) => ({
+      label, rowStyle: sumRowStyle(strong), labelStyle: sumLabelStyle(strong),
+      cells: players.map((p) => ({ val: String(scores[p.k]), style: sumCellStyle(strong) })),
+    });
+    const summaryRows = nine === 'back'
+      ? [mkSummary('In', inScores, false), mkSummary('Total', totScores, true)]
+      : [mkSummary('Out', outScores, false), mkSummary('Total', totScores, true)];
+
+    // ---- FRONT / BACK nine toggle ----
+    const nineActive = 'flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--font-body);font-weight:600;font-size:13px;color:#134914;background:#fff;border-radius:999px;padding:7px 0;box-shadow:0 1px 2px rgba(0,0,0,.08);cursor:pointer;';
+    const nineIdle = 'flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--font-body);font-weight:600;font-size:13px;color:#8A958C;padding:7px 0;cursor:pointer;';
+    const frontStyle = nine === 'front' ? nineActive : nineIdle;
+    const backStyle = nine === 'back' ? nineActive : nineIdle;
+    const showFront = () => this.setNine('front');
+    const showBack = () => this.setNine('back');
+
+    // ---- MONEY per hole (match-play skins) ----
+    const holeDelta = (i) => {
+      const ns = players.map((p) => ({ k: p.k, v: nett(p.k, i) }));
+      const min = Math.min.apply(null, ns.map((x) => x.v));
+      const winners = ns.filter((x) => x.v === min);
+      const d = {}; players.forEach((p) => { d[p.k] = 0; });
+      if (winners.length === 1) {
+        const w = winners[0].k;
+        d[w] = stake * (players.length - 1);
+        players.forEach((p) => { if (p.k !== w) d[p.k] = -stake; });
+      }
+      return d;
+    };
+    const totals = {}; const wlh = {};
+    players.forEach((p) => { totals[p.k] = 0; wlh[p.k] = { w: 0, l: 0, h: 0 }; });
+    for (let i = 0; i < current; i++) {
+      const d = holeDelta(i);
+      players.forEach((p) => {
+        totals[p.k] += d[p.k];
+        if (d[p.k] > 0) wlh[p.k].w++; else if (d[p.k] < 0) wlh[p.k].l++; else wlh[p.k].h++;
+      });
+    }
+
+    // ---- Running MATCH STATUS vs the whole field (single line) ----
+    // Each hole sums the viewer's result against every opponent (win +1, lose -1,
+    // halve 0) into one net figure; the total is the sum across all holes played.
+    // This same total drives the viewer's leaderboard standing so the two agree.
+    let matchTotal = 0;
+    const matchTrack = [];
+    for (let i = 0; i < current; i++) {
+      const hn = holes[i].n;
+      let holeNet = 0;
+      players.filter((p) => p.k !== view).forEach((p) => {
+        const ms = manualStrokes[p.k];
+        let recv = false, give = false;
+        if (ms && hn <= 9) {
+          if (ms.dir === 'recv') recv = siRank[hn] <= ms.amount;
+          if (ms.dir === 'give') give = siRank[hn] <= ms.amount;
+        }
+        const youNett = gross[view][i] - (recv ? 1 : 0);
+        const oppNett = gross[p.k][i] - (give ? 1 : 0);
+        holeNet += youNett < oppNett ? 1 : (youNett > oppNett ? -1 : 0);
+      });
+      matchTotal += holeNet;
+      const up = holeNet > 0, down = holeNet < 0;
+      const label = up ? (holeNet + '\u2191') : (down ? ((-holeNet) + '\u2193') : 'AS');
+      const bg = up ? '#1E8A4C' : (down ? '#C0492A' : '#EDE7D7');
+      const fg = (up || down) ? '#fff' : '#7A8079';
+      matchTrack.push({
+        n: hn, label,
+        chipStyle: 'width:30px;height:24px;margin:0 auto;border-radius:7px;display:flex;align-items:center;justify-content:center;'
+          + 'font-family:var(--font-numeric);font-variant-numeric:tabular-nums;font-weight:700;font-size:11px;background:' + bg + ';color:' + fg + ';',
+      });
+    }
+    const matchTotalLabel = matchTotal > 0 ? (matchTotal + ' UP') : (matchTotal < 0 ? ((-matchTotal) + ' DN') : 'All square');
+    const matchTotalColor = matchTotal > 0 ? '#1E8A4C' : (matchTotal < 0 ? '#C0492A' : '#8A958C');
+    const matchTotalBg = matchTotal > 0 ? 'rgba(46,138,76,.12)' : (matchTotal < 0 ? 'rgba(192,73,42,.12)' : 'rgba(120,130,124,.14)');
+    const matchTotalStyle = 'flex:none;font-family:var(--font-body);font-weight:700;font-size:12px;padding:5px 11px;border-radius:999px;color:'
+      + matchTotalColor + ';background:' + matchTotalBg + ';';
+
+    // ---- LEADERBOARD (ranked by money, most up = rank 1) ----
+    let ranked = players.map((p) => ({ k: p.k, name: p.n, h: p.h, money: totals[p.k], rec: wlh[p.k], me: p.k === view }))
+      .sort((a, b) => b.money - a.money || a.h - b.h);
+
+    const lb = ranked.map((r, i) => {
+      const leader = i === 0;
+      const mcol = r.money > 0 ? '#1E6E16' : (r.money < 0 ? '#C0492A' : '#8A958C');
+      const netHoles = r.me ? matchTotal : (r.rec.w - r.rec.l);
+      const upcol = netHoles > 0 ? '#1E6E16' : (netHoles < 0 ? '#C0492A' : '#8A958C');
+      const upLabel = netHoles > 0 ? (netHoles + ' UP') : (netHoles < 0 ? (Math.abs(netHoles) + ' DN') : 'AS');
+      return {
+        rank: i + 1,
+        isLeader: leader,
+        notLeader: !leader,
+        isViewer: r.me,
+        initial: r.name.charAt(0),
+        nameLabel: r.name + (r.me ? ' (You)' : ''),
+        subLabel: 'HCP ' + r.h + ' · ' + (r.me ? '4W 3L 1H' : r.rec.w + 'W ' + r.rec.l + 'L ' + r.rec.h + 'H'),
+        subColor: leader ? '#7A6320' : '#8A958C',
+        moneyLabel: this.money(r.money),
+        chevron: r.me ? 'chevron-up' : 'chevron-down',
+        upLabel: upLabel,
+        upStyle: 'font-family:var(--font-numeric);font-weight:700;line-height:1;font-size:' + (leader ? 26 : 20) + 'px;'
+          + 'color:' + (leader ? '#134914' : upcol) + ';',
+        moneySubStyle: 'font-family:var(--font-numeric);font-weight:600;font-size:11px;margin-top:2px;'
+          + 'color:' + (leader ? '#7A6320' : '#8A958C') + ';',
+        moneyStyle: 'font-family:var(--font-numeric);font-weight:700;line-height:1;font-size:' + (leader ? 26 : 20) + 'px;'
+          + 'color:' + (leader ? '#134914' : mcol) + ';',
+        rowStyle: 'display:flex;align-items:center;gap:11px;padding:' + (leader ? '16px 14px' : '12px 13px') + ';margin-bottom:10px;border-radius:16px;'
+          + (leader
+            ? 'background:linear-gradient(135deg,#FBD976,#EBB23E);border:1.5px solid #D69A1E;box-shadow:0 8px 22px rgba(214,154,30,.4);'
+            : 'background:#fff;border:1px solid ' + (r.me ? '#AED4A9' : '#EFE8D5') + ';'),
+        rowStyleExp: 'display:flex;align-items:center;gap:11px;padding:' + (leader ? '16px 14px' : '12px 13px') + ';'
+          + (r.me ? 'margin-bottom:0;border-radius:16px 16px 0 0;' : 'margin-bottom:10px;border-radius:16px;')
+          + (leader
+            ? 'background:linear-gradient(135deg,#FBD976,#EBB23E);border:1.5px solid #D69A1E;box-shadow:0 8px 22px rgba(214,154,30,.4);'
+            : 'background:#fff;border:1px solid ' + (r.me ? '#AED4A9' : '#EFE8D5') + ';'),
+        rankStyle: 'width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-weight:700;font-size:17px;'
+          + 'color:' + (leader ? '#8A6A12' : '#B4BCB5') + ';',
+        avStyle: 'width:' + (leader ? 46 : 40) + 'px;height:' + (leader ? 46 : 40) + 'px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;'
+          + 'font-family:var(--font-display);font-weight:700;font-size:' + (leader ? 17 : 15) + 'px;'
+          + 'background:' + avBg[r.k] + ';color:' + avFg[r.k] + ';border:' + (leader ? '2px solid #fff' : 'none') + ';',
+      };
+    });
+
+    // ---- EXPANDED (viewer hole-by-hole) ----
+    let viewerTotal = 0;
+    const expandHoles = [];
+    for (let i = 0; i < current; i++) {
+      const d = holeDelta(i)[view];
+      viewerTotal += d;
+      const letter = d > 0 ? 'W' : (d < 0 ? 'L' : 'H');
+      const bg = d > 0 ? '#1E8A4C' : (d < 0 ? '#C0492A' : '#D8CDB4');
+      const fg = d === 0 ? '#5E6B62' : '#fff';
+      expandHoles.push({
+        n: holes[i].n, letter,
+        badgeStyle: 'width:28px;height:28px;margin:0 auto;border-radius:8px;display:flex;align-items:center;justify-content:center;'
+          + 'font-family:var(--font-body);font-weight:700;font-size:12px;background:' + bg + ';color:' + fg + ';',
+      });
+    }
+    const vrec = wlh[view];
+
+    // ---- PROFILE friends ----
+    const friendsRaw = [
+      { name: 'Marcus Tan', h: 2 },
+      { name: 'Dinesh Kumar', h: 16 },
+      { name: 'Jia Hui', h: 11 },
+    ];
+    const myH = byK[view].h;
+    const friends = friendsRaw.map((f) => {
+      const diff = f.h - myH;
+      const sv = diff > 0 ? ('get ' + diff) : (diff < 0 ? ('give ' + (-diff)) : 'even');
+      return {
+        name: f.name, h: f.h, initial: f.name.charAt(0),
+        strokeVsYou: diff === 0 ? 'even' : (sv + ' strokes'),
+        svStyle: 'font-weight:600;color:' + (diff > 0 ? '#E0742E' : (diff < 0 ? '#1E6E16' : '#8A958C')) + ';',
+        avStyle: 'width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;background:#DFEEDC;color:#134914;',
+        chipLabel: 'Invite', chipStyle: 'font-family:var(--font-body);font-weight:600;font-size:12px;color:#134914;background:#F0F6EE;border:1px solid #AED4A9;padding:6px 12px;border-radius:999px;',
+      };
+    });
+
+    // ---- CREATE invite friends ----
+    const inviteRaw = [
+      { name: 'Marcus Tan', h: 2, added: true },
+      { name: 'Dinesh Kumar', h: 16, added: true },
+      { name: 'Jia Hui', h: 11, added: true },
+    ];
+    const inviteFriends = inviteRaw.map((f) => ({
+      name: f.name, h: f.h, initial: f.name.charAt(0),
+      borderColor: f.added ? '#AED4A9' : '#E3D9C0',
+      avStyle: 'width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#DFEEDC;color:#134914;',
+      btnLabel: f.added ? 'Added' : 'Invite',
+      btnStyle: f.added
+        ? 'display:inline-flex;align-items:center;gap:4px;font-family:var(--font-body);font-weight:600;font-size:12px;color:#fff;background:#134914;padding:7px 13px;border-radius:999px;'
+        : 'font-family:var(--font-body);font-weight:600;font-size:12px;color:#134914;background:#fff;border:1.5px solid #AED4A9;padding:6px 13px;border-radius:999px;',
+    }));
+
+    // ---- LOBBY ----
+    const segActiveGet = 'font-family:var(--font-body);font-weight:600;font-size:11px;color:#E0742E;background:#fff;border-radius:999px;padding:5px 13px;box-shadow:0 1px 2px rgba(0,0,0,.08);';
+    const segActiveGive = 'font-family:var(--font-body);font-weight:600;font-size:11px;color:#134914;background:#fff;border-radius:999px;padding:5px 13px;box-shadow:0 1px 2px rgba(0,0,0,.08);';
+    const segIdle = 'font-family:var(--font-body);font-weight:600;font-size:11px;color:#8A958C;padding:5px 13px;';
+    // Demo strokes — manually set by players at game start, not derived from HCP
+    const defaultStrokes = { A: 5, B: 0, C: 9 };
+    const lobbyPlayers = players.filter(p => p.k !== view).map((p, i) => {
+      return {
+        name: p.n + (p.k === view ? ' (joined)' : ''), h: p.h, initial: p.n.charAt(0),
+        note: 'HCP ' + p.h,
+        strokes: defaultStrokes[p.k],
+        // Get/Give — manually selected; demo: Marcus gives, Dinesh gets
+        getStyle: p.k === 'C' ? segActiveGet : segIdle,
+        giveStyle: p.k === 'A' ? segActiveGive : segIdle,
+        blockStyle: 'padding:11px 0;' + (i < players.length - 1 ? 'border-bottom:1px solid #F4F1E8;' : ''),
+        avStyle: 'width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:13px;background:' + avBg[p.k] + ';color:' + avFg[p.k] + ';',
+      };
+    });
+    const strokeSummary = players.map((p) => {
+      const g = p.h - lowest;
+      return firstName(p.n) + ' ' + (g === 0 ? 'scratch' : '+' + g);
+    }).join(' · ');
+
+    // ---- SAVE button ----
+    const saved = this.state.saved;
+    const cur = holes[current - 1];
+    const refreshing = this.state.refreshing;
+    const refreshIcon = React.createElement('svg', {
+      viewBox: '0 0 24 24', fill: 'none', stroke: refreshing ? '#FF914D' : 'rgba(255,255,255,.85)',
+      strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+      style: { width: '16px', height: '16px', animation: refreshing ? 'gkspin .9s linear infinite' : 'none' },
+    }, React.createElement('path', { key: 'a', d: 'M3 12a9 9 0 0 1 15-6.7L21 8' }),
+       React.createElement('path', { key: 'b', d: 'M21 3v5h-5' }),
+       React.createElement('path', { key: 'c', d: 'M21 12a9 9 0 0 1-15 6.7L3 16' }),
+       React.createElement('path', { key: 'd', d: 'M3 21v-5h5' }));
+
+    // ---- PAST GAME RECAP scorecard (read-only, all 18 holes, all players) ----
+    const recapPar = [4,5,3,4,4,5,3,4,4, 4,4,3,5,4,4,3,5,4];
+    const recapScores = {
+      WL: [5,6,4,5,5,5,3,5,5, 4,5,4,6,5,5,4,7,5],
+      M:  [5,5,4,4,5,5,3,5,4, 4,5,3,5,5,4,4,5,4],
+      J:  [5,6,4,5,5,6,4,5,5, 5,5,4,6,5,5,4,6,6],
+      D:  [6,6,4,5,6,6,4,6,5, 5,5,4,6,6,5,4,7,6],
+    };
+    const recapCols = [
+      { k: 'WL', label: 'WL', bg: '#DFEEDC', fg: '#134914' },
+      { k: 'M', label: 'M', bg: '#E8F0E6', fg: '#1E6E16' },
+      { k: 'J', label: 'J', bg: '#F3E0E8', fg: '#9C4A6E' },
+      { k: 'D', label: 'D', bg: '#EFE8D5', fg: '#5E6B62' },
+    ];
+    const recapHeaderCols = recapCols.map((c) => ({
+      label: c.label,
+      avStyle: 'width:26px;height:26px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;'
+        + 'font-family:var(--font-display);font-weight:700;font-size:11px;background:' + c.bg + ';color:' + c.fg + ';',
+    }));
+    const scoreColor = (g, par) => {
+      const d = g - par;
+      if (d <= -1) return '#E0742E';
+      if (d === 0) return '#1C2B22';
+      if (d === 1) return '#5A7184';
+      return '#C0492A';
+    };
+    const recapCellStyle = (col) => 'flex:1;min-width:46px;position:relative;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);'
+      + 'font-variant-numeric:tabular-nums;font-weight:600;font-size:13px;color:' + col + ';';
+    const recapRows = recapPar.map((par, i) => ({
+      n: i + 1, par: par,
+      rowStyle: 'display:flex;align-items:center;min-height:29px;'
+        + (i === 8 ? 'border-bottom:2px solid #E3D9C0;' : 'border-bottom:1px solid #F4F1E8;'),
+      cells: recapCols.map((c) => ({ val: String(recapScores[c.k][i]), mark: notationEl(recapScores[c.k][i], par, false), style: recapCellStyle(scoreColor(recapScores[c.k][i], par)) })),
+    }));
+    const recapSum = (k, a, b) => { let s = 0; for (let j = a; j < b; j++) s += recapScores[k][j]; return s; };
+    const mkRecapSum = (label, a, b, strong) => ({
+      label: label,
+      rowStyle: 'display:flex;align-items:center;min-height:30px;background:#F4F1E8;'
+        + (strong ? 'border-radius:0 0 12px 12px;' : 'border-bottom:1px solid #EAE3D2;'),
+      labelStyle: 'width:56px;padding-left:10px;font-family:var(--font-body);font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:' + (strong ? '#134914' : '#5E6B62') + ';',
+      cells: recapCols.map((c) => ({
+        val: String(recapSum(c.k, a, b)),
+        style: 'flex:1;min-width:46px;text-align:center;font-family:var(--font-numeric);font-variant-numeric:tabular-nums;font-weight:700;font-size:' + (strong ? 14 : 13) + 'px;color:' + (strong ? '#134914' : '#1C2B22') + ';',
+      })),
+    });
+    const recapSummary = [mkRecapSum('Out', 0, 9, false), mkRecapSum('In', 9, 18, false), mkRecapSum('Total', 0, 18, true)];
+
+    // ---- Select starting hole sheet ----
+    const startSel = 1;
+    const startHoleMeta = ['Par 4 · SI 7', 'Par 5 · SI 3', 'Par 3 · SI 15', 'Par 4 · SI 1', 'Par 4 · SI 11', 'Par 5 · SI 5'];
+    const startHoles = [1, 2, 3, 4, 5, 6].map((n, i) => {
+      const on = n === startSel;
+      return {
+        n: n, meta: startHoleMeta[i],
+        rowStyle: 'display:flex;align-items:center;height:52px;border-bottom:1px solid #F4F1E8;',
+        labelStyle: 'font-family:var(--font-body);font-weight:' + (on ? 700 : 500) + ';font-size:15px;color:' + (on ? '#134914' : '#1C2B22') + ';',
+        icon: on ? 'check-circle-2' : 'circle',
+        iconStyle: 'width:22px;height:22px;flex:none;color:' + (on ? '#134914' : '#D8D0BC') + ';',
+      };
+    });
+
+    // ---- Game mode explanations sheet ----
+    const gmAvail = 'font-size:9px;font-weight:700;letter-spacing:.04em;background:#DFEEDC;color:#134914;padding:2px 7px;border-radius:6px;';
+    const gmSoon = 'font-size:9px;font-weight:700;letter-spacing:.04em;background:#EFE8D5;color:#8A958C;padding:2px 7px;border-radius:6px;';
+    const gmIcon = (on) => 'width:38px;height:38px;border-radius:10px;flex:none;display:flex;align-items:center;justify-content:center;'
+      + (on ? 'background:#F0F6EE;color:#134914;' : 'background:#F2EEE2;color:#A89B7C;');
+    const gameModes = [
+      { name: 'Kaki Match Play', icon: 'swords', on: true, desc: 'Hole-by-hole duel. Win a hole to go 1 up; lowest nett score on each hole takes it. The player up the most holes wins the match.' },
+      { name: 'Stableford', icon: 'list-checks', on: false, desc: 'Score points per hole against par — birdie 3, par 2, bogey 1. Highest points wins, and one bad hole never wrecks your round.' },
+      { name: 'Team', icon: 'users', on: false, desc: 'Pair up and combine scores — best ball or aggregate. Play as a side against the other kaki.' },
+      { name: 'Tournament', icon: 'trophy', on: false, desc: 'Multi-group stroke play with a shared leaderboard. Everyone plays their own ball; lowest total wins.' },
+      { name: 'Baccarat', icon: 'spade', on: false, desc: 'Popular Asian betting game — points banked per hole with running side stakes between players.' },
+      { name: 'System 36 Stableford', icon: 'gauge', on: false, desc: 'Auto-handicap format: build your handicap as you play, then score Stableford points. Great for mixed-ability groups.' },
+    ].map((m) => ({
+      name: m.name, icon: m.icon, desc: m.desc,
+      iconWrap: gmIcon(m.on),
+      tag: m.on ? 'Available' : 'Soon',
+      tagStyle: m.on ? gmAvail : gmSoon,
+    }));
+
+    return {
+      startHoles,
+      gameModes,
+      curHole: current, curPar: cur.par, curSi: cur.si, thru: current,
+      youScore: gross[view][current - 1],
+      refresh: () => this.doRefresh(), refreshIcon,
+      refreshBtnStyle: 'width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;'
+        + 'background:rgba(255,255,255,' + (refreshing ? '.2' : '.12') + ');transition:background .2s;',
+      rows, headerCells, lb, expandHoles, matchTrack, matchTotalLabel, matchTotalStyle, recapRows, recapHeaderCols, recapSummary, inviteFriends, friends, lobbyPlayers, strokeSummary,
+      headerRowStyle, hHStyle, hParStyle, hSiStyle,
+      summaryRows, frontStyle, backStyle, showFront, showBack, flagGiven, flagRecvd,
+      wonCount: vrec.w, lostCount: vrec.l, halfCount: vrec.h,
+      viewerMoneyLabel: this.money(viewerTotal),
+      viewerMoneyColor: viewerTotal > 0 ? '#1E6E16' : (viewerTotal < 0 ? '#C0492A' : '#8A958C'),
+      saveLabel: saved ? 'Saved' : 'Save score',
+      saveIcon: saved ? 'check' : 'save',
+      saveBtnStyle: 'display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;height:44px;border-radius:12px;cursor:pointer;'
+        + 'font-family:var(--font-body);font-weight:600;font-size:15px;'
+        + (saved ? 'background:rgba(127,224,166,.18);color:#7FE0A6;border:1px solid rgba(127,224,166,.5);' : 'background:#fff;color:#134914;'),
+      dec: () => this.setState((s) => ({ saved: false, entry: Math.max(1, (s.entry != null ? s.entry : gross[view][current - 1]) - 1) })),
+      inc: () => this.setState((s) => ({ saved: false, entry: Math.min(12, (s.entry != null ? s.entry : gross[view][current - 1]) + 1) })),
+      save: () => this.setState({ saved: true }),
+    };
+  }
+}
+</script>
+</body>
+</html>

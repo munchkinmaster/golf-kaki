@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/base.css">
+  <script src="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/_ds_bundle.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    /* inline DS token fallback — a dropped token-file load cannot break render */
+    :root{
+    --green-950:#0A2C0C;--green-900:#0E3A10;--green-800:#134914;--green-700:#195C12;--green-600:#1E6E16;--green-500:#237E1A;--green-400:#499A3E;--green-300:#7AB86F;--green-200:#AED4A9;--green-100:#DFEEDC;--green-50:#F0F6EE;
+    --orange-700:#C75F1E;--orange-600:#E0742E;--orange-500:#FF914D;--orange-400:#FFA86E;--orange-300:#FFC79E;--orange-200:#FFDCC2;--orange-100:#FFEEE0;
+    --sand-50:#FCFAF3;--sand-100:#F7F2E6;--sand-200:#EFE8D5;--sand-300:#E3D9C0;--sand-400:#CFC3A4;--sand-500:#B3A581;
+    --ink-900:#1C2B22;--ink-700:#3A4A40;--ink-500:#5E6B62;--ink-400:#8A958C;--ink-300:#B4BCB5;--white:#FFFFFF;
+    --score-eagle:#C98A23;--score-birdie:#E0742E;--score-par:#1E6E16;--score-bogey:#4E6E8E;--score-double:#B23B2E;
+    --status-success:#237E1A;--status-warning:#E0742E;--status-danger:#B23B2E;--status-info:#4E6E8E;
+    --primary:var(--green-800);--primary-hover:var(--green-900);--primary-active:var(--green-950);--accent:var(--orange-500);--accent-hover:var(--orange-600);--accent-active:var(--orange-700);
+    --surface-page:var(--sand-100);--surface-card:var(--white);--surface-raised:var(--sand-50);--surface-sunken:var(--sand-200);--surface-inverse:var(--green-800);--surface-accent-soft:var(--orange-100);--surface-brand-soft:var(--green-50);
+    --text-primary:var(--ink-900);--text-secondary:var(--ink-700);--text-muted:var(--ink-500);--text-disabled:var(--ink-400);--text-inverse:var(--sand-50);--text-brand:var(--green-800);--text-accent:var(--orange-600);--text-on-accent:var(--white);
+    --border-subtle:var(--sand-200);--border-default:var(--sand-300);--border-strong:var(--sand-400);--border-brand:var(--green-800);--border-focus:var(--green-500);
+    --overlay-scrim:rgba(14,58,40,0.45);--focus-ring:rgba(26,126,72,0.35);
+    --space-0:0;--space-1:0.25rem;--space-2:0.5rem;--space-3:0.75rem;--space-4:1rem;--space-5:1.25rem;--space-6:1.5rem;--space-7:2rem;--space-8:2.5rem;--space-9:3rem;--space-10:4rem;--space-12:6rem;
+    --container-sm:480px;--container-md:768px;--container-lg:1100px;--gutter:var(--space-4);--control-sm:32px;--control-md:44px;--control-lg:54px;
+    --radius-xs:4px;--radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:24px;--radius-2xl:32px;--radius-pill:999px;--radius-circle:50%;
+    --shadow-xs:0 1px 2px rgba(14,58,40,0.06);--shadow-sm:0 2px 6px rgba(14,58,40,0.08);--shadow-md:0 6px 16px rgba(14,58,40,0.10);--shadow-lg:0 14px 32px rgba(14,58,40,0.14);--shadow-xl:0 24px 56px rgba(14,58,40,0.18);
+    --shadow-accent:0 8px 20px rgba(255,145,77,0.35);--shadow-inset:inset 0 1px 0 rgba(255,255,255,0.6);
+    --border-thin:1px;--border-med:1.5px;--border-thick:2px;
+    --ease-out:cubic-bezier(0.22,1,0.36,1);--ease-in-out:cubic-bezier(0.65,0,0.35,1);--ease-bounce:cubic-bezier(0.34,1.56,0.64,1);--dur-fast:120ms;--dur-base:200ms;--dur-slow:320ms;
+    --font-display:'Quicksand','Plus Jakarta Sans',system-ui,sans-serif;--font-body:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;--font-numeric:'Space Grotesk','Plus Jakarta Sans',monospace;
+    --weight-regular:400;--weight-medium:500;--weight-semibold:600;--weight-bold:700;
+    --text-2xs:0.6875rem;--text-xs:0.75rem;--text-sm:0.875rem;--text-md:1rem;--text-lg:1.125rem;--text-xl:1.375rem;--text-2xl:1.75rem;--text-3xl:2.25rem;--text-4xl:3rem;--text-5xl:4rem;
+    --leading-tight:1.1;--leading-snug:1.25;--leading-normal:1.5;--leading-relaxed:1.65;
+    --tracking-tight:-0.02em;--tracking-normal:0;--tracking-wide:0.04em;--tracking-wider:0.12em;--tracking-widest:0.2em;
+    }
+    *{box-sizing:border-box}
+    .gkscreen::-webkit-scrollbar{width:0;height:0}
+    .gkscreen{scrollbar-width:none}
+    .lbl{font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:.04em;color:#5E6B62;text-transform:uppercase;margin-bottom:10px}
+    .phone{width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 22px 60px rgba(14,58,40,.22),0 4px 14px rgba(14,58,40,.12);overflow:hidden;position:relative;display:flex;flex-direction:column}
+    @keyframes gkshine{0%{transform:translateX(-130%) rotate(8deg)}100%{transform:translateX(240%) rotate(8deg)}}
+    @keyframes gkavaglow{
+      0%,100%{box-shadow:0 0 0 2px var(--score-eagle),0 0 12px 2px rgba(201,138,35,.42),0 1px 4px rgba(14,58,40,.18)}
+      50%{box-shadow:0 0 0 2.35px #E8C66B,0 0 18px 4px rgba(201,138,35,.525),0 1px 4px rgba(14,58,40,.18)}
+    }
+    .gkavaglow{animation:gkavaglow 2.4s ease-in-out infinite}
+    @media (prefers-reduced-motion:reduce){.gkavaglow{animation:none}}
+  </style>
+</helmet>
+
+<div style="min-width:100%;min-height:100vh;box-sizing:border-box;padding:48px;background:#DAD3C4;width:max-content;font-family:var(--font-body)">
+
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:6px">
+    <div style="font-family:var(--font-display);font-weight:700;font-size:26px;color:var(--green-800);letter-spacing:-.01em">Golf Kaki</div>
+    <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.18em;color:var(--green-600);text-transform:uppercase">Brag card · Ace pin</div>
+  </div>
+  <div style="font-family:var(--font-body);font-size:14px;color:var(--text-muted);margin-bottom:36px">The share artifact for the group chat, and the pin that rides next to your name on the leaderboard.</div>
+
+  <div style="display:flex;gap:40px;align-items:flex-start">
+
+    <!-- ============ A · SHAREABLE BRAG CARD ============ -->
+    <div style="flex:none">
+      <div class="lbl">A · Brag card · shareable</div>
+      <div style="width:420px;background:var(--surface-page);border-radius:24px;box-shadow:var(--shadow-lg);overflow:hidden;border:1px solid var(--border-subtle)">
+
+        <!-- hero -->
+        <div style="position:relative;overflow:hidden;background:var(--green-800);padding:30px 28px 26px;color:#fff;text-align:center">
+          <div style="position:absolute;inset:0;background:radial-gradient(110% 70% at 50% 6%,rgba(201,138,35,.40) 0%,rgba(19,73,20,0) 60%);pointer-events:none"></div>
+          <img src="assets/golf-kaki-mark.svg" alt="" style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:300px;opacity:.06;filter:brightness(0) invert(1);pointer-events:none">
+
+          <div style="display:flex;align-items:center;justify-content:space-between;position:relative">
+            <div style="display:flex;align-items:center;gap:8px">
+              <img src="assets/golf-kaki-mark.svg" alt="" style="width:22px;height:22px;filter:brightness(0) invert(1);opacity:.9">
+              <span style="font-family:var(--font-display);font-weight:700;font-size:14px;color:#fff">Golf Kaki</span>
+            </div>
+            <span style="font-family:var(--font-body);font-weight:700;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--score-eagle);background:rgba(201,138,35,.16);border:1px solid rgba(201,138,35,.4);padding:4px 10px;border-radius:999px">Legendary</span>
+          </div>
+
+          <!-- medal -->
+          <div style="display:flex;justify-content:center;margin:22px 0 4px;position:relative">
+            <div style="width:128px;height:128px;border-radius:50%;background:radial-gradient(circle at 50% 34%,#E8C66B 0%,var(--score-eagle) 56%,#A06E18 100%);box-shadow:0 16px 38px rgba(201,138,35,.5),inset 0 2px 4px rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden">
+              <span style="position:absolute;inset:0;border-radius:50%;overflow:hidden"><span style="position:absolute;top:0;left:0;width:34%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:gkshine 2.6s ease-in-out infinite"></span></span>
+              <img src="uploads/albatross_svg_white.svg" alt="Albatross" style="width:88px;height:auto;position:relative">
+            </div>
+          </div>
+
+          <div style="font-family:var(--font-display);font-weight:700;font-size:38px;line-height:1.02;letter-spacing:-.015em;position:relative;margin-top:14px">Albatross</div>
+          <div style="font-family:var(--font-body);font-size:14px;line-height:1.5;color:rgba(255,255,255,.78);margin-top:8px;max-width:300px;margin-left:auto;margin-right:auto;position:relative">Three under on a single hole — one for the clubhouse stories.</div>
+        </div>
+
+        <!-- player + context -->
+        <div style="padding:20px 22px 22px">
+          <div style="display:flex;align-items:center;gap:13px">
+            <div class="gkavaglow" style="width:50px;height:50px;border-radius:50%;background:#DFEEDC;border:2px solid #fff;box-shadow:0 0 0 2px var(--score-eagle),0 0 14px 1px rgba(201,138,35,.5),0 1px 4px rgba(14,58,40,.18);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:var(--green-800);font-size:17px">WL</div>
+            <div style="flex:1">
+              <div style="font-family:var(--font-display);font-weight:700;font-size:18px;color:var(--ink-900);line-height:1.1">Wei Liang</div>
+              <div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-size:12px;color:var(--text-muted);margin-top:2px"><span style="font-weight:500">HCP</span><span style="font-family:var(--font-numeric);color:var(--ink-700);font-weight:600">7.0</span></div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-family:var(--font-numeric);font-weight:700;font-size:15px;color:var(--ink-900)">2 strokes</div>
+              <div style="font-family:var(--font-body);font-size:11px;color:var(--text-muted)">on a par 5</div>
+            </div>
+          </div>
+
+          <!-- course / hole / date -->
+          <div style="display:flex;background:var(--sand-50);border:1px solid var(--border-subtle);border-radius:14px;padding:13px 8px;margin-top:16px">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center">
+              <i data-lucide="map-pin" style="width:16px;height:16px;color:var(--green-700)"></i>
+              <div style="font-family:var(--font-body);font-weight:600;font-size:12px;color:var(--ink-900);line-height:1.2">Tanah Merah</div>
+              <div style="font-family:var(--font-body);font-size:10px;color:var(--text-muted)">Course</div>
+            </div>
+            <div style="width:1px;background:var(--border-subtle)"></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center">
+              <i data-lucide="flag" style="width:16px;height:16px;color:var(--green-700)"></i>
+              <div style="font-family:var(--font-numeric);font-weight:700;font-size:13px;color:var(--ink-900)">13th</div>
+              <div style="font-family:var(--font-body);font-size:10px;color:var(--text-muted)">Hole</div>
+            </div>
+            <div style="width:1px;background:var(--border-subtle)"></div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center">
+              <i data-lucide="calendar" style="width:16px;height:16px;color:var(--green-700)"></i>
+              <div style="font-family:var(--font-body);font-weight:600;font-size:12px;color:var(--ink-900)">Sat, 21 Jun</div>
+              <div style="font-family:var(--font-body);font-size:10px;color:var(--text-muted)">2026</div>
+            </div>
+          </div>
+
+          <!-- attestation -->
+          <div style="display:flex;align-items:center;gap:10px;background:var(--green-50);border:1px solid var(--green-200);border-radius:14px;padding:12px 14px;margin-top:12px">
+            <div style="display:flex;align-items:center">
+              <span style="width:26px;height:26px;border-radius:50%;background:#C2603A;border:2px solid var(--green-50);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:10px;color:#fff">MK</span>
+              <span style="width:26px;height:26px;border-radius:50%;background:#3E6E8E;border:2px solid var(--green-50);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:10px;color:#fff;margin-left:-9px">JL</span>
+            </div>
+            <div style="flex:1;font-family:var(--font-body);font-size:12.5px;color:var(--ink-700);line-height:1.35"><b style="color:var(--green-800)">Attested by Marcus &amp; Jun Long</b><br>Your fourball confirmed it</div>
+            <i data-lucide="badge-check" style="width:20px;height:20px;color:var(--green-700);flex:none"></i>
+          </div>
+
+          <div style="text-align:center;margin-top:18px;font-family:var(--font-body);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted)">Golf Kaki · Track score · Add fun</div>
+        </div>
+      </div>
+
+      <!-- share actions under the card -->
+      <div style="display:flex;gap:10px;margin-top:16px;width:420px">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:9px;height:50px;background:var(--orange-500);border-radius:999px;box-shadow:0 6px 18px rgba(255,145,77,.36);font-family:var(--font-body);font-weight:600;font-size:15px;color:#fff"><i data-lucide="share-2" style="width:18px;height:18px"></i>Share to group chat</div>
+        <div style="width:50px;height:50px;border-radius:50%;background:#fff;border:1.5px solid var(--border-default);display:flex;align-items:center;justify-content:center;color:var(--green-800);box-shadow:var(--shadow-xs)"><i data-lucide="download" style="width:20px;height:20px"></i></div>
+      </div>
+    </div>
+
+    <!-- ============ B · ACE PIN ============ -->
+    <div style="flex:none">
+      <div class="lbl">B · Ace pin · anatomy</div>
+      <div style="width:360px;background:#fff;border:1px solid var(--border-subtle);border-radius:20px;box-shadow:var(--shadow-sm);padding:22px">
+        <div style="font-family:var(--font-display);font-weight:700;font-size:18px;color:var(--ink-900);margin-bottom:4px">Pins by tier</div>
+        <div style="font-family:var(--font-body);font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px">A mini trophy that rides beside your name. Tier colour matches the cabinet; tap a pin to see the trophy.</div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ pinTiers }}" as="p" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:13px;padding:11px 13px;border:1.5px solid var(--border-subtle);border-radius:13px;background:var(--sand-50)">
+              <span style="{{ p.pin }}"><i data-lucide="{{ p.icon }}" style="{{ p.iconStyle }}"></i></span>
+              <div style="flex:1">
+                <div style="font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--ink-900)">{{ p.name }}</div>
+                <div style="font-family:var(--font-body);font-size:12px;color:var(--text-muted)">{{ p.desc }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border-subtle)">
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-500);margin-bottom:11px">Stacked · most decorated kaki</div>
+          <div style="display:flex;align-items:center;gap:11px">
+            <div style="width:42px;height:42px;border-radius:50%;background:#C2603A;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#fff">MK</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:var(--ink-900)">Marcus Lim</div>
+            <div style="display:flex;align-items:center;gap:-4px;margin-left:2px">
+              <span style="{{ pinGoldSm }}"><i data-lucide="target" style="width:11px;height:11px;color:#fff;position:relative"></i></span>
+              <span style="{{ pinOrangeSm }}"><img src="uploads/Eagle_white.svg" alt="Eagle" style="width:13px;height:13px;object-fit:contain;position:relative"></span>
+              <span style="{{ pinGreenSm }}"><i data-lucide="repeat" style="width:11px;height:11px;color:#fff;position:relative"></i></span>
+            </div>
+          </div>
+          <div style="font-family:var(--font-body);font-size:12px;color:var(--text-muted);margin-top:8px;line-height:1.45">Up to 3 most-prized pins show inline. A “+2” chip covers the rest.</div>
+        </div>
+      </div>
+
+      <!-- in-context: lobby chips -->
+      <div class="lbl" style="margin-top:32px">C · In the game lobby</div>
+      <div style="width:360px;background:#fff;border:1px solid var(--border-subtle);border-radius:20px;box-shadow:var(--shadow-sm);padding:16px">
+        <sc-for list="{{ lobby }}" as="r" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:12px;padding:10px 6px;border-bottom:1px solid var(--border-subtle)">
+            <div style="{{ r.av }}">{{ r.initials }}</div>
+            <div style="flex:1;display:flex;align-items:center;gap:7px;min-width:0">
+              <span style="font-family:var(--font-body);font-weight:600;font-size:15px;color:var(--ink-900);white-space:nowrap">{{ r.name }}</span>
+              <sc-for list="{{ r.pins }}" as="pin" hint-placeholder-count="2">
+                <span style="{{ pin.style }}"><sc-if value="{{ pin.img }}" hint-placeholder-val=""><img src="{{ pin.img }}" style="width:13px;height:13px;object-fit:contain;position:relative"></sc-if><sc-if value="{{ pin.icon }}" hint-placeholder-val="target"><i data-lucide="{{ pin.icon }}" style="width:10px;height:10px;color:#fff;position:relative"></i></sc-if></span>
+              </sc-for>
+            </div>
+            <span style="font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--green-700);background:var(--green-50);border:1px solid var(--green-200);padding:4px 9px;border-radius:999px">HCP {{ r.hcp }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- ============ D · LEADERBOARD WITH PINS (phone) ============ -->
+    <div style="flex:none">
+      <div class="lbl">D · Leaderboard · pins in play</div>
+      <div class="phone" style="background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600;flex:none">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 8px;flex:none">
+          <div style="display:flex;align-items:center;gap:8px">
+            <i data-lucide="chevron-left" style="width:22px;height:22px;color:var(--ink-700)"></i>
+            <span style="font-family:var(--font-display);font-weight:700;font-size:18px;color:var(--ink-900)">Leaderboard</span>
+          </div>
+          <span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:12px;color:var(--green-800);background:var(--green-50);border:1px solid var(--green-200);padding:6px 11px;border-radius:999px"><i data-lucide="flag" style="width:13px;height:13px"></i>Final</span>
+        </div>
+        <div style="padding:4px 14px 10px;flex:none">
+          <div style="font-family:var(--font-body);font-size:12.5px;color:var(--text-muted);padding:0 4px 4px">Tanah Merah · Stroke play · 4 kaki</div>
+        </div>
+
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:0 14px 22px">
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <sc-for list="{{ board }}" as="r" hint-placeholder-count="4">
+              <div style="{{ r.rowStyle }}">
+                <span style="{{ r.rankStyle }}">{{ r.rank }}</span>
+                <div style="{{ r.av }}">{{ r.initials }}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                    <span style="font-family:var(--font-body);font-weight:600;font-size:14.5px;color:var(--ink-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+                    <sc-for list="{{ r.pins }}" as="pin" hint-placeholder-count="2">
+                      <span style="{{ pin.style }}"><sc-if value="{{ pin.img }}" hint-placeholder-val=""><img src="{{ pin.img }}" style="width:13px;height:13px;object-fit:contain;position:relative"></sc-if><sc-if value="{{ pin.icon }}" hint-placeholder-val="target"><i data-lucide="{{ pin.icon }}" style="width:10px;height:10px;color:#fff;position:relative"></i></sc-if></span>
+                    </sc-for>
+                  </div>
+                  <div style="font-family:var(--font-body);font-size:11.5px;color:var(--text-muted);margin-top:1px">HCP {{ r.hcp }}</div>
+                </div>
+                <div style="{{ r.scoreStyle }}">{{ r.toPar }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;gap:9px;background:var(--sand-50);border:1px solid var(--border-subtle);border-radius:13px;padding:12px 14px;margin-top:16px">
+            <i data-lucide="info" style="width:15px;height:15px;color:var(--green-700);flex:none;margin-top:1px"></i>
+            <div style="font-family:var(--font-body);font-size:12px;color:var(--ink-700);line-height:1.45">Pins beside a name are kaki-attested trophies from this round and beyond. Tap a name to open their cabinet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() { this.icons(); }
+  componentDidUpdate() { this.icons(); }
+  icons() { try { if (window.lucide) window.lucide.createIcons(); } catch (e) {} }
+
+  renderVals() {
+    const GOLD2 = ['#E8C66B', 'var(--score-eagle)'];
+    const ORANGE2 = ['#FFB07A', 'var(--orange-500)'];
+    const GREEN2 = ['#5FA858', 'var(--green-700)'];
+
+    // pin builder — small circular tier medallion
+    const pin = (pair, size) => ({
+      width: size + 'px', height: size + 'px', borderRadius: '50%', flex: 'none',
+      background: 'radial-gradient(circle at 50% 32%,' + pair[0] + ' 0%,' + pair[1] + ' 100%)',
+      border: '1.5px solid #fff',
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: '0 1px 3px rgba(14,58,40,.3)',
+      marginLeft: '-4px', position: 'relative',
+    });
+    const pinSolo = (pair, size) => ({ ...pin(pair, size), marginLeft: 0 });
+
+    const pinTiers = [
+      { name: 'Legendary pin', desc: 'Gold ring · Albatross, ace, bogey-free nine', icon: 'sparkles', pin: { ...pinSolo(GOLD2, 34) }, iconStyle: 'width:16px;height:16px;color:#fff;position:relative' },
+      { name: 'Epic pin', desc: 'Orange ring · Eagle, broke 80, birdie streak', icon: 'flame', pin: { ...pinSolo(ORANGE2, 34) }, iconStyle: 'width:16px;height:16px;color:#fff;position:relative' },
+      { name: 'Great pin', desc: 'Green ring · Par streak, broke 90', icon: 'trending-up', pin: { ...pinSolo(GREEN2, 34) }, iconStyle: 'width:16px;height:16px;color:#fff;position:relative' },
+    ];
+
+    const tierGlow = {
+      gold:   { ring: 'var(--score-eagle)', glow: 'rgba(201,138,35,.5)' },
+      orange: { ring: 'var(--orange-500)',  glow: 'rgba(255,145,77,.5)' },
+      green:  { ring: 'var(--score-par)',   glow: 'rgba(30,110,22,.42)' },
+    };
+    const avatar = (bg, size, tier) => {
+      const base = '0 1px 4px rgba(14,58,40,.18)';
+      const g = tier && tierGlow[tier];
+      return ({
+      width: size + 'px', height: size + 'px', borderRadius: '50%', background: bg,
+      border: '2px solid #fff',
+      boxShadow: g ? ('0 0 0 2px ' + g.ring + ', 0 0 13px 1px ' + g.glow + ', ' + base) : base,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none',
+      fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: (size * 0.34) + 'px', color: '#fff',
+      });
+    };
+
+    const P = {
+      ace: { style: pin(GOLD2, 18), icon: 'target' },
+      alba: { style: pin(GOLD2, 18), icon: '', img: 'uploads/albatross_svg_white.svg' },
+      nine: { style: pin(GOLD2, 18), icon: 'shield-check' },
+      eagle: { style: pin(ORANGE2, 18), icon: '', img: 'uploads/Eagle_white.svg' },
+      b80: { style: pin(ORANGE2, 18), icon: 'gauge' },
+      birdie: { style: pin(ORANGE2, 18), icon: 'flame' },
+      par: { style: pin(GREEN2, 18), icon: 'repeat' },
+      b90: { style: pin(GREEN2, 18), icon: 'trending-down' },
+    };
+
+    // lobby (frame C) — avatar initials in green tint
+    const lobby = [
+      { name: 'Marcus Lim', initials: 'MK', hcp: '4.2', av: avatar('#C2603A', 38, 'gold'), pins: [P.ace, P.eagle] },
+      { name: 'Wei Liang', initials: 'WL', hcp: '7.0', av: avatar('#2E7D32', 38, 'orange'), pins: [P.birdie] },
+      { name: 'Jun Long', initials: 'JL', hcp: '11.8', av: avatar('#3E6E8E', 38, 'green'), pins: [P.par] },
+      { name: 'Auntie Sarah', initials: 'AS', hcp: '16.5', av: avatar('#7A5BA8', 38), pins: [] },
+    ];
+
+    // leaderboard (frame D)
+    const rowBase = { display: 'flex', alignItems: 'center', gap: '11px', padding: '11px 13px', borderRadius: '14px', background: 'var(--surface-card)', border: '1px solid var(--border-subtle)' };
+    const rowMe = { ...rowBase, background: 'var(--green-50)', border: '1px solid var(--green-200)' };
+    const rank = (medal) => ({ width: '26px', flex: 'none', textAlign: 'center', fontFamily: 'var(--font-numeric)', fontWeight: 700, fontSize: '17px', color: medal ? 'var(--orange-500)' : 'var(--text-muted)' });
+    const score = (state) => ({ flex: 'none', minWidth: '48px', textAlign: 'right', fontFamily: 'var(--font-numeric)', fontWeight: 700, fontSize: '20px', fontVariantNumeric: 'tabular-nums', color: state === 'under' ? 'var(--score-birdie)' : state === 'even' ? 'var(--text-brand)' : 'var(--text-secondary)' });
+
+    const board = [
+      { rank: 1, name: 'Marcus Lim', initials: 'MK', hcp: '4.2', toPar: '-3', av: avatar('#C2603A', 40, 'gold'), pins: [P.ace, P.eagle], me: false, medal: true, scoreState: 'under' },
+      { rank: 2, name: 'Wei Liang (You)', initials: 'WL', hcp: '7.0', toPar: '-1', av: avatar('#2E7D32', 40, 'orange'), pins: [P.birdie], me: true, medal: true, scoreState: 'under' },
+      { rank: 3, name: 'Jun Long', initials: 'JL', hcp: '11.8', toPar: 'E', av: avatar('#3E6E8E', 40, 'green'), pins: [P.par], me: false, medal: true, scoreState: 'even' },
+      { rank: 4, name: 'Auntie Sarah', initials: 'AS', hcp: '16.5', toPar: '+5', av: avatar('#7A5BA8', 40), pins: [], me: false, medal: false, scoreState: 'over' },
+    ].map(r => ({
+      ...r,
+      rowStyle: r.me ? rowMe : rowBase,
+      rankStyle: rank(r.medal),
+      scoreStyle: score(r.scoreState),
+    }));
+
+    return {
+      pinTiers,
+      pinGoldSm: pin(GOLD2, 22), pinOrangeSm: pin(ORANGE2, 22), pinGreenSm: pin(GREEN2, 22),
+      lobby, board,
+    };
+  }
+}
+</script>
+</body>
+</html>
