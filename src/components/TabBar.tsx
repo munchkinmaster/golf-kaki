@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceCard,
     borderTopWidth: borderWidth.thin,
     borderTopColor: colors.borderDefault,
-    paddingTop: spacing[2],
+    paddingTop: spacing[3],
     paddingBottom: spacing[3],
   },
   tab: {

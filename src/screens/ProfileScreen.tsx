@@ -64,7 +64,7 @@ const FRIENDS: Friend[] = [
     initials: 'J',
     name: 'Jia Hui',
     handicap: 9,
-    strokeNote: 'Even strokes',
+    strokeNote: 'even strokes',
     strokeColor: colors.textMuted,
     chipLabel: 'Even',
     chipColor: colors.textMuted,

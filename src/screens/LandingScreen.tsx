@@ -1,8 +1,9 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Flag } from 'lucide-react-native';
 import { useRef } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
 
 import type { RootStackParamList } from '../navigation/types';
@@ -20,6 +21,9 @@ import {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Landing'>;
 
+const WATERMARK_SOURCE = require('../assets/golf-kaki-mark-white.png');
+const WATERMARK_SIZE = 330;
+
 export function LandingScreen({ navigation }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -35,6 +39,25 @@ export function LandingScreen({ navigation }: Props) {
   return (
     <View style={styles.page}>
       <StatusBar style="light" />
+      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Defs>
+          {/* Approximates the spec's radial-gradient(120% 80% at 50% 0%, ...) — SVG's
+              radialGradient is circular, so an anisotropic gradientTransform stretches
+              it to the same wide, top-anchored ellipse. */}
+          <RadialGradient id="landingGlow" cx="50%" cy="0%" r="65%" gradientTransform="matrix(1.5 0 0 1 -0.25 0)">
+            <Stop offset="0%" stopColor={palette.green[400]} stopOpacity={0.35} />
+            <Stop offset="100%" stopColor={palette.green[400]} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#landingGlow)" />
+      </Svg>
+      <Image
+        source={WATERMARK_SOURCE}
+        style={[
+          styles.watermark,
+          { width: WATERMARK_SIZE, height: WATERMARK_SIZE, marginLeft: -WATERMARK_SIZE / 2, marginTop: -WATERMARK_SIZE / 2 },
+        ]}
+      />
       <View style={[styles.decorCircle, { width: 420, height: 420, right: -70, top: 120 }]} />
       <View style={[styles.decorCircle, { width: 340, height: 340, left: -90, bottom: 60 }]} />
 
@@ -86,6 +109,12 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.06)',
+  },
+  watermark: {
+    position: 'absolute',
+    left: '50%',
+    top: '45%',
+    opacity: 0.05,
   },
   safeArea: {
     flex: 1,
