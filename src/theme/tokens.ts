@@ -139,6 +139,15 @@ export const fontWeight = {
   bold: '700',
 } as const;
 
+/**
+ * RN gives each loaded custom font its own family name — there's no live
+ * fontWeight switching like on web. Fonts are loaded (see theme/fonts.ts)
+ * under `${family}-${weight}` keys; use this to resolve the concrete name.
+ */
+export function getFontFamily(role: keyof typeof fontFamily, weight: string = fontWeight.regular): string {
+  return `${fontFamily[role]}-${weight}`;
+}
+
 /** Type scale, in px (1rem = 16px). */
 export const fontSize = {
   '2xs': 11,
@@ -270,6 +279,7 @@ export const tokens = {
   palette,
   fontFamily,
   fontWeight,
+  getFontFamily,
   fontSize,
   leading,
   tracking,
