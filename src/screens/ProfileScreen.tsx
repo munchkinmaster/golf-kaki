@@ -94,7 +94,7 @@ export function ProfileScreen({ navigation }: Props) {
           <Text style={styles.name}>Wei Liang</Text>
           <Text style={styles.handle}>@weiliang · Singapore</Text>
 
-          <HandicapBadge value={7} label="Handicap" variant="orange" size="lg" style={styles.handicapBadge} />
+          <HandicapBadge value={7} label="Handicap" variant="green" size="lg" style={styles.handicapBadge} />
 
           <View style={styles.autoCountRow}>
             <RefreshCw size={12} color={colors.textDisabled} />
@@ -168,7 +168,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: screenGutter,
-    paddingVertical: spacing[2],
+    paddingTop: screenGutter,
+    paddingBottom: screenGutter,
   },
   headerTitle: {
     fontFamily: getFontFamily('display', '700'),
