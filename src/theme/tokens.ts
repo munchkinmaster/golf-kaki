@@ -274,6 +274,21 @@ export const motion = {
   pressScale: 0.985,
 } as const;
 
+/**
+ * Recurring avatar color pairing for "a list of players/friends" UI (Profile's
+ * friends list, Lobby's player rows, Leaderboard rows, Recap standings) — the
+ * spec cycles through soft green/orange/sand per person rather than repeating one color.
+ */
+export const playerPalette = [
+  { background: green[100], color: green[800] },
+  { background: orange[200], color: orange[700] },
+  { background: sand[200], color: ink[500] },
+] as const;
+
+export function getPlayerColors(index: number) {
+  return playerPalette[index % playerPalette.length];
+}
+
 export const tokens = {
   colors,
   palette,
@@ -292,6 +307,8 @@ export const tokens = {
   borderWidth,
   shadows,
   motion,
+  playerPalette,
+  getPlayerColors,
 } as const;
 
 export default tokens;
