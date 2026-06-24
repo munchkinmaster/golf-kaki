@@ -95,6 +95,9 @@ export function Button({
         ]}
       >
         {icon && iconPosition === 'left' ? <View>{icon}</View> : null}
+        {/* trailing icon adds width on one side only, pulling the label off true center —
+            an identical hidden mirror on the other side balances it */}
+        {icon && iconPosition === 'right' ? <View style={styles.hidden}>{icon}</View> : null}
         <Text
           style={[
             styles.label,
@@ -126,5 +129,8 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
+  },
+  hidden: {
+    opacity: 0,
   },
 });

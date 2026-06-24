@@ -69,8 +69,8 @@ export function HomeScreen({ navigation }: Props) {
             />
           </View>
 
-          <Text style={styles.sectionLabel}>In play</Text>
-          <Card variant="inverse" style={styles.liveCard}>
+          <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>In play</Text>
+          <Card variant="inverse" watermark style={styles.liveCard}>
             <View style={styles.liveCardTop}>
               <View>
                 <LiveBadge />
@@ -183,8 +183,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: screenGutter,
-    paddingTop: spacing[2],
-    paddingBottom: spacing[3],
+    paddingTop: screenGutter,
+    paddingBottom: screenGutter,
   },
   greeting: {
     flexDirection: 'row',
@@ -217,9 +217,12 @@ const styles = StyleSheet.create({
     fontFamily: getFontFamily('body', '600'),
     fontWeight: '600',
     fontSize: 11,
+    lineHeight: 16,
     letterSpacing: 1.1,
     color: colors.textMuted,
     textTransform: 'uppercase',
+  },
+  sectionLabelSpaced: {
     marginBottom: spacing[2] + 1,
   },
   liveCard: {
@@ -296,11 +299,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: spacing[2] + 1,
   },
   seeAll: {
     fontFamily: getFontFamily('body', '600'),
     fontWeight: '600',
     fontSize: 12,
+    lineHeight: 16,
     color: colors.primary,
   },
   pastGameList: {

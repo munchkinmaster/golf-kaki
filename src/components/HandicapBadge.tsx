@@ -83,7 +83,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: radius.pill,
     borderWidth: 1,
-    alignSelf: 'flex-start',
+    // No alignSelf here on purpose — it should inherit the parent's alignItems
+    // (e.g. a header row centers it vertically, a centered column centers it
+    // horizontally) rather than always pinning to the start.
     ...shadows.xs,
   },
   label: {
