@@ -11,30 +11,24 @@ type ScoreBadgeProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-// Classic scorecard notation: circle = under par, square = over par,
-// doubled ring = 2-or-more strokes off par. Par itself gets no ring.
+// Classic scorecard notation: circle = birdie, doubled ring = eagle or
+// better. Par, bogey, and worse get no ring.
 const RING_WIDTH = 1.5;
-const RING_GROWTH = 6; // outer ring's size delta for the doubled (eagle/double+) case
-const SQUARE_RADIUS = 4;
-const SQUARE_RADIUS_OUTER = 6;
+const RING_GROWTH = 6; // outer ring's size delta for the doubled (eagle) case
 
 export function ScoreBadge({ value, par, size = 32, style }: ScoreBadgeProps) {
   const diff = value - par;
-  const under = diff < 0;
-  const doubled = Math.abs(diff) >= 2;
+  const eagleOrBetter = diff <= -2;
+  const birdie = diff === -1;
 
   let color: string | undefined;
-  if (diff <= -2) color = colors.scoreEagle;
-  else if (diff === -1) color = colors.scoreBirdie;
-  else if (diff === 1) color = colors.scoreBogey;
-  else if (diff >= 2) color = colors.scoreDouble;
+  if (eagleOrBetter) color = colors.scoreEagle;
+  else if (birdie) color = colors.scoreBirdie;
 
   return (
     <View style={[styles.container, { width: size, height: size }, style]}>
-      {color && doubled ? (
-        <Ring size={size + RING_GROWTH} color={color} round={under} radius={SQUARE_RADIUS_OUTER} />
-      ) : null}
-      {color ? <Ring size={size} color={color} round={under} radius={SQUARE_RADIUS} /> : null}
+      {color && eagleOrBetter ? <Ring size={size + RING_GROWTH} color={color} /> : null}
+      {color ? <Ring size={size} color={color} /> : null}
       <Text style={[styles.value, { fontSize: Math.round(size * 0.5), color: color ?? colors.textPrimary }]}>
         {value}
       </Text>
@@ -42,15 +36,8 @@ export function ScoreBadge({ value, par, size = 32, style }: ScoreBadgeProps) {
   );
 }
 
-function Ring({ size, color, round, radius }: { size: number; color: string; round: boolean; radius: number }) {
-  return (
-    <View
-      style={[
-        styles.ring,
-        { width: size, height: size, borderRadius: round ? size / 2 : radius, borderColor: color },
-      ]}
-    />
-  );
+function Ring({ size, color }: { size: number; color: string }) {
+  return <View style={[styles.ring, { width: size, height: size, borderRadius: size / 2, borderColor: color }]} />;
 }
 
 const styles = StyleSheet.create({
