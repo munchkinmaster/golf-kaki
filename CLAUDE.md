@@ -49,6 +49,10 @@ the same flow in lo-fi (structure only — hi-fi wins on styling).
 - **Shape:** cards radius 16, buttons/badges/chips full pill, inputs radius 12.
 - **Shadows:** warm green-tinted `rgba(14,58,40,…)`, never grey.
 - **Tap targets ≥ 44px. 18px side gutters.**
+- **Screen header top padding = `screenGutter` (18px), always** — even on colored/full-bleed
+  headers (Match Lobby, Scorecard) that sit directly under the status bar via
+  `SafeAreaView edges={['top']}`. Don't substitute a smaller spacing token (`spacing[1]`,
+  `spacing[2]`) here — it reads as a bug, not a design choice.
 - **Motion:** 200ms, ease-out `cubic-bezier(.22,1,.36,1)`; press → `scale(.985)`;
   focus → 4px green ring. No long/looping animation.
 

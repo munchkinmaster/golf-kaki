@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/base.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/styles.css">
+  <script src="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/_ds_bundle.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    *{box-sizing:border-box}
+    .gkscreen::-webkit-scrollbar{width:0;height:0}
+    .gkscreen{scrollbar-width:none}
+    .lbl{font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:.04em;color:#5E6B62;text-transform:uppercase;margin-bottom:10px}
+    .phone{width:380px;height:820px;border-radius:40px;border:1px solid var(--border-default);box-shadow:0 22px 60px rgba(14,58,40,.22),0 4px 14px rgba(14,58,40,.12);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)}
+    .navtab{transition:transform .14s var(--ease-out)}
+    .navtab:active{transform:scale(.9)}
+    .gkbtn:active{transform:scale(.96)}
+    .gkrow{transition:opacity .25s var(--ease-out),transform .25s var(--ease-out)}
+  </style>
+</helmet>
+
+<div style="min-width:100%;min-height:100vh;box-sizing:border-box;padding:30px;background:#DAD3C4;width:max-content;font-family:var(--font-body)">
+
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:6px">
+    <div style="font-family:var(--font-display);font-weight:700;font-size:26px;color:var(--green-800);letter-spacing:-.01em">Golf Kaki</div>
+    <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.18em;color:var(--green-600);text-transform:uppercase">Track score · Add fun</div>
+  </div>
+  <div style="font-family:var(--font-body);font-size:14px;color:var(--text-muted);margin-bottom:30px;max-width:760px">Kaki tab · your golf circle. Incoming <strong style="color:#E0742E">requests</strong> to confirm up top, then your <strong style="color:#134914">friends</strong> with their give/get strokes. <strong>Add</strong> opens the friend search.</div>
+
+  <div class="lbl">Kaki · Social hub</div>
+  <div class="phone">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600;flex:none">
+      <span>9:41</span>
+      <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+    </div>
+
+    <!-- header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 20px 8px;flex:none">
+      <div style="font-family:var(--font-display);font-weight:700;font-size:24px;color:#1C2B22">Kaki</div>
+      <div class="gkbtn" onClick="{{ onAddOpen }}" style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:13px;color:#134914;background:#F0F6EE;border:1px solid #AED4A9;padding:8px 14px;border-radius:999px;cursor:pointer;transition:transform .15s var(--ease-out);box-shadow:var(--shadow-xs)"><i data-lucide="user-plus" style="width:15px;height:15px"></i>Add</div>
+    </div>
+
+    <!-- search -->
+    <div style="padding:0 20px 10px;flex:none">
+      <div style="height:46px;background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;display:flex;align-items:center;gap:9px;padding:0 13px;box-shadow:var(--shadow-xs)">
+        <i data-lucide="search" style="width:18px;height:18px;color:#8A958C;flex:none"></i>
+        <input value="{{ query }}" onInput="{{ onSearch }}" placeholder="Search your kaki" style="flex:1;min-width:0;border:none;outline:none;background:transparent;font-family:var(--font-body);font-size:15px;color:#1C2B22">
+        <div onClick="{{ clearSearch }}" style="{{ clearStyle }}"><i data-lucide="x" style="width:14px;height:14px;color:#5E6B62"></i></div>
+      </div>
+    </div>
+
+    <div class="gkscreen" style="flex:1;overflow-y:auto;padding:4px 20px 100px;display:flex;flex-direction:column">
+
+      <!-- ===== REQUESTS ===== -->
+      <sc-if value="{{ hasRequests }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:none;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px;margin:4px 2px 10px">
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">Requests</div>
+            <div style="font-family:var(--font-numeric);font-weight:700;font-size:11px;color:#fff;background:#E0742E;min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:flex;align-items:center;justify-content:center">{{ reqCount }}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ requests }}" as="r" hint-placeholder-count="2">
+              <div class="gkrow" style="background:#FBF7EC;border:1px solid #EAD9B8;border-radius:14px;padding:11px 12px;box-shadow:var(--shadow-xs)">
+                <div style="display:flex;align-items:center;gap:11px">
+                  <div style="{{ r.avStyle }}">{{ r.initial }}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">{{ r.name }}</div>
+                    <div style="font-family:var(--font-body);font-size:11px;color:#8A958C;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.handle }} · HCP {{ r.h }}</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:10px">
+                  <div class="gkbtn" onClick="{{ r.onConfirm }}" style="flex:1;height:38px;border-radius:999px;background:#134914;color:#fff;font-family:var(--font-body);font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:transform .12s var(--ease-out)"><i data-lucide="check" style="width:15px;height:15px"></i>Confirm</div>
+                  <div class="gkbtn" onClick="{{ r.onDelete }}" style="flex:none;width:46px;height:38px;border-radius:999px;background:#fff;border:1.5px solid #E3D9C0;color:#8A958C;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .12s var(--ease-out)"><i data-lucide="x" style="width:16px;height:16px"></i></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== FRIENDS ===== -->
+      <div style="flex:none;display:flex;align-items:center;justify-content:space-between;margin:14px 2px 10px">
+        <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">{{ friendsLabel }}</div>
+        <div style="display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body);font-size:11px;color:#8A958C"><i data-lucide="arrow-down-up" style="width:12px;height:12px"></i>Handicap</div>
+      </div>
+
+      <div style="flex:none;display:flex;flex-direction:column;gap:8px">
+        <sc-for list="{{ friends }}" as="f" hint-placeholder-count="4">
+          <div class="gkrow" style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:11px;box-shadow:var(--shadow-xs)">
+            <div style="{{ f.avStyle }}">{{ f.initial }}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">{{ f.name }}</div>
+              <div style="font-family:var(--font-body);font-size:11px;color:#8A958C">{{ f.handle }} · HCP {{ f.h }}</div>
+            </div>
+            <div style="{{ f.strokeStyle }}">{{ f.strokeText }}</div>
+            <i data-lucide="chevron-right" style="width:17px;height:17px;color:#C9D1C9;flex:none"></i>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px 16px 10px">
+            <div style="width:52px;height:52px;border-radius:50%;background:#F2EEE2;display:flex;align-items:center;justify-content:center;margin-bottom:12px"><i data-lucide="users" style="width:24px;height:24px;color:#A89B7C"></i></div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:15px;color:#1C2B22">No kaki match that</div>
+            <div style="font-family:var(--font-body);font-size:13px;color:#8A958C;margin-top:3px">Try another name or tap Add to find more.</div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- ===== ADD FRIEND SHEET ===== -->
+    <div onClick="{{ onAddClose }}" style="{{ addScrimStyle }}"></div>
+    <div style="{{ addSheetStyle }}">
+      <div style="display:flex;justify-content:center;padding:10px 0 4px;flex:none"><div style="width:38px;height:4px;border-radius:999px;background:#E3D9C0"></div></div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:6px 20px 0;flex:none">
+        <div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:21px;color:#1C2B22;line-height:1.1">Add friend</div>
+          <div style="font-family:var(--font-body);font-size:13px;color:#8A958C;margin-top:2px">Find your kaki by name or @handle</div>
+        </div>
+        <div onClick="{{ onAddClose }}" style="width:34px;height:34px;flex:none;border-radius:50%;background:#F2EEE2;display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="x" style="width:18px;height:18px;color:#5E6B62"></i></div>
+      </div>
+      <div style="padding:14px 20px 8px;flex:none">
+        <div style="height:48px;background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;display:flex;align-items:center;gap:9px;padding:0 13px;box-shadow:var(--shadow-xs)">
+          <i data-lucide="search" style="width:18px;height:18px;color:#8A958C;flex:none"></i>
+          <input value="{{ addQuery }}" onInput="{{ onAddSearch }}" placeholder="Try &quot;marcus&quot; or @handle" style="flex:1;min-width:0;border:none;outline:none;background:transparent;font-family:var(--font-body);font-size:15px;color:#1C2B22">
+          <div onClick="{{ clearAddSearch }}" style="{{ addClearStyle }}"><i data-lucide="x" style="width:14px;height:14px;color:#5E6B62"></i></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;padding:2px 20px 8px;flex:none">
+        <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">{{ addListLabel }}</div>
+      </div>
+      <div class="gkscreen" style="flex:1;overflow-y:auto;padding:2px 20px 12px;display:flex;flex-direction:column;gap:8px">
+        <sc-for list="{{ addPeople }}" as="p" hint-placeholder-count="4">
+          <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:9px 11px;display:flex;align-items:center;gap:11px;box-shadow:var(--shadow-xs)">
+            <div style="{{ p.avStyle }}">{{ p.initial }}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">{{ p.name }}</div>
+              <div style="font-family:var(--font-body);font-size:11px;color:#8A958C">{{ p.handle }} · HCP {{ p.h }}</div>
+            </div>
+            <div onClick="{{ p.onToggle }}" style="{{ p.btnStyle }}"><i data-lucide="{{ p.btnIcon }}" style="width:14px;height:14px"></i>{{ p.btnLabel }}</div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ addNoResults }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:26px 16px 10px">
+            <div style="width:52px;height:52px;border-radius:50%;background:#F2EEE2;display:flex;align-items:center;justify-content:center;margin-bottom:12px"><i data-lucide="user-round-search" style="width:24px;height:24px;color:#A89B7C"></i></div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:15px;color:#1C2B22">No kaki found</div>
+            <div style="font-family:var(--font-body);font-size:13px;color:#8A958C;margin-top:3px;max-width:220px;line-height:1.5">Share your invite link and they'll pop up here.</div>
+          </div>
+        </sc-if>
+      </div>
+      <div style="padding:10px 20px 22px;border-top:1px solid #EFE8D5;flex:none">
+        <div style="height:50px;border-radius:999px;border:1.5px solid #134914;background:#F0F6EE;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;font-family:var(--font-body);font-weight:600;font-size:15px;color:#134914"><i data-lucide="share-2" style="width:18px;height:18px"></i>Share your invite link</div>
+      </div>
+    </div>
+
+    <!-- ===== NAV (Kaki active) ===== -->
+    <div style="position:absolute;left:0;right:0;bottom:0;height:84px;z-index:20">
+      <div style="position:absolute;left:0;right:0;bottom:0;height:84px;background:#fff;border-top:1px solid #EFE8D5;box-shadow:0 -6px 22px rgba(14,58,40,.07);display:flex;align-items:center;justify-content:space-around;padding:0 4px 18px">
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="house" style="width:23px;height:23px;color:#9AA59C;stroke-width:2px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:500;color:#9AA59C">Home</span>
+        </div>
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="flag" style="width:23px;height:23px;color:#9AA59C;stroke-width:2px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:500;color:#9AA59C">Rounds</span>
+        </div>
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="circle-plus" style="width:25px;height:25px;color:#F47C2E;stroke-width:2.4px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:700;color:#F47C2E">Start</span>
+        </div>
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="users" style="width:23px;height:23px;color:#134914;stroke-width:2.4px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:700;color:#134914">Kaki</span>
+        </div>
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="user" style="width:23px;height:23px;color:#9AA59C;stroke-width:2px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:500;color:#9AA59C">Profile</span>
+        </div>
+      </div>
+      <div style="position:absolute;left:50%;bottom:7px;transform:translateX(-50%);width:124px;height:4px;border-radius:999px;background:#1C2B22;opacity:.16"></div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:460,&quot;height&quot;:940}}">
+class Component extends DCLogic {
+  state = {
+    query: '',
+    addOpen: false,
+    addQuery: '',
+    addPeople: [
+      { id: 'aaron2', name: 'Aaron Ng',      handle: '@aaronng',  h: 9,  av: 'green', status: 'add' },
+      { id: 'bob',    name: 'Bob Goh',       handle: '@bobgoh',   h: 14, av: 'cream', status: 'add' },
+      { id: 'siti',   name: 'Siti Nurhaliza',handle: '@sitin',    h: 21, av: 'peach', status: 'add' },
+      { id: 'ryan',   name: 'Ryan Koh',      handle: '@ryankoh',  h: 6,  av: 'green', status: 'add' },
+    ],
+    requests: [
+      { id: 'aaron', name: 'Aaron Lim',   handle: '@aaronlim', h: 9,  av: 'green' },
+      { id: 'priya', name: 'Priya Raman', handle: '@priyar',   h: 5,  av: 'peach' },
+    ],
+    friends: [
+      { id: 'marcus', name: 'Marcus Tan',   handle: '@marcustan', h: 2,  av: 'green', isNew: false },
+      { id: 'priscilla', name: 'Priscilla Goh', handle: '@prisgoh', h: 8, av: 'peach', isNew: false },
+      { id: 'jiahui', name: 'Jia Hui',      handle: '@jiahui',    h: 11, av: 'cream', isNew: false },
+      { id: 'dinesh', name: 'Dinesh Kumar', handle: '@dineshk',   h: 16, av: 'peach', isNew: false },
+      { id: 'samuel', name: 'Samuel Ong',   handle: '@samong',    h: 22, av: 'cream', isNew: false },
+    ],
+  };
+
+  componentDidMount() {
+    this._iv = setInterval(() => { if (window.lucide) window.lucide.createIcons(); }, 150);
+    this._stop = setTimeout(() => clearInterval(this._iv), 4000);
+  }
+  componentDidUpdate() { if (window.lucide) window.lucide.createIcons(); }
+  componentWillUnmount() { clearInterval(this._iv); clearTimeout(this._stop); }
+
+  toggleAdd(id) {
+    this.setState((s) => ({
+      addPeople: s.addPeople.map((p) =>
+        p.id === id ? { ...p, status: p.status === 'add' ? 'requested' : 'add' } : p),
+    }));
+  }
+
+  confirm(id) {
+    this.setState((s) => {
+      const r = s.requests.find((x) => x.id === id);
+      if (!r) return {};
+      return {
+        requests: s.requests.filter((x) => x.id !== id),
+        friends: [{ id: r.id, name: r.name, handle: r.handle, h: r.h, av: r.av, isNew: true }, ...s.friends],
+      };
+    });
+  }
+  remove(id) {
+    this.setState((s) => ({ requests: s.requests.filter((x) => x.id !== id) }));
+  }
+
+  renderVals() {
+    const MY_HCP = 7;
+    const avMap = {
+      green: 'background:#DFEEDC;color:#134914',
+      peach: 'background:#FFDCC2;color:#C75F1E',
+      cream: 'background:#EFE8D5;color:#5E6B62',
+    };
+    const avBase = 'width:42px;height:42px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:16px;';
+    const q = this.state.query.trim().toLowerCase();
+
+    const requests = this.state.requests.map((r) => ({
+      ...r,
+      initial: r.name.charAt(0),
+      avStyle: avBase + (avMap[r.av] || avMap.green),
+      onConfirm: () => this.confirm(r.id),
+      onDelete: () => this.remove(r.id),
+    }));
+
+    const filtered = this.state.friends.filter((f) =>
+      !q || f.name.toLowerCase().includes(q) || f.handle.toLowerCase().includes(q));
+
+    const friends = filtered
+      .slice()
+      .sort((a, b) => a.h - b.h)
+      .map((f) => {
+        const diff = f.h - MY_HCP;
+        let strokeText, strokeStyle;
+        const pillBase = 'flex:none;font-family:var(--font-numeric);font-weight:700;font-size:12px;padding:5px 10px;border-radius:999px;white-space:nowrap;';
+        if (diff > 0) {
+          strokeText = 'get ' + diff;
+          strokeStyle = pillBase + 'color:#C75F1E;background:#FFEEE0;border:1px solid #FFDCC2;';
+        } else if (diff < 0) {
+          strokeText = 'give ' + Math.abs(diff);
+          strokeStyle = pillBase + 'color:#1E6E16;background:#E7F3E4;border:1px solid #C2E2BC;';
+        } else {
+          strokeText = 'even';
+          strokeStyle = pillBase + 'color:#8A958C;background:#F2EEE2;border:1px solid #E3D9C0;';
+        }
+        return {
+          ...f,
+          initial: f.name.charAt(0),
+          avStyle: avBase + (avMap[f.av] || avMap.green),
+          strokeText, strokeStyle,
+        };
+      });
+
+    const n = requests.length;
+    return {
+      query: this.state.query,
+      requests,
+      friends,
+      hasRequests: n > 0 && !q,
+      reqCount: n,
+      noResults: friends.length === 0,
+      friendsLabel: 'Friends · ' + this.state.friends.length,
+      clearStyle: 'width:24px;height:24px;flex:none;border-radius:50%;background:#F2EEE2;align-items:center;justify-content:center;cursor:pointer;display:' + (this.state.query ? 'flex' : 'none') + ';',
+      onSearch: (e) => this.setState({ query: e.target.value }),
+      clearSearch: () => this.setState({ query: '' }),
+
+      // Add friend sheet
+      addOpen: this.state.addOpen,
+      addQuery: this.state.addQuery,
+      addListLabel: this.state.addQuery ? 'Results' : 'Suggested',
+      addNoResults: (() => {
+        const aq = this.state.addQuery.trim().toLowerCase();
+        return aq ? !this.state.addPeople.some(p => p.name.toLowerCase().includes(aq) || p.handle.toLowerCase().includes(aq)) : false;
+      })(),
+      addPeople: (() => {
+        const aq = this.state.addQuery.trim().toLowerCase();
+        const avMap = { green: 'background:#DFEEDC;color:#134914', peach: 'background:#FFDCC2;color:#C75F1E', cream: 'background:#EFE8D5;color:#5E6B62' };
+        const avBase = 'width:40px;height:40px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;';
+        return this.state.addPeople
+          .filter(p => !aq || p.name.toLowerCase().includes(aq) || p.handle.toLowerCase().includes(aq))
+          .map(p => {
+            const isReq = p.status === 'requested';
+            return {
+              ...p,
+              initial: p.name.charAt(0),
+              avStyle: avBase + (avMap[p.av] || avMap.green),
+              btnLabel: isReq ? 'Requested' : 'Add',
+              btnIcon: isReq ? 'clock' : 'plus',
+              btnStyle: isReq
+                ? 'display:inline-flex;align-items:center;gap:5px;flex:none;font-family:var(--font-body);font-weight:600;font-size:13px;color:#5E6B62;background:#fff;border:1.5px solid #E3D9C0;padding:7px 13px;border-radius:999px;cursor:pointer;'
+                : 'display:inline-flex;align-items:center;gap:5px;flex:none;font-family:var(--font-body);font-weight:600;font-size:13px;color:#fff;background:#134914;border:1.5px solid #134914;padding:7px 14px;border-radius:999px;cursor:pointer;',
+              onToggle: () => this.toggleAdd(p.id),
+            };
+          });
+      })(),
+      addScrimStyle: 'position:absolute;inset:0;background:rgba(20,40,28,.46);z-index:10;transition:opacity .3s var(--ease-out);opacity:' + (this.state.addOpen ? '1' : '0') + ';pointer-events:' + (this.state.addOpen ? 'auto' : 'none') + ';',
+      addSheetStyle: 'position:absolute;left:0;right:0;bottom:0;z-index:11;height:540px;background:var(--surface-page);border-radius:24px 24px 0 0;box-shadow:0 -10px 40px rgba(14,58,40,.28);display:flex;flex-direction:column;transition:transform .32s var(--ease-out);transform:translateY(' + (this.state.addOpen ? '0' : '100%') + ');',
+      addClearStyle: 'width:24px;height:24px;flex:none;border-radius:50%;background:#F2EEE2;align-items:center;justify-content:center;cursor:pointer;display:' + (this.state.addQuery ? 'flex' : 'none') + ';',
+      onAddOpen: () => this.setState({ addOpen: true }),
+      onAddClose: () => this.setState({ addOpen: false, addQuery: '' }),
+      onAddSearch: (e) => this.setState({ addQuery: e.target.value }),
+      clearAddSearch: () => this.setState({ addQuery: '' }),
+    };
+  }
+}
+</script>
+</body>
+</html>

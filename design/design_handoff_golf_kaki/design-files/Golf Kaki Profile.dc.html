@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/base.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/styles.css">
+  <script src="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/_ds_bundle.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    *{box-sizing:border-box}
+    .gkscreen::-webkit-scrollbar{width:0;height:0}
+    .gkscreen{scrollbar-width:none}
+    .lbl{font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:.04em;color:#5E6B62;text-transform:uppercase;margin-bottom:10px}
+    .phone{width:380px;height:820px;border-radius:40px;border:1px solid var(--border-default);box-shadow:0 22px 60px rgba(14,58,40,.22),0 4px 14px rgba(14,58,40,.12);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)}
+    .navtab{transition:transform .14s var(--ease-out)}
+    .navtab:active{transform:scale(.9)}
+    .tcard{transition:transform .14s var(--ease-out)}
+    .tcard:active{transform:scale(.97)}
+    @keyframes gkshine{0%{transform:translateX(-120%) rotate(8deg)}100%{transform:translateX(220%) rotate(8deg)}}
+  </style>
+</helmet>
+
+<div style="min-width:100%;min-height:100vh;box-sizing:border-box;padding:30px;background:#DAD3C4;width:max-content;font-family:var(--font-body)">
+
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:6px">
+    <div style="font-family:var(--font-display);font-weight:700;font-size:26px;color:var(--green-800);letter-spacing:-.01em">Golf Kaki</div>
+    <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.18em;color:var(--green-600);text-transform:uppercase">Track score · Add fun</div>
+  </div>
+  <div style="font-family:var(--font-body);font-size:14px;color:var(--text-muted);margin-bottom:30px;max-width:760px">Profile · just you. Photo, name, @handle and handicap up top, then the <strong style="color:#134914">trophy cabinet</strong>. Friends now live under the Kaki tab. The gear opens Settings.</div>
+
+  <div class="lbl">Profile · Identity + Trophy cabinet</div>
+  <div class="phone">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600;flex:none">
+      <span>9:41</span>
+      <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 2px;flex:none">
+      <div style="width:40px;height:40px"></div>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:#1C2B22">Profile</div>
+      <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-xs);cursor:pointer"><i data-lucide="settings" style="width:18px;height:18px;color:#3A4A40"></i></div>
+    </div>
+
+    <div class="gkscreen" style="flex:1;overflow-y:auto;padding:8px 18px 100px;display:flex;flex-direction:column;align-items:center">
+
+      <!-- ===== IDENTITY ===== -->
+      <div style="position:relative;width:92px;height:92px;flex:none;margin-top:6px">
+        <div style="width:92px;height:92px;border-radius:50%;background:#DFEEDC;border:3px solid #fff;box-shadow:0 0 0 2px var(--score-eagle),0 0 18px 1px rgba(201,138,35,.42),0 8px 22px rgba(14,58,40,.2);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:#134914;font-size:31px">WL</div>
+        <div style="position:absolute;bottom:0;right:0;width:30px;height:30px;border-radius:50%;background:#134914;border:2px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(14,58,40,.28)"><i data-lucide="camera" style="width:14px;height:14px;color:#fff"></i></div>
+      </div>
+
+      <sc-if value="{{ editing }}" hint-placeholder-val="{{ false }}">
+        <div style="width:100%;padding:0 2px;margin-top:12px;display:flex;flex-direction:column;gap:8px">
+          <div style="height:44px;background:#fff;border:1.5px solid #134914;border-radius:11px;display:flex;align-items:center;padding:0 12px;gap:8px;box-shadow:var(--shadow-xs)">
+            <span style="font-family:var(--font-body);font-size:12px;color:#8A958C;flex:none">Name</span>
+            <input value="{{ nameVal }}" onInput="{{ onNameInput }}" style="flex:1;border:none;outline:none;background:transparent;font-family:var(--font-display);font-weight:700;font-size:15px;color:#1C2B22">
+          </div>
+          <div style="height:44px;background:#fff;border:1.5px solid #E3D9C0;border-radius:11px;display:flex;align-items:center;padding:0 12px;gap:8px;box-shadow:var(--shadow-xs)">
+            <span style="font-family:var(--font-body);font-size:12px;color:#8A958C;flex:none">Handle</span>
+            <input value="{{ handleVal }}" onInput="{{ onHandleInput }}" style="flex:1;border:none;outline:none;background:transparent;font-family:var(--font-body);font-size:15px;color:#1C2B22">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:2px">
+            <div onClick="{{ onSave }}" style="flex:1;height:40px;border-radius:999px;background:#134914;color:#fff;font-family:var(--font-body);font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer">Save</div>
+            <div onClick="{{ onCancel }}" style="flex:1;height:40px;border-radius:999px;background:#fff;border:1.5px solid #E3D9C0;color:#5E6B62;font-family:var(--font-body);font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer">Cancel</div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ notEditing }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:7px;margin-top:12px">
+          <div style="font-family:var(--font-display);font-weight:700;font-size:23px;color:#1C2B22">{{ displayName }}</div>
+          <div onClick="{{ onEdit }}" style="width:28px;height:28px;border-radius:50%;background:#F0F6EE;border:1px solid #AED4A9;display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="pencil" style="width:13px;height:13px;color:#134914"></i></div>
+        </div>
+        <div style="font-family:var(--font-body);font-size:13px;color:#8A958C;margin-top:2px">{{ displayHandle }} · Singapore</div>
+      </sc-if>
+
+      <div style="display:inline-flex;align-items:center;gap:8px;background:#FFEEE0;border:1px solid #FFDCC2;color:#E0742E;font-family:var(--font-body);font-weight:600;font-size:14px;padding:8px 16px;border-radius:999px;margin-top:14px;box-shadow:var(--shadow-xs)"><span style="color:#CFA98A;font-weight:500;letter-spacing:.05em;text-transform:uppercase;font-size:11px">Handicap</span><span style="font-family:var(--font-numeric);font-size:17px;font-weight:700">7.0</span></div>
+      <div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:7px;display:flex;align-items:center;gap:5px"><i data-lucide="refresh-cw" style="width:12px;height:12px"></i>Auto-counted from best 8 of last 20 rounds</div>
+
+      <sc-if value="{{ editingBio }}" hint-placeholder-val="{{ false }}">
+        <div style="width:100%;margin-top:16px;padding:0 2px">
+          <textarea onInput="{{ onBioInput }}" style="width:100%;height:76px;border:1.5px solid #134914;border-radius:11px;padding:10px 12px;font-family:var(--font-body);font-size:14px;color:#3A4A40;resize:none;outline:none;background:#fff;line-height:1.5;box-sizing:border-box">{{ bioVal }}</textarea>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <div onClick="{{ onBioSave }}" style="flex:1;height:38px;border-radius:999px;background:#134914;color:#fff;font-family:var(--font-body);font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer">Save</div>
+            <div onClick="{{ onBioCancel }}" style="flex:1;height:38px;border-radius:999px;background:#fff;border:1.5px solid #E3D9C0;color:#5E6B62;font-family:var(--font-body);font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer">Cancel</div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ notEditingBio }}" hint-placeholder-val="{{ true }}">
+        <div style="font-family:var(--font-body);font-size:14px;line-height:1.55;color:#3A4A40;text-align:center;margin-top:16px;padding:0 6px">{{ displayBio }}</div>
+        <div style="margin-top:7px"><span onClick="{{ onEditBio }}" style="display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body);font-size:13px;font-weight:600;color:#134914;border-bottom:1px solid rgba(19,73,20,.35);padding-bottom:1px;cursor:pointer"><i data-lucide="pencil" style="width:13px;height:13px"></i>Edit bio</span></div>
+      </sc-if>
+
+      <div style="display:flex;gap:10px;width:100%;margin-top:20px;flex:none">
+        <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:13px 6px;text-align:center;box-shadow:var(--shadow-xs)"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#1C2B22">42</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:2px">Rounds</div></div>
+        <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:13px 6px;text-align:center;box-shadow:var(--shadow-xs)"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#1E6E16">78</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:2px">Best</div></div>
+        <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:13px 6px;text-align:center;box-shadow:var(--shadow-xs)"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#1C2B22">5</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:2px">Wins</div></div>
+      </div>
+
+      <!-- ===== TROPHY CABINET ===== -->
+      <div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin:28px 2px 12px">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">Trophy cabinet</div>
+          <div style="display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body);font-weight:600;font-size:11px;color:var(--green-800);background:var(--green-50);border:1px solid var(--green-200);padding:3px 9px;border-radius:999px"><i data-lucide="trophy" style="width:12px;height:12px;color:var(--score-eagle)"></i><span style="font-family:var(--font-numeric)">1</span> gold</div>
+        </div>
+        <div style="font-family:var(--font-body);font-size:12px;color:#134914;font-weight:600;cursor:pointer">View all</div>
+      </div>
+
+      <div style="width:100%;display:flex;align-items:center;gap:11px;margin-bottom:18px">
+        <div style="flex:1;height:8px;border-radius:999px;background:var(--sand-200);overflow:hidden"><div style="width:38%;height:100%;border-radius:999px;background:var(--green-700)"></div></div>
+        <div style="font-family:var(--font-numeric);font-weight:700;font-size:12px;color:var(--ink-500);white-space:nowrap">3 / 8</div>
+      </div>
+
+      <!-- featured latest -->
+      <div class="tcard" style="width:100%;flex:none;background:var(--green-800);border-radius:18px;padding:17px;color:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow-md);margin-bottom:22px;cursor:pointer">
+        <img src="assets/golf-kaki-mark.svg" alt="" style="position:absolute;right:-30px;top:-26px;width:140px;opacity:.10;filter:brightness(0) invert(1);pointer-events:none">
+        <div style="display:flex;align-items:center;gap:15px;position:relative">
+          <div style="{{ medalLegendary }}">
+            <span style="position:absolute;inset:0;border-radius:50%;overflow:hidden"><span style="position:absolute;top:0;left:0;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:gkshine 2.8s ease-in-out infinite"></span></span>
+            <i data-lucide="target" style="width:32px;height:32px;color:#fff;position:relative"></i>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-family:var(--font-body);font-weight:600;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--orange-300)">Legendary · latest</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:21px;line-height:1.1;margin-top:3px">Hole-in-One</div>
+            <div style="display:flex;align-items:center;gap:6px;font-family:var(--font-body);font-size:12px;color:rgba(255,255,255,.7);margin-top:5px"><i data-lucide="map-pin" style="width:12px;height:12px"></i>Tanah Merah · 7th · 2 weeks ago</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.14);position:relative">
+          <div style="display:flex;align-items:center;margin-right:2px">
+            <span style="width:22px;height:22px;border-radius:50%;background:#C2603A;border:1.5px solid var(--green-800);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:9px;color:#fff">MK</span>
+            <span style="width:22px;height:22px;border-radius:50%;background:#3E6E8E;border:1.5px solid var(--green-800);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:9px;color:#fff;margin-left:-7px">JL</span>
+          </div>
+          <span style="font-family:var(--font-body);font-size:12px;color:rgba(255,255,255,.82)">Attested by Marcus &amp; Jun Long</span>
+          <i data-lucide="badge-check" style="width:15px;height:15px;color:var(--orange-300);margin-left:auto"></i>
+        </div>
+      </div>
+
+      <!-- cabinet grid -->
+      <div style="width:100%;flex:none;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <sc-for list="{{ cabinet }}" as="b" hint-placeholder-count="9">
+          <div class="tcard" style="{{ b.cardStyle }}">
+            <div style="{{ b.medal }}">
+              {{ b.glyph }}
+              <sc-if value="{{ b.pending }}" hint-placeholder-val="{{ false }}">
+                <span style="position:absolute;bottom:-3px;right:-3px;width:20px;height:20px;border-radius:50%;background:var(--orange-500);border:2px solid #fff;display:flex;align-items:center;justify-content:center"><i data-lucide="clock" style="width:10px;height:10px;color:#fff"></i></span>
+              </sc-if>
+              <sc-if value="{{ b.earned }}" hint-placeholder-val="{{ false }}">
+                <span style="position:absolute;bottom:-3px;right:-3px;width:20px;height:20px;border-radius:50%;background:var(--green-700);border:2px solid #fff;display:flex;align-items:center;justify-content:center"><i data-lucide="check" style="width:11px;height:11px;color:#fff"></i></span>
+              </sc-if>
+            </div>
+            <div style="{{ b.nameStyle }}">{{ b.name }}</div>
+            <div style="{{ b.metaStyle }}">{{ b.meta }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:20px;font-family:var(--font-body);font-size:12px;color:var(--text-muted)">
+        <i data-lucide="lock" style="width:13px;height:13px"></i>5 more to chase
+      </div>
+    </div>
+
+    <!-- ===== NAV (Profile active) ===== -->
+    <div style="position:absolute;left:0;right:0;bottom:0;height:84px;z-index:20">
+      <div style="position:absolute;left:0;right:0;bottom:0;height:84px;background:#fff;border-top:1px solid #EFE8D5;box-shadow:0 -6px 22px rgba(14,58,40,.07);display:flex;align-items:center;justify-content:space-around;padding:0 4px 18px">
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="house" style="width:23px;height:23px;color:#9AA59C;stroke-width:2px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:500;color:#9AA59C">Home</span>
+        </div>
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="flag" style="width:23px;height:23px;color:#9AA59C;stroke-width:2px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:500;color:#9AA59C">Rounds</span>
+        </div>
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="circle-plus" style="width:25px;height:25px;color:#F47C2E;stroke-width:2.4px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:700;color:#F47C2E">Start</span>
+        </div>
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="users" style="width:23px;height:23px;color:#9AA59C;stroke-width:2px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:500;color:#9AA59C">Kaki</span>
+        </div>
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="user" style="width:23px;height:23px;color:#134914;stroke-width:2.4px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:700;color:#134914">Profile</span>
+        </div>
+      </div>
+      <div style="position:absolute;left:50%;bottom:7px;transform:translateX(-50%);width:124px;height:4px;border-radius:999px;background:#1C2B22;opacity:.16"></div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:460,&quot;height&quot;:940}}">
+class Component extends DCLogic {
+  state = {
+    name: 'Wei Liang',
+    handle: '@weiliang',
+    bio: 'Weekend hacker, fairway optimist. Will play anyone for a teh tarik.',
+    editing: false,
+    nameVal: 'Wei Liang',
+    handleVal: '@weiliang',
+    editingBio: false,
+    bioVal: 'Weekend hacker, fairway optimist. Will play anyone for a teh tarik.',
+  };
+
+  componentDidMount() {
+    this._iv = setInterval(() => { if (window.lucide) window.lucide.createIcons(); }, 150);
+    this._stop = setTimeout(() => clearInterval(this._iv), 4000);
+  }
+  componentDidUpdate() { if (window.lucide) window.lucide.createIcons(); }
+  componentWillUnmount() { clearInterval(this._iv); clearTimeout(this._stop); }
+
+  renderVals() {
+    const GOLD = 'var(--score-eagle)', ORANGE = 'var(--orange-500)', GREEN = 'var(--green-700)';
+    const editing = this.state.editing;
+    const editingBio = this.state.editingBio;
+
+    const medal = (c1, c2, size) => ({
+      width: size + 'px', height: size + 'px', borderRadius: '50%',
+      background: 'radial-gradient(circle at 50% 32%,' + c1 + ' 0%,' + c2 + ' 100%)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      position: 'relative', flex: 'none',
+      boxShadow: '0 6px 16px rgba(14,58,40,.28),inset 0 2px 3px rgba(255,255,255,.45)',
+    });
+    const medalLegendary = medal('#E8C66B', GOLD, 60);
+
+    const tierMedal = {
+      legendary: ['#E8C66B', GOLD],
+      epic: ['#FFB07A', ORANGE],
+      great: ['#5FA858', GREEN],
+    };
+
+    const data = [
+      { name: 'Hole-in-One', meta: 'Tanah Merah', icon: 'target', tier: 'legendary', state: 'earned' },
+      { name: 'Eagle', meta: 'Sentosa', bird: 'uploads/Eagle_white.svg', tier: 'epic', state: 'earned' },
+      { name: 'Birdie Streak', meta: '3 in a row', icon: 'flame', tier: 'epic', state: 'earned' },
+      { name: 'Broke 80', meta: 'Awaiting kaki', icon: 'gauge', tier: 'epic', state: 'pending' },
+      { name: 'Albatross', meta: 'Locked', tier: 'legendary', state: 'locked' },
+      { name: 'Bogey-Free Nine', meta: 'Locked', icon: 'shield-check', tier: 'legendary', state: 'locked' },
+      { name: 'Par Streak', meta: 'Locked', icon: 'repeat', tier: 'great', state: 'locked' },
+      { name: 'Broke 90', meta: 'Locked', icon: 'trending-down', tier: 'great', state: 'locked' },
+      { name: 'Sandie', meta: 'Locked', icon: 'mountain', tier: 'great', state: 'locked' },
+    ];
+
+    const cabinet = data.map(b => {
+      const locked = b.state === 'locked';
+      const pending = b.state === 'pending';
+      const earned = b.state === 'earned';
+      const [c1, c2] = tierMedal[b.tier];
+
+      const medalStyle = locked
+        ? { width: '56px', height: '56px', borderRadius: '50%', background: 'var(--sand-100)', border: '2px dashed var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flex: 'none' }
+        : pending
+        ? { width: '56px', height: '56px', borderRadius: '50%', background: 'var(--sand-100)', border: '2px solid ' + c2, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flex: 'none', opacity: .9 }
+        : { ...medal(c1, c2, 56) };
+
+      const img = (!locked && b.bird) ? b.bird : '';
+      const glyph = img
+        ? React.createElement('img', { src: img, alt: b.name, style: { width: '30px', height: '30px', objectFit: 'contain', position: 'relative' } })
+        : React.createElement('i', { 'data-lucide': locked ? 'lock' : b.icon, key: (locked ? 'lock' : b.icon), style: locked ? { width: '22px', height: '22px', color: 'var(--ink-400)' } : pending ? { width: '24px', height: '24px', color: c2 } : { width: '26px', height: '26px', color: '#fff', position: 'relative' } });
+
+      return {
+        name: b.name, meta: b.meta, glyph,
+        earned, pending, locked,
+        medal: medalStyle,
+        cardStyle: {
+          display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '9px',
+          padding: '15px 8px 13px', borderRadius: '16px',
+          background: earned ? '#fff' : 'var(--sand-50)',
+          border: '1px solid ' + (earned ? 'var(--border-default)' : 'var(--border-subtle)'),
+          boxShadow: earned ? 'var(--shadow-xs)' : 'none',
+          opacity: locked ? .72 : 1,
+          cursor: 'pointer',
+        },
+        nameStyle: { fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '12.5px', lineHeight: 1.15, color: locked ? 'var(--ink-500)' : 'var(--ink-900)' },
+        metaStyle: { fontFamily: 'var(--font-body)', fontSize: '10.5px', fontWeight: 500, color: pending ? 'var(--orange-500)' : 'var(--text-muted)' },
+      };
+    });
+
+    return {
+      cabinet, medalLegendary,
+      editing, notEditing: !editing,
+      editingBio, notEditingBio: !editingBio,
+      displayName: this.state.name,
+      displayHandle: this.state.handle,
+      displayBio: this.state.bio,
+      nameVal: this.state.nameVal,
+      handleVal: this.state.handleVal,
+      bioVal: this.state.bioVal,
+      onEdit: () => this.setState({ editing: true, nameVal: this.state.name, handleVal: this.state.handle }),
+      onCancel: () => this.setState({ editing: false }),
+      onSave: () => this.setState({ name: this.state.nameVal, handle: this.state.handleVal, editing: false }),
+      onNameInput: (e) => this.setState({ nameVal: e.target.value }),
+      onHandleInput: (e) => this.setState({ handleVal: e.target.value }),
+      onEditBio: () => this.setState({ editingBio: true, bioVal: this.state.bio }),
+      onBioCancel: () => this.setState({ editingBio: false }),
+      onBioSave: () => this.setState({ bio: this.state.bioVal, editingBio: false }),
+      onBioInput: (e) => this.setState({ bioVal: e.target.value }),
+    };
+  }
+}
+</script>
+</body>
+</html>

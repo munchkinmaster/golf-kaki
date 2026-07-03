@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/base.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/styles.css">
+  <script src="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/_ds_bundle.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    *{box-sizing:border-box}
+    .gkscreen::-webkit-scrollbar{width:0;height:0}
+    .gkscreen{scrollbar-width:none}
+    .lbl{font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:.04em;color:#5E6B62;text-transform:uppercase;margin-bottom:10px}
+    .gkpress{transition:transform .12s var(--ease-out)}
+    .gkpress:active{transform:scale(.97)}
+    @keyframes gkpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+    @keyframes gkcaret{0%,49%{opacity:1}50%,100%{opacity:0}}
+    @keyframes gkspin{to{transform:rotate(360deg)}}
+    .gkcode{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;background:transparent;font-size:16px;letter-spacing:1em;text-transform:uppercase;cursor:text}
+  </style>
+</helmet>
+
+<div style="min-width:100%;min-height:100vh;box-sizing:border-box;padding:48px;background:#DAD3C4;width:max-content;font-family:var(--font-body)">
+
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:6px">
+    <div style="font-family:var(--font-display);font-weight:700;font-size:26px;color:#134914;letter-spacing:-.01em">Golf Kaki</div>
+    <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.18em;color:#1E6E16;text-transform:uppercase">Track score · Add fun</div>
+  </div>
+  <div style="font-family:var(--font-body);font-size:14px;color:#5E6B62;margin-bottom:36px;max-width:760px">Join a game · the dedicated screen after tapping <strong style="color:#134914">Join a game</strong> on Home. Enter a 4-character code, or tap a kaki's <strong style="color:#1E6E16">live</strong> game to hop straight into its lobby.</div>
+
+  <div style="display:flex;gap:44px;align-items:flex-start">
+
+    <div style="flex:none">
+      <div class="lbl">Join a game · dedicated screen</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+
+        <!-- status bar -->
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+
+        <!-- header -->
+        <div style="display:flex;align-items:center;gap:12px;padding:6px 18px 12px">
+          <div class="gkpress" style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-xs);cursor:pointer"><i data-lucide="chevron-left" style="width:20px;height:20px;color:#3A4A40"></i></div>
+          <div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:20px;color:#1C2B22;line-height:1.1">Join a game</div>
+            <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;margin-top:1px">Got a code from your kaki? Punch it in.</div>
+          </div>
+        </div>
+
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:6px 18px 120px">
+
+          <!-- CODE ENTRY -->
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin-bottom:10px">Enter game code</div>
+          <div style="position:relative;background:#fff;border:1.5px solid {{ codeBorder }};border-radius:16px;padding:16px 15px;box-shadow:{{ codeShadow }};transition:border-color .15s var(--ease-out),box-shadow .15s var(--ease-out)">
+            <div style="display:flex;align-items:center;gap:9px;position:relative;z-index:1;pointer-events:none">
+              <span style="font-family:var(--font-numeric);font-weight:700;font-size:26px;color:#134914;letter-spacing:.04em">GK</span>
+              <span style="font-family:var(--font-numeric);font-weight:700;font-size:26px;color:#C9BFA6">-</span>
+              <div style="display:flex;gap:7px;flex:1">
+                <sc-for list="{{ codeSlots }}" as="s" hint-placeholder-count="4">
+                  <div style="{{ s.boxStyle }}"><span style="{{ s.charStyle }}">{{ s.char }}</span><span style="{{ s.caretStyle }}"></span></div>
+                </sc-for>
+              </div>
+            </div>
+            <input class="gkcode" ref="{{ codeRef }}" value="{{ code }}" onInput="{{ onCodeInput }}" maxlength="4" spellcheck="false" autocomplete="off" aria-label="Game code" />
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:9px">
+            <div style="font-family:var(--font-body);font-size:12px;color:{{ hintColor }};display:flex;align-items:center;gap:6px"><i data-lucide="{{ hintIcon }}" style="width:14px;height:14px"></i>{{ hintText }}</div>
+            <div class="gkpress" onClick="{{ onPaste }}" style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:12px;color:#134914;background:#F0F6EE;border:1px solid #C7E1C2;padding:6px 12px;border-radius:999px;cursor:pointer"><i data-lucide="clipboard" style="width:13px;height:13px"></i>Paste</div>
+          </div>
+
+          <!-- matched preview -->
+          <div style="{{ matchStyle }}">
+            <div style="display:flex;align-items:center;gap:11px">
+              <div style="width:42px;height:42px;border-radius:11px;flex:none;background:#DFEEDC;display:flex;align-items:center;justify-content:center"><i data-lucide="flag" style="width:19px;height:19px;color:#134914"></i></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:var(--font-display);font-weight:700;font-size:15px;color:#1C2B22;line-height:1.15">Sat Fourball</div>
+                <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;margin-top:1px">Marcus's game · Sentosa · Serapong</div>
+              </div>
+              <i data-lucide="check-circle-2" style="width:22px;height:22px;color:#1E6E16"></i>
+            </div>
+          </div>
+
+          <!-- divider -->
+          <div style="display:flex;align-items:center;gap:12px;margin:22px 2px 16px">
+            <div style="flex:1;height:1px;background:#E3D9C0"></div>
+            <div style="font-family:var(--font-body);font-size:11px;font-weight:600;letter-spacing:.08em;color:#A89B7C;text-transform:uppercase">or join a live one</div>
+            <div style="flex:1;height:1px;background:#E3D9C0"></div>
+          </div>
+
+          <!-- LIVE GAMES -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px">
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">Kaki playing now</div>
+            <div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-size:11px;color:#1E6E16;font-weight:600"><span style="width:7px;height:7px;border-radius:50%;background:#22A722;animation:gkpulse 1.6s var(--ease-out) infinite"></span>2 live</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ liveGames }}" as="g" hint-placeholder-count="3">
+              <div class="gkpress" onClick="{{ g.onClick }}" style="{{ g.cardStyle }}">
+                <div style="width:46px;height:46px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:16px;background:{{ g.avBg }};color:{{ g.avFg }}">{{ g.initial }}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:7px">
+                    <div style="font-family:var(--font-display);font-weight:700;font-size:15px;color:#1C2B22;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.name }}</div>
+                    <span style="{{ g.livePill }}"><span style="width:6px;height:6px;border-radius:50%;background:#22A722;animation:gkpulse 1.6s var(--ease-out) infinite"></span>Live</span>
+                  </div>
+                  <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ g.course }}</div>
+                  <div style="display:flex;align-items:center;gap:13px;margin-top:7px;font-family:var(--font-body);font-size:11px;color:#5E6B62">
+                    <span style="display:inline-flex;align-items:center;gap:5px"><i data-lucide="users" style="width:13px;height:13px;color:#8A958C"></i>{{ g.players }}</span>
+                    <span style="display:inline-flex;align-items:center;gap:5px"><i data-lucide="flag" style="width:13px;height:13px;color:#8A958C"></i>Thru {{ g.thru }}</span>
+                    <span style="display:inline-flex;align-items:center;gap:5px"><i data-lucide="coins" style="width:13px;height:13px;color:#8A958C"></i>{{ g.stakes }}</span>
+                  </div>
+                </div>
+                <i data-lucide="{{ g.chevIcon }}" style="{{ g.chevStyle }}"></i>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;font-family:var(--font-body);font-size:12px;color:#A89B7C"><i data-lucide="info" style="width:14px;height:14px"></i>Only friends who let you see their games appear here.</div>
+
+        </div>
+
+        <!-- sticky CTA -->
+        <div style="position:absolute;left:0;right:0;bottom:0;padding:14px 18px 26px;background:linear-gradient(to top,var(--surface-page) 72%,transparent)">
+          <div class="gkpress" onClick="{{ onJoin }}" style="{{ ctaStyle }}"><i data-lucide="{{ ctaIcon }}" style="width:19px;height:19px"></i>{{ ctaLabel }}</div>
+        </div>
+
+        <!-- toast -->
+        <div style="{{ toastStyle }}"><i data-lucide="loader" style="width:15px;height:15px;animation:gkspin .9s linear infinite"></i>{{ toastText }}</div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:520,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { code: '', selected: null, joining: false };
+
+  componentDidMount() {
+    this._iv = setInterval(() => { if (window.lucide) window.lucide.createIcons(); }, 150);
+    this._stop = setTimeout(() => clearInterval(this._iv), 4000);
+  }
+  componentDidUpdate() { if (window.lucide) window.lucide.createIcons(); }
+  componentWillUnmount() { clearInterval(this._iv); clearTimeout(this._stop); clearTimeout(this._tt); }
+
+  clean(v) { return (v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); }
+
+  onCodeInput = (e) => {
+    this.setState({ code: this.clean(e.target.value), selected: null });
+  };
+  onPaste = () => {
+    this.setState({ code: '7Q4D', selected: null }, () => { if (this.refs.codeRef) this.refs.codeRef.value = '7Q4D'; });
+  };
+  selectGame = (id) => {
+    this.setState({ selected: id, code: '' }, () => { if (this.refs.codeRef) this.refs.codeRef.value = ''; });
+  };
+  onJoin = () => {
+    const ready = this.state.code.length === 4 || this.state.selected;
+    if (!ready) { if (this.refs.codeRef) this.refs.codeRef.focus(); return; }
+    this.setState({ joining: true });
+    clearTimeout(this._tt);
+    this._tt = setTimeout(() => this.setState({ joining: false }), 2200);
+  };
+
+  renderVals() {
+    const code = this.state.code;
+    const full = code.length === 4;
+    const focusedIdx = code.length; // which slot shows caret
+
+    const codeSlots = [0, 1, 2, 3].map((i) => {
+      const ch = code[i] || '';
+      const active = ch !== '';
+      const isCaret = i === focusedIdx && !this.state.selected;
+      return {
+        char: ch || '',
+        boxStyle: 'position:relative;flex:1;height:52px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:' + (active ? '#F0F6EE' : '#F7F4EC') + ';border:1.5px solid ' + (isCaret ? '#134914' : active ? '#C7E1C2' : '#EBE4D3') + ';',
+        charStyle: 'font-family:var(--font-numeric);font-weight:700;font-size:24px;color:#134914;',
+        caretStyle: isCaret ? 'position:absolute;width:2px;height:26px;background:#134914;animation:gkcaret 1.05s steps(1) infinite;' : 'display:none;',
+      };
+    });
+
+    const games = [
+      { id: 'g1', name: "Marcus's Fourball", initial: 'M', avBg: '#DFEEDC', avFg: '#134914', course: 'Sentosa · Serapong', players: '3 / 4', thru: '4', stakes: 'Skins · $5' },
+      { id: 'g2', name: 'Sunday Stableford', initial: 'D', avBg: '#DDEAF3', avFg: '#3E6480', course: 'Tanah Merah · Garden', players: '2 / 4', thru: '7', stakes: 'Teh tarik' },
+      { id: 'g3', name: "Jia Hui's Skins", initial: 'J', avBg: '#FFDCC2', avFg: '#C75F1E', course: 'Laguna · Classic', players: '3 / 4', thru: '2', stakes: 'Skins · $10' },
+    ];
+    const liveGames = games.map((g) => {
+      const sel = this.state.selected === g.id;
+      return {
+        ...g,
+        onClick: () => this.selectGame(g.id),
+        cardStyle: 'display:flex;align-items:center;gap:12px;background:' + (sel ? '#F0F6EE' : '#fff') + ';border:1.5px solid ' + (sel ? '#134914' : '#EFE8D5') + ';border-radius:16px;padding:13px 14px;cursor:pointer;box-shadow:' + (sel ? '0 6px 18px rgba(19,73,20,.14)' : 'var(--shadow-xs)') + ';transition:border-color .14s var(--ease-out),background .14s var(--ease-out);',
+        livePill: 'display:inline-flex;align-items:center;gap:5px;flex:none;background:#EAF5EC;border:1px solid #C7E1C2;color:#1E6E16;font-family:var(--font-body);font-weight:600;font-size:9px;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:999px;',
+        chevIcon: sel ? 'check-circle-2' : 'chevron-right',
+        chevStyle: 'width:' + (sel ? '22' : '19') + 'px;height:' + (sel ? '22' : '19') + 'px;color:' + (sel ? '#1E6E16' : '#C9BFA6') + ';flex:none;',
+      };
+    });
+
+    const ready = full || this.state.selected;
+    const hintOk = full;
+    return {
+      code,
+      codeRef: (el) => { this.refs = this.refs || {}; this.refs.codeRef = el; },
+      onCodeInput: this.onCodeInput,
+      onPaste: this.onPaste,
+      codeSlots,
+      codeBorder: (focusedIdx > 0 && !this.state.selected) ? (full ? '#AED4A9' : '#134914') : '#E3D9C0',
+      codeShadow: (focusedIdx > 0 && !this.state.selected && !full) ? '0 0 0 4px rgba(19,73,20,.10)' : 'var(--shadow-xs)',
+      hintColor: hintOk ? '#1E6E16' : '#A89B7C',
+      hintIcon: hintOk ? 'check' : 'hash',
+      hintText: hintOk ? 'Code found — Marcus’s game' : '4 characters after GK-',
+      matchStyle: (full ? '' : 'display:none;') + 'margin-top:12px;background:#fff;border:1.5px solid #AED4A9;border-radius:16px;padding:13px 14px;box-shadow:0 6px 18px rgba(19,73,20,.12);',
+      liveGames,
+      ctaStyle: 'display:flex;align-items:center;justify-content:center;gap:10px;height:56px;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px;cursor:pointer;transition:all .15s var(--ease-out);' + (ready
+        ? 'background:#FF914D;color:#fff;box-shadow:0 6px 18px rgba(255,145,77,.4);'
+        : 'background:#EDE7D8;color:#B3A98F;box-shadow:none;'),
+      ctaIcon: ready ? 'arrow-right' : 'lock',
+      ctaLabel: ready ? 'Join game' : 'Enter a code to join',
+      toastStyle: 'position:absolute;left:50%;transform:translateX(-50%);bottom:96px;z-index:30;display:inline-flex;align-items:center;gap:8px;background:#1C2B22;color:#fff;font-family:var(--font-body);font-weight:600;font-size:13px;padding:10px 16px;border-radius:999px;box-shadow:0 10px 26px rgba(14,58,40,.32);white-space:nowrap;transition:opacity .25s var(--ease-out),transform .25s var(--ease-out);' + (this.state.joining ? 'opacity:1;' : 'opacity:0;pointer-events:none;transform:translateX(-50%) translateY(8px);'),
+      toastText: 'Joining the lobby…',
+      onJoin: this.onJoin,
+    };
+  }
+}
+</script>
+</body>
+</html>

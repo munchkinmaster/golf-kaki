@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/base.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/styles.css">
+  <script src="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/_ds_bundle.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    *{box-sizing:border-box}
+    .gkscreen::-webkit-scrollbar{width:0;height:0}
+    .gkscreen{scrollbar-width:none}
+    .lbl{font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:.04em;color:#5E6B62;text-transform:uppercase;margin-bottom:10px}
+    .phone{width:360px;height:720px;border-radius:38px;border:1px solid var(--border-default);box-shadow:0 22px 60px rgba(14,58,40,.22),0 4px 14px rgba(14,58,40,.12);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)}
+    .navtab{transition:transform .14s var(--ease-out)}
+    .navtab:active{transform:scale(.9)}
+  </style>
+</helmet>
+
+<div style="min-width:100%;min-height:100vh;box-sizing:border-box;padding:36px;background:#DAD3C4;width:max-content;font-family:var(--font-body)">
+
+  <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:6px">
+    <div style="font-family:var(--font-display);font-weight:700;font-size:26px;color:var(--green-800);letter-spacing:-.01em">Golf Kaki</div>
+    <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.18em;color:var(--green-600);text-transform:uppercase">Track score · Add fun</div>
+  </div>
+  <div style="font-family:var(--font-body);font-size:14px;color:var(--text-muted);margin-bottom:32px;max-width:760px">Main navigation · bottom tab bar with a flat <strong style="color:#E0742E">Start round</strong> tab. Shown on home-base screens (Home, Profile) — <strong style="color:#134914">hidden during a live round</strong>. Tap tabs to switch; tap Start to begin.</div>
+
+  <div style="display:flex;gap:44px;align-items:flex-start">
+
+    <!-- ============ HOME ============ -->
+    <div style="flex:none">
+      <div class="lbl">Home · nav docked</div>
+      <div class="phone">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:8px 18px 96px">
+          <div style="font-family:var(--font-body);font-size:13px;color:#8A958C;margin-top:4px">Morning,</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:25px;color:#1C2B22;letter-spacing:-.01em">Wei Liang</div>
+
+          <div style="position:relative;margin-top:16px;background:#134914;border-radius:20px;padding:20px;overflow:hidden;box-shadow:0 14px 30px rgba(19,73,20,.28)">
+            <div style="position:absolute;right:-26px;bottom:-30px;width:150px;height:150px;border-radius:50%;border:18px solid rgba(255,255,255,.06)"></div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#9FD49B">Next up</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:21px;color:#fff;margin-top:6px;line-height:1.15">Ready for a round?</div>
+            <div style="font-family:var(--font-body);font-size:13px;color:#CDE7C9;margin-top:4px">Tap Start below — pick a course, gather your kaki.</div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin:22px 2px 11px">
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">Recent rounds</div>
+            <div style="font-family:var(--font-body);font-size:12px;color:#134914;font-weight:600">See all</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-xs)">
+              <div style="width:42px;height:42px;flex:none;border-radius:12px;background:#DFEEDC;display:flex;align-items:center;justify-content:center"><i data-lucide="flag" style="width:19px;height:19px;color:#134914"></i></div>
+              <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Sentosa · Serapong</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">Sat · 4 kaki · skins</div></div>
+              <div style="text-align:right"><div style="font-family:var(--font-numeric);font-weight:700;font-size:18px;color:#1E6E16">82</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C">+10</div></div>
+            </div>
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-xs)">
+              <div style="width:42px;height:42px;flex:none;border-radius:12px;background:#FFDCC2;display:flex;align-items:center;justify-content:center"><i data-lucide="flag" style="width:19px;height:19px;color:#C75F1E"></i></div>
+              <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Tanah Merah · Garden</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">Last Sun · 3 kaki · stroke</div></div>
+              <div style="text-align:right"><div style="font-family:var(--font-numeric);font-weight:700;font-size:18px;color:#1C2B22">78</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C">+6</div></div>
+            </div>
+          </div>
+        </div>
+        <!-- NAV A -->
+        <div style="{{ navWrap }}">
+          <div style="{{ navBar }}">
+            <sc-for list="{{ tabsA }}" as="t" hint-placeholder-count="5">
+              <div class="navtab" onClick="{{ t.onClick }}" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+                <i data-lucide="{{ t.icon }}" style="{{ t.iconStyle }}"></i>
+                <span style="{{ t.labelStyle }}">{{ t.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="{{ homeIndicator }}"></div>
+        </div>
+        <div style="{{ toastStyleA }}"><i data-lucide="flag" style="width:15px;height:15px"></i>Starting a round…</div>
+      </div>
+    </div>
+
+    <!-- ============ PROFILE ============ -->
+    <div style="flex:none">
+      <div class="lbl">Profile · nav docked</div>
+      <div class="phone">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 4px">
+          <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-xs)"><i data-lucide="chevron-left" style="width:20px;height:20px;color:#3A4A40"></i></div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:#1C2B22">Profile</div>
+          <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-xs)"><i data-lucide="settings" style="width:18px;height:18px;color:#3A4A40"></i></div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:12px 18px 96px;display:flex;flex-direction:column;align-items:center">
+          <div style="width:72px;height:72px;flex:none;border-radius:50%;background:#DFEEDC;border:3px solid #fff;box-shadow:0 8px 22px rgba(14,58,40,.24);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;color:#134914;font-size:26px">WL</div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:21px;color:#1C2B22;margin-top:10px">Wei Liang</div>
+          <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;margin-top:2px">@weiliang · Singapore</div>
+          <div style="display:inline-flex;align-items:center;gap:7px;background:#FFEEE0;border:1px solid #FFDCC2;color:#E0742E;font-family:var(--font-body);font-weight:600;font-size:13px;padding:6px 14px;border-radius:999px;margin-top:11px;box-shadow:var(--shadow-xs)"><span style="color:#CFA98A;font-weight:500;letter-spacing:.04em;text-transform:uppercase;font-size:10px">Handicap</span><span style="font-family:var(--font-numeric);font-size:16px;font-weight:700">7.0</span></div>
+          <div style="display:flex;gap:10px;width:100%;margin-top:18px">
+            <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:12px 6px;text-align:center;box-shadow:var(--shadow-xs)"><div style="font-family:var(--font-numeric);font-weight:700;font-size:20px;color:#1C2B22">42</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:2px">Rounds</div></div>
+            <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:12px 6px;text-align:center;box-shadow:var(--shadow-xs)"><div style="font-family:var(--font-numeric);font-weight:700;font-size:20px;color:#1E6E16">78</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:2px">Best</div></div>
+            <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:12px 6px;text-align:center;box-shadow:var(--shadow-xs)"><div style="font-family:var(--font-numeric);font-weight:700;font-size:20px;color:#1C2B22">5</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:2px">Wins</div></div>
+          </div>
+          <div style="width:100%;text-align:left;font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin:20px 0 9px">Friends · 3</div>
+          <div style="width:100%;display:flex;flex-direction:column;gap:8px">
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:10px 13px;display:flex;align-items:center;gap:11px;box-shadow:var(--shadow-xs)"><div style="width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#DFEEDC;color:#134914">M</div><div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Marcus Tan</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 2</div></div></div>
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:10px 13px;display:flex;align-items:center;gap:11px;box-shadow:var(--shadow-xs)"><div style="width:38px;height:38px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#FFDCC2;color:#C75F1E">D</div><div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Dinesh Kumar</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 16</div></div></div>
+          </div>
+        </div>
+        <!-- NAV B -->
+        <div style="{{ navWrap }}">
+          <div style="{{ navBar }}">
+            <sc-for list="{{ tabsB }}" as="t" hint-placeholder-count="5">
+              <div class="navtab" onClick="{{ t.onClick }}" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+                <i data-lucide="{{ t.icon }}" style="{{ t.iconStyle }}"></i>
+                <span style="{{ t.labelStyle }}">{{ t.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="{{ homeIndicator }}"></div>
+        </div>
+        <div style="{{ toastStyleB }}"><i data-lucide="flag" style="width:15px;height:15px"></i>Starting a round…</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:840,&quot;height&quot;:840}}">
+class Component extends DCLogic {
+  state = { activeA: 'home', activeB: 'profile', toast: null };
+
+  componentDidMount() {
+    this._iv = setInterval(() => { if (window.lucide) window.lucide.createIcons(); }, 150);
+    this._stop = setTimeout(() => clearInterval(this._iv), 4000);
+  }
+  componentDidUpdate() { if (window.lucide) window.lucide.createIcons(); }
+  componentWillUnmount() { clearInterval(this._iv); clearTimeout(this._stop); clearTimeout(this._tt); }
+
+  select(which, key) {
+    this.setState(which === 'A' ? { activeA: key } : { activeB: key });
+  }
+  start(which) {
+    this.setState({ toast: which });
+    clearTimeout(this._tt);
+    this._tt = setTimeout(() => this.setState({ toast: null }), 1700);
+  }
+
+  buildTabs(which, active) {
+    const GREEN = '#134914', GREY = '#9AA59C', ORANGE = '#F47C2E';
+    const make = (t) => {
+      const on = active === t.key;
+      const c = on ? GREEN : GREY;
+      return {
+        ...t,
+        onClick: () => this.select(which, t.key),
+        iconStyle: 'width:23px;height:23px;color:' + c + ';stroke-width:' + (on ? '2.4' : '2') + 'px;',
+        labelStyle: 'font-family:var(--font-body);font-size:10px;font-weight:' + (on ? '700' : '500') + ';color:' + c + ';',
+      };
+    };
+    const leftDests = [
+      { key: 'home', icon: 'house', label: 'Home' },
+      { key: 'rounds', icon: 'flag', label: 'Rounds' },
+    ];
+    const rightDests = [
+      { key: 'kaki', icon: 'users', label: 'Kaki' },
+      { key: 'profile', icon: 'user', label: 'Profile' },
+    ];
+    const start = {
+      key: 'start', icon: 'circle-plus', label: 'Start',
+      onClick: () => this.start(which),
+      iconStyle: 'width:25px;height:25px;color:' + ORANGE + ';stroke-width:2.4px;',
+      labelStyle: 'font-family:var(--font-body);font-size:10px;font-weight:700;color:' + ORANGE + ';',
+    };
+    return [...leftDests.map(make), start, ...rightDests.map(make)];
+  }
+
+  renderVals() {
+    const a = this.buildTabs('A', this.state.activeA);
+    const b = this.buildTabs('B', this.state.activeB);
+
+    const toastBase = 'position:absolute;left:50%;transform:translateX(-50%);bottom:104px;z-index:30;display:inline-flex;align-items:center;gap:7px;background:#1C2B22;color:#fff;font-family:var(--font-body);font-weight:600;font-size:13px;padding:9px 16px;border-radius:999px;box-shadow:0 10px 26px rgba(14,58,40,.32);white-space:nowrap;transition:opacity .25s var(--ease-out),transform .25s var(--ease-out);';
+    const toast = (on) => toastBase + (on
+      ? 'opacity:1;'
+      : 'opacity:0;pointer-events:none;transform:translateX(-50%) translateY(8px);');
+
+    return {
+      tabsA: a, tabsB: b,
+      navWrap: 'position:absolute;left:0;right:0;bottom:0;height:84px;z-index:20;',
+      navBar: 'position:absolute;left:0;right:0;bottom:0;height:84px;background:#fff;border-top:1px solid #EFE8D5;box-shadow:0 -6px 22px rgba(14,58,40,.07);display:flex;align-items:center;justify-content:space-around;padding:0 6px 18px;',
+      homeIndicator: 'position:absolute;left:50%;bottom:7px;transform:translateX(-50%);width:120px;height:4px;border-radius:999px;background:#1C2B22;opacity:.16;',
+      toastStyleA: toast(this.state.toast === 'A'),
+      toastStyleB: toast(this.state.toast === 'B'),
+    };
+  }
+}
+</script>
+</body>
+</html>
