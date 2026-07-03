@@ -1,12 +1,13 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Flag } from 'lucide-react-native';
-import { useRef } from 'react';
-import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
 
 import type { RootStackParamList } from '../navigation/types';
+import { useAuth } from '../state/AuthContext';
 import {
   colors,
   getFontFamily,
@@ -26,6 +27,8 @@ const WATERMARK_SIZE = 330;
 
 export function LandingScreen({ navigation }: Props) {
   const scale = useRef(new Animated.Value(1)).current;
+  const { signInWithGoogle, signingIn } = useAuth();
+  const [error, setError] = useState<string | null>(null);
 
   const animateTo = (value: number) => {
     Animated.timing(scale, {
@@ -35,6 +38,16 @@ export function LandingScreen({ navigation }: Props) {
       useNativeDriver: true,
     }).start();
   };
+
+  async function handleContinue() {
+    setError(null);
+    try {
+      const success = await signInWithGoogle();
+      if (success) navigation.replace('Home');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong — please try again.');
+    }
+  }
 
   return (
     <View style={styles.page}>
@@ -67,26 +80,30 @@ export function LandingScreen({ navigation }: Props) {
             <Flag size={46} color={colors.accent} strokeWidth={2} />
           </View>
           <Text style={styles.overline}>Track score · Add fun</Text>
-          <Text style={styles.headline}>
-            Golf with{'\n'}your kaki.
-          </Text>
+          <Text style={styles.headline}>Golf Kaki</Text>
           <Text style={styles.subhead}>
             Keep score, hand out strokes, and settle the teh tarik — all in one weekend round.
           </Text>
         </View>
 
         <View style={styles.footer}>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <Animated.View style={{ transform: [{ scale }] }}>
             <Pressable
-              onPress={() => navigation.replace('Home')}
+              onPress={handleContinue}
               onPressIn={() => animateTo(motion.pressScale)}
               onPressOut={() => animateTo(1)}
-              style={styles.googleButton}
+              disabled={signingIn}
+              style={[styles.googleButton, signingIn && styles.googleButtonDisabled]}
             >
-              <View style={styles.googleBadge}>
-                <Text style={styles.googleG}>G</Text>
-              </View>
-              <Text style={styles.googleLabel}>Continue with Google</Text>
+              {signingIn ? (
+                <ActivityIndicator size="small" color={colors.textPrimary} />
+              ) : (
+                <View style={styles.googleBadge}>
+                  <Text style={styles.googleG}>G</Text>
+                </View>
+              )}
+              <Text style={styles.googleLabel}>{signingIn ? 'Signing in…' : 'Continue with Google'}</Text>
             </Pressable>
           </Animated.View>
           <Text style={styles.legal}>
@@ -167,6 +184,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: screenGutter + 10,
     paddingBottom: spacing[9],
   },
+  errorText: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 13,
+    color: palette.orange[300],
+    textAlign: 'center',
+    marginBottom: spacing[3],
+  },
   googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -180,6 +205,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.22,
     shadowRadius: 20,
     elevation: 6,
+  },
+  googleButtonDisabled: {
+    opacity: 0.7,
   },
   googleBadge: {
     width: 24,

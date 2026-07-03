@@ -1,26 +1,23 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Camera, ChevronLeft, Home as HomeIcon, Pencil, RefreshCw, Settings, Trophy, User, UserPlus } from 'lucide-react-native';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Camera, Lock, Pencil, RefreshCw, Settings, Trophy } from 'lucide-react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { Avatar } from '../components/Avatar';
+import { BadgeCard } from '../components/BadgeCard';
+import { BottomNav } from '../components/BottomNav';
 import { Card } from '../components/Card';
+import { FeaturedTrophyCard } from '../components/FeaturedTrophyCard';
 import { HandicapBadge } from '../components/HandicapBadge';
 import { IconButton } from '../components/IconButton';
 import { StatRow } from '../components/StatRow';
-import { TabBar } from '../components/TabBar';
-import type { TabBarItem } from '../components/TabBar';
+import { FEATURED_BADGE, GOLD_TROPHIES, PROGRESS_PERCENT, TROPHIES_EARNED, TROPHIES_GOAL, TROPHIES_LOCKED, TROPHY_BADGES } from '../data/trophies';
 import type { RootStackParamList } from '../navigation/types';
-import { colors, getFontFamily, getPlayerColors, palette, screenGutter, spacing } from '../theme/tokens';
+import { colors, getFontFamily, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
-
-const TABS: TabBarItem[] = [
-  { key: 'home', label: 'Home', icon: HomeIcon },
-  { key: 'leaderboard', label: 'Leaderboard', icon: Trophy },
-  { key: 'profile', label: 'Profile', icon: User },
-];
 
 const STATS = [
   { value: 42, label: 'Rounds', color: colors.textPrimary },
@@ -28,84 +25,108 @@ const STATS = [
   { value: 5, label: 'Wins', color: colors.textPrimary },
 ];
 
-type Friend = {
-  initials: string;
-  name: string;
-  handicap: number;
-  strokeNote: string;
-  strokeColor: string;
-  chipLabel: string;
-  chipColor: string;
-  chipBackground: string;
-};
-
-const FRIENDS: Friend[] = [
-  {
-    initials: 'M',
-    name: 'Marcus',
-    handicap: 2,
-    strokeNote: 'give 5 strokes',
-    strokeColor: colors.scorePar,
-    chipLabel: '+5',
-    chipColor: colors.scorePar,
-    chipBackground: colors.surfaceBrandSoft,
-  },
-  {
-    initials: 'D',
-    name: 'Dinesh',
-    handicap: 16,
-    strokeNote: 'get 9 strokes',
-    strokeColor: colors.textAccent,
-    chipLabel: '−9',
-    chipColor: colors.textAccent,
-    chipBackground: colors.surfaceAccentSoft,
-  },
-  {
-    initials: 'J',
-    name: 'Jia Hui',
-    handicap: 9,
-    strokeNote: 'even strokes',
-    strokeColor: colors.textMuted,
-    chipLabel: 'Even',
-    chipColor: colors.textMuted,
-    chipBackground: colors.surfaceSunken,
-  },
-];
-
 export function ProfileScreen({ navigation }: Props) {
+  const [editingIdentity, setEditingIdentity] = useState(false);
+  const [name, setName] = useState('Wei Liang');
+  const [handle, setHandle] = useState('@weiliang');
+  const [nameDraft, setNameDraft] = useState(name);
+  const [handleDraft, setHandleDraft] = useState(handle);
+
+  const [editingBio, setEditingBio] = useState(false);
+  const [bio, setBio] = useState('Weekend hacker, fairway optimist. Will play anyone for a teh tarik.');
+  const [bioDraft, setBioDraft] = useState(bio);
+
+  function startEditIdentity() {
+    setNameDraft(name);
+    setHandleDraft(handle);
+    setEditingIdentity(true);
+  }
+  function saveIdentity() {
+    setName(nameDraft);
+    setHandle(handleDraft);
+    setEditingIdentity(false);
+  }
+
+  function startEditBio() {
+    setBioDraft(bio);
+    setEditingBio(true);
+  }
+  function saveBio() {
+    setBio(bioDraft);
+    setEditingBio(false);
+  }
+
   return (
     <View style={styles.page}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
-          <IconButton icon={ChevronLeft} onPress={() => navigation.goBack()} />
+          <View style={styles.headerSpacer} />
           <Text style={styles.headerTitle}>Profile</Text>
           <IconButton icon={Settings} iconSize={18} />
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <View style={styles.avatarWrap}>
-            <Avatar initials="WL" size={96} bordered style={styles.profileAvatar} />
+            <View style={styles.avatarRing}>
+              <Avatar initials="WL" size={88} bordered style={styles.profileAvatar} />
+            </View>
             <View style={styles.cameraBadge}>
-              <Camera size={15} color={palette.white} />
+              <Camera size={14} color={palette.white} />
             </View>
           </View>
 
-          <Text style={styles.name}>Wei Liang</Text>
-          <Text style={styles.handle}>@weiliang · Singapore</Text>
+          {editingIdentity ? (
+            <View style={styles.identityEditWrap}>
+              <View style={[styles.inputRow, styles.inputRowFocused]}>
+                <Text style={styles.inputLabel}>Name</Text>
+                <TextInput value={nameDraft} onChangeText={setNameDraft} style={styles.inputName} />
+              </View>
+              <View style={styles.inputRow}>
+                <Text style={styles.inputLabel}>Handle</Text>
+                <TextInput value={handleDraft} onChangeText={setHandleDraft} style={styles.inputHandle} />
+              </View>
+              <EditActions onSave={saveIdentity} onCancel={() => setEditingIdentity(false)} />
+            </View>
+          ) : (
+            <>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>{name}</Text>
+                <Pressable style={styles.editPencilBtn} onPress={startEditIdentity}>
+                  <Pencil size={13} color={colors.primary} />
+                </Pressable>
+              </View>
+              <Text style={styles.handle}>{handle} · Singapore</Text>
+            </>
+          )}
 
-          <HandicapBadge value={7} label="Handicap" variant="green" size="lg" style={styles.handicapBadge} />
+          <HandicapBadge value={7} label="Handicap" variant="orange" size="lg" style={styles.handicapBadge} />
 
           <View style={styles.autoCountRow}>
             <RefreshCw size={12} color={colors.textDisabled} />
             <Text style={styles.autoCountLabel}>Auto-counted from best 8 of last 20 rounds</Text>
           </View>
 
-          <Text style={styles.bio}>Weekend hacker, fairway optimist. Will play anyone for a teh tarik.</Text>
-          <View style={styles.editBioRow}>
-            <Pencil size={13} color={colors.primary} />
-            <Text style={styles.editBioLabel}>Edit bio</Text>
-          </View>
+          {editingBio ? (
+            <View style={styles.bioEditWrap}>
+              <TextInput
+                value={bioDraft}
+                onChangeText={setBioDraft}
+                multiline
+                textAlignVertical="top"
+                style={styles.bioInput}
+              />
+              <EditActions onSave={saveBio} onCancel={() => setEditingBio(false)} />
+            </View>
+          ) : (
+            <>
+              <Text style={styles.bio}>{bio}</Text>
+              <Pressable style={styles.editBioRow} onPress={startEditBio}>
+                <Pencil size={13} color={colors.primary} />
+                <Text style={styles.editBioLabel}>Edit bio</Text>
+              </Pressable>
+            </>
+          )}
 
           <View style={styles.statsRow}>
             {STATS.map((stat) => (
@@ -115,42 +136,65 @@ export function ProfileScreen({ navigation }: Props) {
             ))}
           </View>
 
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionLabel}>Friends · {FRIENDS.length}</Text>
-            <View style={styles.addRow}>
-              <UserPlus size={14} color={colors.primary} />
-              <Text style={styles.addLabel}>Add</Text>
+          <View style={styles.trophyHeaderRow}>
+            <View style={styles.trophyTitleGroup}>
+              <Text style={styles.sectionLabel}>Trophy cabinet</Text>
+              <View style={styles.goldChip}>
+                <Trophy size={12} color={colors.scoreEagle} />
+                <Text style={styles.goldChipLabel}>{GOLD_TROPHIES} gold</Text>
+              </View>
             </View>
+            <Pressable onPress={() => navigation.navigate('TrophyCabinet')}>
+              <Text style={styles.viewAllLabel}>View all</Text>
+            </Pressable>
           </View>
-          <View style={styles.friendList}>
-            {FRIENDS.map((friend, index) => {
-              const avatarColors = getPlayerColors(index);
-              return (
-                <Card key={friend.name} style={styles.friendRow}>
-                  <Avatar initials={friend.initials} size={40} backgroundColor={avatarColors.background} color={avatarColors.color} />
-                  <View style={styles.friendInfo}>
-                    <Text style={styles.friendName}>{friend.name}</Text>
-                    <Text style={styles.friendSub}>
-                      HCP {friend.handicap} · <Text style={{ color: friend.strokeColor }}>{friend.strokeNote}</Text>
-                    </Text>
-                  </View>
-                  <View style={[styles.friendChip, { backgroundColor: friend.chipBackground }]}>
-                    <Text style={[styles.friendChipLabel, { color: friend.chipColor }]}>{friend.chipLabel}</Text>
-                  </View>
-                </Card>
-              );
-            })}
+
+          <View style={styles.progressRow}>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${PROGRESS_PERCENT}%` }]} />
+            </View>
+            <Text style={styles.progressLabel}>
+              {TROPHIES_EARNED} / {TROPHIES_GOAL}
+            </Text>
+          </View>
+
+          <FeaturedTrophyCard badge={FEATURED_BADGE} style={styles.featuredCard} />
+
+          <View style={styles.cabinetGrid}>
+            {TROPHY_BADGES.map((badge) => (
+              <BadgeCard key={badge.name} badge={badge} />
+            ))}
+          </View>
+
+          <View style={styles.footerRow}>
+            <Lock size={13} color={colors.textMuted} />
+            <Text style={styles.footerLabel}>{TROPHIES_LOCKED} more to chase</Text>
           </View>
         </ScrollView>
 
-        <TabBar
-          items={TABS}
-          activeKey="profile"
-          onChange={(key) => {
-            if (key === 'home') navigation.navigate('Home');
+        <BottomNav
+          active="profile"
+          onNavigate={(tab) => {
+            if (tab === 'home') navigation.navigate('Home');
+            if (tab === 'kaki') navigation.navigate('Kaki');
+            if (tab === 'rounds') navigation.navigate('Rounds');
           }}
+          onStart={() => navigation.navigate('SelectCourse')}
         />
       </SafeAreaView>
+    </View>
+  );
+}
+
+function EditActions({ onSave, onCancel }: { onSave: () => void; onCancel: () => void }) {
+  return (
+    <View style={styles.editActionsRow}>
+      <Pressable style={styles.editSaveBtn} onPress={onSave}>
+        <Text style={styles.editSaveLabel}>Save</Text>
+      </Pressable>
+      <Pressable style={styles.editCancelBtn} onPress={onCancel}>
+        <Text style={styles.editCancelLabel}>Cancel</Text>
+      </Pressable>
     </View>
   );
 }
@@ -171,6 +215,10 @@ const styles = StyleSheet.create({
     paddingTop: screenGutter,
     paddingBottom: screenGutter,
   },
+  headerSpacer: {
+    width: 40,
+    height: 40,
+  },
   headerTitle: {
     fontFamily: getFontFamily('display', '700'),
     fontWeight: '700',
@@ -182,12 +230,27 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: screenGutter,
+    paddingTop: spacing[2] + 2,
     paddingBottom: spacing[7],
     alignItems: 'center',
   },
   avatarWrap: {
     width: 96,
     height: 96,
+  },
+  avatarRing: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 2,
+    borderColor: colors.scoreEagle,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.scoreEagle,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.42,
+    shadowRadius: 18,
+    elevation: 6,
   },
   profileAvatar: {
     borderWidth: 3,
@@ -205,12 +268,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1] + 3,
+    marginTop: spacing[3],
+  },
   name: {
     fontFamily: getFontFamily('display', '700'),
     fontWeight: '700',
     fontSize: 23,
     color: colors.textPrimary,
-    marginTop: spacing[3],
+  },
+  editPencilBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.surfaceBrandSoft,
+    borderWidth: 1,
+    borderColor: palette.green[200],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   handle: {
     fontFamily: getFontFamily('body', '400'),
@@ -218,8 +296,82 @@ const styles = StyleSheet.create({
     color: colors.textDisabled,
     marginTop: 2,
   },
-  handicapBadge: {
+  identityEditWrap: {
+    width: '100%',
     marginTop: spacing[3],
+    gap: spacing[2],
+  },
+  inputRow: {
+    height: 44,
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    borderRadius: radius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    gap: spacing[2],
+  },
+  inputRowFocused: {
+    borderColor: colors.primary,
+  },
+  inputLabel: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.textDisabled,
+  },
+  inputName: {
+    flex: 1,
+    fontFamily: getFontFamily('display', '700'),
+    fontWeight: '700',
+    fontSize: 15,
+    color: colors.textPrimary,
+    padding: 0,
+  },
+  inputHandle: {
+    flex: 1,
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 15,
+    color: colors.textPrimary,
+    padding: 0,
+  },
+  editActionsRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
+    marginTop: 2,
+  },
+  editSaveBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editSaveLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 13,
+    color: colors.textInverse,
+  },
+  editCancelBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editCancelLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 13,
+    color: colors.textMuted,
+  },
+  handicapBadge: {
+    marginTop: spacing[3] + 2,
   },
   autoCountRow: {
     flexDirection: 'row',
@@ -254,22 +406,47 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textDecorationLine: 'underline',
   },
+  bioEditWrap: {
+    width: '100%',
+    marginTop: spacing[4],
+  },
+  bioInput: {
+    width: '100%',
+    height: 76,
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: radius.md,
+    paddingVertical: spacing[2] + 2,
+    paddingHorizontal: spacing[3],
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 14,
+    lineHeight: 22,
+    color: colors.textSecondary,
+  },
   statsRow: {
     flexDirection: 'row',
     gap: spacing[2] + 2,
     width: '100%',
-    marginTop: spacing[6] - 2,
+    marginTop: spacing[5],
   },
   statCard: {
     flex: 1,
+    paddingVertical: 13,
+    paddingHorizontal: 6,
   },
-  sectionHeaderRow: {
+  trophyHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    marginTop: spacing[6] - 2,
-    marginBottom: spacing[2] + 1,
+    marginTop: spacing[7] - 4,
+    marginBottom: spacing[3] - 2,
+  },
+  trophyTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2] + 1,
   },
   sectionLabel: {
     fontFamily: getFontFamily('body', '600'),
@@ -279,51 +456,74 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textTransform: 'uppercase',
   },
-  addRow: {
+  goldChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[1] + 1,
+    backgroundColor: colors.surfaceBrandSoft,
+    borderWidth: 1,
+    borderColor: palette.green[200],
+    paddingVertical: 3,
+    paddingHorizontal: 9,
+    borderRadius: radius.pill,
   },
-  addLabel: {
+  goldChipLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 11,
+    color: colors.primary,
+  },
+  viewAllLabel: {
     fontFamily: getFontFamily('body', '600'),
     fontWeight: '600',
     fontSize: 12,
     color: colors.primary,
   },
-  friendList: {
-    width: '100%',
-    gap: spacing[2],
-  },
-  friendRow: {
+  progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[3],
-    padding: spacing[3] - 2,
+    gap: spacing[2] + 3,
+    width: '100%',
+    marginBottom: spacing[4] + 2,
   },
-  friendInfo: {
+  progressTrack: {
     flex: 1,
-    minWidth: 0,
+    height: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSunken,
+    overflow: 'hidden',
   },
-  friendName: {
-    fontFamily: getFontFamily('body', '600'),
-    fontWeight: '600',
-    fontSize: 14,
-    color: colors.textPrimary,
+  progressFill: {
+    height: '100%',
+    borderRadius: radius.pill,
+    backgroundColor: palette.green[700],
   },
-  friendSub: {
-    fontFamily: getFontFamily('body', '400'),
-    fontSize: 11,
-    color: colors.textDisabled,
-    marginTop: 1,
-  },
-  friendChip: {
-    borderRadius: 999,
-    paddingVertical: spacing[1],
-    paddingHorizontal: spacing[2] + 1,
-  },
-  friendChipLabel: {
+  progressLabel: {
     fontFamily: getFontFamily('numeric', '700'),
     fontWeight: '700',
     fontSize: 12,
+    color: colors.textMuted,
+  },
+  featuredCard: {
+    width: '100%',
+    marginBottom: spacing[6] - 2,
+  },
+  cabinetGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    marginTop: spacing[5],
+  },
+  footerLabel: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.textMuted,
   },
 });
