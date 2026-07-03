@@ -12,7 +12,7 @@ import {
   Users,
   X,
 } from 'lucide-react-native';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -21,66 +21,74 @@ import { Avatar } from '../components/Avatar';
 import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import type { AddCandidate, Friend, FriendRequest } from '../data/kaki';
+import { acceptFriendRequest, fetchKakiOverview, removeKakiRelationship, sendFriendRequest } from '../data/kaki';
 import type { RootStackParamList } from '../navigation/types';
+import { useAuth } from '../state/AuthContext';
 import { colors, getFontFamily, getPlayerColors, motion, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Kaki'>;
 
-// Matches the HandicapBadge value used for "me" on Home/Profile — drives the give/get stroke math below.
-const MY_HANDICAP = 7;
-
-type KakiPerson = {
-  id: string;
-  name: string;
-  handle: string;
-  handicap: number;
-};
-
-type AddCandidate = KakiPerson & { status: 'add' | 'requested' };
-
-const INITIAL_REQUESTS: KakiPerson[] = [
-  { id: 'aaron', name: 'Aaron Lim', handle: '@aaronlim', handicap: 9 },
-  { id: 'priya', name: 'Priya Raman', handle: '@priyar', handicap: 5 },
-];
-
-const INITIAL_FRIENDS: KakiPerson[] = [
-  { id: 'marcus', name: 'Marcus Tan', handle: '@marcustan', handicap: 2 },
-  { id: 'priscilla', name: 'Priscilla Goh', handle: '@prisgoh', handicap: 8 },
-  { id: 'jiahui', name: 'Jia Hui', handle: '@jiahui', handicap: 11 },
-  { id: 'dinesh', name: 'Dinesh Kumar', handle: '@dineshk', handicap: 16 },
-  { id: 'samuel', name: 'Samuel Ong', handle: '@samong', handicap: 22 },
-];
-
-const INITIAL_ADD_CANDIDATES: AddCandidate[] = [
-  { id: 'aaron2', name: 'Aaron Ng', handle: '@aaronng', handicap: 9, status: 'add' },
-  { id: 'bob', name: 'Bob Goh', handle: '@bobgoh', handicap: 14, status: 'add' },
-  { id: 'siti', name: 'Siti Nurhaliza', handle: '@sitin', handicap: 21, status: 'add' },
-  { id: 'ryan', name: 'Ryan Koh', handle: '@ryankoh', handicap: 6, status: 'add' },
-];
-
 export function KakiScreen({ navigation }: Props) {
+  const { session } = useAuth();
+  const userId = session?.user.id ?? null;
+
   const [query, setQuery] = useState('');
-  const [requests, setRequests] = useState(INITIAL_REQUESTS);
-  const [friends, setFriends] = useState(INITIAL_FRIENDS);
-  const [addCandidates, setAddCandidates] = useState(INITIAL_ADD_CANDIDATES);
+  const [requests, setRequests] = useState<FriendRequest[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [addCandidates, setAddCandidates] = useState<AddCandidate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [addQuery, setAddQuery] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+
+  const load = useCallback((id: string) => {
+    setLoading(true);
+    setLoadError(false);
+    fetchKakiOverview(id)
+      .then(({ friends: f, requests: r, directory }) => {
+        setFriends(f);
+        setRequests(r);
+        setAddCandidates(directory);
+      })
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (userId) load(userId);
+  }, [userId, load]);
 
   function confirmRequest(id: string) {
     const person = requests.find((r) => r.id === id);
     if (!person) return;
     setRequests((prev) => prev.filter((r) => r.id !== id));
-    setFriends((prev) => [person, ...prev]);
+    setFriends((prev) => [{ ...person, strokes18: 0 }, ...prev]);
+    acceptFriendRequest(person.relationshipId).catch(() => userId && load(userId));
   }
 
   function dismissRequest(id: string) {
+    const person = requests.find((r) => r.id === id);
+    if (!person) return;
     setRequests((prev) => prev.filter((r) => r.id !== id));
+    removeKakiRelationship(person.relationshipId).catch(() => userId && load(userId));
   }
 
   function toggleAddCandidate(id: string) {
-    setAddCandidates((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status: p.status === 'add' ? 'requested' : 'add' } : p)),
-    );
+    const candidate = addCandidates.find((c) => c.id === id);
+    if (!candidate || !userId) return;
+
+    if (candidate.status === 'add') {
+      setAddCandidates((prev) => prev.map((p) => (p.id === id ? { ...p, status: 'requested' } : p)));
+      sendFriendRequest(userId, id)
+        .then((relationshipId) => {
+          setAddCandidates((prev) => prev.map((p) => (p.id === id ? { ...p, relationshipId } : p)));
+        })
+        .catch(() => load(userId));
+    } else {
+      setAddCandidates((prev) => prev.map((p) => (p.id === id ? { ...p, status: 'add' } : p)));
+      if (candidate.relationshipId) removeKakiRelationship(candidate.relationshipId).catch(() => load(userId));
+    }
   }
 
   const q = query.trim().toLowerCase();
@@ -89,7 +97,7 @@ export function KakiScreen({ navigation }: Props) {
       friends
         .filter((f) => !q || f.name.toLowerCase().includes(q) || f.handle.toLowerCase().includes(q))
         .slice()
-        .sort((a, b) => a.handicap - b.handicap),
+        .sort((a, b) => (a.handicap ?? Infinity) - (b.handicap ?? Infinity)),
     [friends, q],
   );
 
@@ -121,10 +129,13 @@ export function KakiScreen({ navigation }: Props) {
 
         <View style={styles.searchWrap}>
           <SearchBar value={query} onChange={setQuery} placeholder="Search your kaki" />
+          {loadError ? <Text style={styles.loadErrorText}>Couldn't load your kaki — check your connection and try again.</Text> : null}
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          {showRequests ? (
+          {loading ? <Text style={styles.loadingText}>Loading your kaki…</Text> : null}
+
+          {!loading && showRequests ? (
             <View style={styles.requestsSection}>
               <View style={styles.requestsHeader}>
                 <Text style={styles.sectionLabel}>Requests</Text>
@@ -146,20 +157,24 @@ export function KakiScreen({ navigation }: Props) {
             </View>
           ) : null}
 
-          <View style={styles.friendsHeader}>
-            <Text style={styles.sectionLabel}>Friends · {friends.length}</Text>
-            <View style={styles.sortIndicator}>
-              <ArrowDownUp size={12} color={colors.textDisabled} />
-              <Text style={styles.sortLabel}>Handicap</Text>
-            </View>
-          </View>
+          {!loading ? (
+            <>
+              <View style={styles.friendsHeader}>
+                <Text style={styles.sectionLabel}>Friends · {friends.length}</Text>
+                <View style={styles.sortIndicator}>
+                  <ArrowDownUp size={12} color={colors.textDisabled} />
+                  <Text style={styles.sortLabel}>Handicap</Text>
+                </View>
+              </View>
 
-          <View style={styles.friendList}>
-            {filteredFriends.map((person, index) => (
-              <FriendRow key={person.id} person={person} colorIndex={index} />
-            ))}
-            {noFriendsResult ? <NoFriendsResult /> : null}
-          </View>
+              <View style={styles.friendList}>
+                {filteredFriends.map((person, index) => (
+                  <FriendRow key={person.id} person={person} colorIndex={index} />
+                ))}
+                {noFriendsResult ? <NoFriendsResult /> : null}
+              </View>
+            </>
+          ) : null}
         </ScrollView>
 
         <BottomNav
@@ -186,15 +201,18 @@ export function KakiScreen({ navigation }: Props) {
   );
 }
 
-function getStrokeInfo(handicap: number) {
-  const diff = handicap - MY_HANDICAP;
-  if (diff > 0) {
-    return { label: `give ${diff}`, background: palette.orange[100], border: palette.orange[200], color: palette.orange[700] };
+function getStrokeInfo(strokes18: number) {
+  if (strokes18 > 0) {
+    return { label: `give ${strokes18}`, background: palette.orange[100], border: palette.orange[200], color: palette.orange[700] };
   }
-  if (diff < 0) {
-    return { label: `get ${Math.abs(diff)}`, background: palette.green[100], border: palette.green[200], color: palette.green[600] };
+  if (strokes18 < 0) {
+    return { label: `get ${Math.abs(strokes18)}`, background: palette.green[100], border: palette.green[200], color: palette.green[600] };
   }
   return { label: 'even', background: colors.surfaceSunken, border: colors.borderDefault, color: colors.textDisabled };
+}
+
+function handicapMeta(person: { handle: string; handicap: number | null }) {
+  return `${person.handle} · HCP ${person.handicap ?? '–'}`;
 }
 
 function SearchBar({
@@ -231,7 +249,7 @@ function RequestRow({
   onConfirm,
   onDismiss,
 }: {
-  person: KakiPerson;
+  person: FriendRequest;
   colorIndex: number;
   onConfirm: () => void;
   onDismiss: () => void;
@@ -244,9 +262,7 @@ function RequestRow({
         <Avatar initials={person.name.charAt(0)} size={42} backgroundColor={playerColor.background} color={playerColor.color} />
         <View style={styles.personInfo}>
           <Text style={styles.personName}>{person.name}</Text>
-          <Text style={styles.personMeta}>
-            {person.handle} · HCP {person.handicap}
-          </Text>
+          <Text style={styles.personMeta}>{handicapMeta(person)}</Text>
         </View>
       </View>
       <View style={styles.requestActions}>
@@ -262,18 +278,16 @@ function RequestRow({
   );
 }
 
-function FriendRow({ person, colorIndex }: { person: KakiPerson; colorIndex: number }) {
+function FriendRow({ person, colorIndex }: { person: Friend; colorIndex: number }) {
   const playerColor = getPlayerColors(colorIndex);
-  const stroke = getStrokeInfo(person.handicap);
+  const stroke = getStrokeInfo(person.strokes18);
 
   return (
     <Card style={styles.friendRow} padding={11}>
       <Avatar initials={person.name.charAt(0)} size={42} backgroundColor={playerColor.background} color={playerColor.color} />
       <View style={styles.personInfo}>
         <Text style={styles.personName}>{person.name}</Text>
-        <Text style={styles.personMeta}>
-          {person.handle} · HCP {person.handicap}
-        </Text>
+        <Text style={styles.personMeta}>{handicapMeta(person)}</Text>
       </View>
       <View style={[styles.strokePill, { backgroundColor: stroke.background, borderColor: stroke.border }]}>
         <Text style={[styles.strokeLabel, { color: stroke.color }]}>{stroke.label}</Text>
@@ -312,9 +326,7 @@ function CandidateRow({
       <Avatar initials={candidate.name.charAt(0)} size={40} backgroundColor={playerColor.background} color={playerColor.color} />
       <View style={styles.personInfo}>
         <Text style={styles.personName}>{candidate.name}</Text>
-        <Text style={styles.personMeta}>
-          {candidate.handle} · HCP {candidate.handicap}
-        </Text>
+        <Text style={styles.personMeta}>{handicapMeta(candidate)}</Text>
       </View>
       <Pressable
         style={[styles.candidateButton, requested ? styles.candidateButtonRequested : styles.candidateButtonAdd]}
@@ -480,6 +492,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSunken,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loadErrorText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.textDisabled,
+    marginTop: spacing[2],
+  },
+  loadingText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 13,
+    color: colors.textDisabled,
+    textAlign: 'center',
+    marginTop: spacing[6],
   },
   scroll: {
     flex: 1,
