@@ -8,7 +8,6 @@ import {
   Flag,
   Info,
   MapPin,
-  Navigation,
   Search,
   X,
 } from 'lucide-react-native';
@@ -20,7 +19,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Button } from '../components/Button';
 import { IconButton } from '../components/IconButton';
 import type { Course as CatalogCourse, NineCombo } from '../data/courses';
-import { fetchCourseCatalog } from '../data/courses';
+import { fetchCourseCatalog, getComboHoles } from '../data/courses';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, getFontFamily, motion, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
@@ -32,46 +31,23 @@ type Course = {
   id: string;
   name: string;
   area: string;
-  /** Unknown for catalog courses fetched from Supabase — we don't have geo data for them yet. */
-  distanceKm?: number;
   totalHoles: number;
-  pinned?: boolean;
 };
-
-const COURSES: Course[] = [
-  { id: 'sentosa', name: 'Sentosa Golf Club', area: 'Sentosa Island', distanceKm: 2.4, totalHoles: 36, pinned: true },
-  { id: 'marina-bay', name: 'Marina Bay Golf Course', area: 'Marina South', distanceKm: 3.1, totalHoles: 18 },
-  { id: 'tanah-merah', name: 'Tanah Merah Country Club', area: 'Changi', distanceKm: 14, totalHoles: 36 },
-  { id: 'laguna-national', name: 'Laguna National G&CC', area: 'Tanah Merah', distanceKm: 15, totalHoles: 36 },
-];
-
-// Only Sentosa's nine-combo is modeled — the other 36-hole clubs need real
-// per-course tee/nine data from the (not-yet-built) course catalog before
-// their picker row can show anything but a placeholder.
-const SENTOSA_NINE_LABEL = 'Serapong · New 9 + Old 9';
 
 type StartHole = {
   n: number;
   meta: string;
 };
 
-const START_HOLES: StartHole[] = [
-  { n: 1, meta: 'Par 4 · SI 7' },
-  { n: 2, meta: 'Par 5 · SI 3' },
-  { n: 3, meta: 'Par 3 · SI 15' },
-  { n: 4, meta: 'Par 4 · SI 1' },
-  { n: 5, meta: 'Par 4 · SI 11' },
-  { n: 6, meta: 'Par 5 · SI 5' },
-];
-
 export function SelectCourseScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
-  const [selectedCourseId, setSelectedCourseId] = useState('sentosa');
+  const [selectedCourseId, setSelectedCourseId] = useState('');
   const [holesToPlay, setHolesToPlay] = useState<HolesToPlay>(18);
   const [startHole, setStartHole] = useState(1);
   const [startHoleSheetOpen, setStartHoleSheetOpen] = useState(false);
 
   const [catalog, setCatalog] = useState<CatalogCourse[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState(false);
   const [selectedComboId, setSelectedComboId] = useState<string | undefined>(undefined);
   const [comboSheetOpen, setComboSheetOpen] = useState(false);
@@ -79,24 +55,25 @@ export function SelectCourseScreen({ navigation }: Props) {
   useEffect(() => {
     fetchCourseCatalog()
       .then(setCatalog)
-      .catch(() => setCatalogError(true));
+      .catch(() => setCatalogError(true))
+      .finally(() => setCatalogLoading(false));
   }, []);
 
   const allCourses = useMemo<Course[]>(
-    () => [
-      ...COURSES,
-      ...catalog.map((c) => ({ id: c.id, name: c.name, area: c.area, totalHoles: c.nines.length * 9 })),
-    ],
+    () => catalog.map((c) => ({ id: c.id, name: c.name, area: c.area, totalHoles: c.nines.length * 9 })),
     [catalog],
   );
+
+  // Nothing's selected until the catalog loads — default to the first club.
+  useEffect(() => {
+    if (!selectedCourseId && allCourses.length > 0) setSelectedCourseId(allCourses[0]!.id);
+  }, [allCourses, selectedCourseId]);
 
   const q = query.trim().toLowerCase();
   const filteredCourses = useMemo(
     () => allCourses.filter((c) => !q || c.name.toLowerCase().includes(q) || c.area.toLowerCase().includes(q)),
     [allCourses, q],
   );
-  const pinnedCourse = filteredCourses.find((c) => c.pinned);
-  const listCourses = filteredCourses.filter((c) => !c.pinned);
 
   const selectedCourse = allCourses.find((c) => c.id === selectedCourseId);
   const selectedCatalogCourse = catalog.find((c) => c.id === selectedCourseId);
@@ -106,6 +83,16 @@ export function SelectCourseScreen({ navigation }: Props) {
   useEffect(() => {
     setSelectedComboId(selectedCatalogCourse?.combos[0]?.id);
   }, [selectedCatalogCourse]);
+
+  const startHoles = useMemo<StartHole[]>(() => {
+    if (!selectedCatalogCourse || !selectedCombo) return [];
+    return getComboHoles(selectedCatalogCourse, selectedCombo.id).map((h) => ({ n: h.n, meta: `Par ${h.par} · SI ${h.si}` }));
+  }, [selectedCatalogCourse, selectedCombo]);
+
+  // Keep the picked start hole valid as the selected course/combo changes.
+  useEffect(() => {
+    if (startHoles.length > 0 && !startHoles.some((h) => h.n === startHole)) setStartHole(startHoles[0]!.n);
+  }, [startHoles, startHole]);
 
   return (
     <View style={styles.page}>
@@ -136,27 +123,15 @@ export function SelectCourseScreen({ navigation }: Props) {
               style={styles.searchInput}
             />
           </View>
-          {catalogError ? <Text style={styles.catalogErrorText}>Couldn't load some clubs — showing what's cached.</Text> : null}
+          {catalogError ? <Text style={styles.catalogErrorText}>Couldn't load clubs — check your connection and try again.</Text> : null}
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          {pinnedCourse ? (
-            <>
-              <View style={styles.nearYouRow}>
-                <Navigation size={12} color={palette.green[600]} />
-                <Text style={styles.sectionLabel}>Near you</Text>
-              </View>
-              <CourseRow
-                course={pinnedCourse}
-                selected={selectedCourseId === pinnedCourse.id}
-                onPress={() => setSelectedCourseId(pinnedCourse.id)}
-              />
-            </>
-          ) : null}
-
-          {listCourses.length > 0 ? (
-            <View style={pinnedCourse ? styles.courseListSpaced : undefined}>
-              {listCourses.map((course) => (
+          {catalogLoading ? (
+            <Text style={styles.noResultsText}>Loading clubs…</Text>
+          ) : filteredCourses.length > 0 ? (
+            <View>
+              {filteredCourses.map((course) => (
                 <CourseRow
                   key={course.id}
                   course={course}
@@ -165,31 +140,12 @@ export function SelectCourseScreen({ navigation }: Props) {
                 />
               ))}
             </View>
-          ) : null}
-
-          {!pinnedCourse && listCourses.length === 0 ? (
-            <Text style={styles.noResultsText}>No clubs match that search.</Text>
-          ) : null}
+          ) : (
+            <Text style={styles.noResultsText}>{q ? 'No clubs match that search.' : 'No clubs available yet.'}</Text>
+          )}
 
           {selectedCourse ? (
             <View style={styles.holesSection}>
-              {selectedCourse.id === 'sentosa' ? (
-                <>
-                  <Text style={styles.holesSectionLabel}>Select course</Text>
-                  <View style={styles.infoRow}>
-                    <Info size={12} color={colors.textDisabled} />
-                    <Text style={styles.infoText}>Sentosa has 36 holes — pick which nines</Text>
-                  </View>
-                  <View style={styles.ninePicker}>
-                    <View style={styles.ninePickerLeft}>
-                      <Flag size={17} color={palette.green[600]} />
-                      <Text style={styles.ninePickerLabel}>{SENTOSA_NINE_LABEL}</Text>
-                    </View>
-                    <ChevronDown size={18} color={colors.textDisabled} />
-                  </View>
-                </>
-              ) : null}
-
               {selectedCatalogCourse && comboOptions.length > 0 ? (
                 <>
                   <Text style={styles.holesSectionLabel}>Select course</Text>
@@ -246,13 +202,7 @@ export function SelectCourseScreen({ navigation }: Props) {
             disabled={!selectedCourse}
             onPress={() => {
               if (!selectedCourse) return;
-              const comboLabel = selectedCatalogCourse ? selectedCombo?.label : undefined;
-              const summaryLine =
-                selectedCourse.id === 'sentosa'
-                  ? `${holesToPlay} holes · ${SENTOSA_NINE_LABEL}`
-                  : comboLabel
-                    ? `${holesToPlay} holes · ${comboLabel}`
-                    : `${holesToPlay} holes`;
+              const summaryLine = selectedCombo ? `${holesToPlay} holes · ${selectedCombo.label}` : `${holesToPlay} holes`;
               navigation.navigate('CreateGame', { courseName: selectedCourse.name, summaryLine });
             }}
             icon={<ArrowRight size={19} color={colors.textOnAccent} />}
@@ -263,6 +213,7 @@ export function SelectCourseScreen({ navigation }: Props) {
 
       <StartHoleSheet
         open={startHoleSheetOpen}
+        holes={startHoles}
         selected={startHole}
         onConfirm={(n) => {
           setStartHole(n);
@@ -298,12 +249,6 @@ function CourseRow({ course, selected, onPress }: { course: Course; selected: bo
         <Text style={[styles.courseName, selected && styles.courseNameSelected]}>{course.name}</Text>
         <View style={styles.courseMetaRow}>
           <Text style={styles.courseMetaText}>{course.area}</Text>
-          {course.distanceKm !== undefined ? (
-            <>
-              <Text style={styles.courseMetaDot}>·</Text>
-              <Text style={styles.courseMetaText}>{course.distanceKm} km</Text>
-            </>
-          ) : null}
           <Text style={styles.courseMetaDot}>·</Text>
           <Text style={styles.courseMetaNumeric}>{course.totalHoles} holes</Text>
         </View>
@@ -321,11 +266,13 @@ const SHEET_OFFSCREEN_Y = 600;
 
 function StartHoleSheet({
   open,
+  holes,
   selected,
   onConfirm,
   onClose,
 }: {
   open: boolean;
+  holes: StartHole[];
   selected: number;
   onConfirm: (n: number) => void;
   onClose: () => void;
@@ -372,7 +319,7 @@ function StartHoleSheet({
           </View>
           <Text style={styles.sheetSubtitle}>Shotgun starts let your group tee off from any hole.</Text>
           <View style={styles.startHoleList}>
-            {START_HOLES.map((hole) => {
+            {holes.map((hole) => {
               const on = hole.n === draftHole;
               return (
                 <Pressable key={hole.n} style={styles.startHoleRow} onPress={() => setDraftHole(hole.n)}>
@@ -566,24 +513,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: screenGutter,
     paddingBottom: spacing[6],
-  },
-  nearYouRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1] + 2,
-    marginBottom: spacing[2] + 1,
-  },
-  sectionLabel: {
-    fontFamily: getFontFamily('body', '600'),
-    fontWeight: '600',
-    fontSize: 11,
-    letterSpacing: 1.1,
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-  },
-  courseListSpaced: {
-    marginTop: spacing[4] + 2,
-    gap: spacing[2],
   },
   courseRow: {
     flexDirection: 'row',
