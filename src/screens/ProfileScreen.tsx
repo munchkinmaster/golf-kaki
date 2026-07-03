@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Avatar } from '../components/Avatar';
 import { BadgeCard } from '../components/BadgeCard';
 import { BottomNav } from '../components/BottomNav';
+import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { FeaturedTrophyCard } from '../components/FeaturedTrophyCard';
 import { HandicapBadge } from '../components/HandicapBadge';
@@ -28,7 +29,7 @@ const STATS = [
 ];
 
 export function ProfileScreen({ navigation }: Props) {
-  const { profile, updateProfile } = useProfile();
+  const { profile, error, refresh, updateProfile } = useProfile();
 
   const [editingIdentity, setEditingIdentity] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
@@ -82,6 +83,14 @@ export function ProfileScreen({ navigation }: Props) {
   }
 
   if (!profile) {
+    if (error) {
+      return (
+        <View style={[styles.page, styles.loadErrorWrap]}>
+          <Text style={styles.loadErrorText}>Couldn't load your profile.</Text>
+          <Button label="Try again" variant="secondary" onPress={refresh} />
+        </View>
+      );
+    }
     return <View style={styles.page} />;
   }
 
@@ -238,6 +247,17 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: colors.surfacePage,
+  },
+  loadErrorWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[3],
+    paddingHorizontal: screenGutter,
+  },
+  loadErrorText: {
+    fontFamily: getFontFamily('body', '500'),
+    fontSize: 14,
+    color: colors.textMuted,
   },
   safeArea: {
     flex: 1,

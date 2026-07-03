@@ -59,7 +59,7 @@ function getGreeting(): string {
 }
 
 export function HomeScreen({ navigation }: Props) {
-  const { profile } = useProfile();
+  const { profile, error, refresh } = useProfile();
   const [showInvite, setShowInvite] = useState(true);
   const [showFriendRequest, setShowFriendRequest] = useState(true);
   const [showConfirmScore, setShowConfirmScore] = useState(true);
@@ -76,6 +76,14 @@ export function HomeScreen({ navigation }: Props) {
   }
 
   if (!profile) {
+    if (error) {
+      return (
+        <View style={[styles.page, styles.loadErrorWrap]}>
+          <Text style={styles.loadErrorText}>Couldn't load your profile.</Text>
+          <Button label="Try again" variant="secondary" onPress={refresh} />
+        </View>
+      );
+    }
     return <View style={styles.page} />;
   }
 
@@ -382,6 +390,17 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
+  },
+  loadErrorWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[3],
+    paddingHorizontal: screenGutter,
+  },
+  loadErrorText: {
+    fontFamily: getFontFamily('body', '500'),
+    fontSize: 14,
+    color: colors.textMuted,
   },
   header: {
     flexDirection: 'row',
