@@ -26,7 +26,9 @@ import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { HandicapBadge } from '../components/HandicapBadge';
+import { getInitials } from '../data/profile';
 import type { RootStackParamList } from '../navigation/types';
+import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
@@ -57,6 +59,7 @@ function getGreeting(): string {
 }
 
 export function HomeScreen({ navigation }: Props) {
+  const { profile } = useProfile();
   const [showInvite, setShowInvite] = useState(true);
   const [showFriendRequest, setShowFriendRequest] = useState(true);
   const [showConfirmScore, setShowConfirmScore] = useState(true);
@@ -72,19 +75,23 @@ export function HomeScreen({ navigation }: Props) {
     navigation.navigate('Scorecard', { ...INVITE_MATCH, isHost: true });
   }
 
+  if (!profile) {
+    return <View style={styles.page} />;
+  }
+
   return (
     <View style={styles.page}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <View style={styles.greeting}>
-            <Avatar initials="WL" size={44} bordered />
+            <Avatar initials={getInitials(profile.displayName)} size={44} bordered />
             <View>
               <Text style={styles.greetingLabel}>{getGreeting()},</Text>
-              <Text style={styles.greetingName}>Wei Liang</Text>
+              <Text style={styles.greetingName}>{profile.displayName}</Text>
             </View>
           </View>
-          <HandicapBadge value={7} />
+          <HandicapBadge value={profile.handicap} />
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>

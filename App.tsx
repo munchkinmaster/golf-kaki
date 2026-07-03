@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { AuthProvider } from './src/state/AuthContext';
+import { ProfileProvider } from './src/state/ProfileContext';
 import { fontAssets } from './src/theme/fonts';
 import { colors } from './src/theme/tokens';
 
@@ -17,11 +18,13 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <SafeAreaProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
-      </SafeAreaProvider>
+      <ProfileProvider>
+        <SafeAreaProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </ProfileProvider>
     </AuthProvider>
   );
 }

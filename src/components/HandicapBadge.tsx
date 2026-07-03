@@ -7,7 +7,8 @@ export type HandicapBadgeVariant = 'green' | 'orange';
 export type HandicapBadgeSize = 'sm' | 'lg';
 
 type HandicapBadgeProps = {
-  value: number;
+  /** Null renders a "–" placeholder for a golfer who hasn't set a handicap yet. */
+  value: number | null;
   label?: string;
   variant?: HandicapBadgeVariant;
   size?: HandicapBadgeSize;
@@ -71,7 +72,7 @@ export function HandicapBadge({ value, label = 'HCP', variant = 'green', size = 
         {label}
       </Text>
       <Text style={[styles.value, { fontSize: config.valueFontSize, fontWeight: config.valueWeight, color: accent }]}>
-        {value.toFixed(1)}
+        {value === null ? '–' : value.toFixed(1)}
       </Text>
     </View>
   );

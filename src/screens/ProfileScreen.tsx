@@ -13,8 +13,10 @@ import { FeaturedTrophyCard } from '../components/FeaturedTrophyCard';
 import { HandicapBadge } from '../components/HandicapBadge';
 import { IconButton } from '../components/IconButton';
 import { StatRow } from '../components/StatRow';
+import { getInitials, stripHandlePrefix } from '../data/profile';
 import { FEATURED_BADGE, GOLD_TROPHIES, PROGRESS_PERCENT, TROPHIES_EARNED, TROPHIES_GOAL, TROPHIES_LOCKED, TROPHY_BADGES } from '../data/trophies';
 import type { RootStackParamList } from '../navigation/types';
+import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
@@ -26,34 +28,61 @@ const STATS = [
 ];
 
 export function ProfileScreen({ navigation }: Props) {
+  const { profile, updateProfile } = useProfile();
+
   const [editingIdentity, setEditingIdentity] = useState(false);
-  const [name, setName] = useState('Wei Liang');
-  const [handle, setHandle] = useState('@weiliang');
-  const [nameDraft, setNameDraft] = useState(name);
-  const [handleDraft, setHandleDraft] = useState(handle);
+  const [nameDraft, setNameDraft] = useState('');
+  const [handleDraft, setHandleDraft] = useState('');
+  const [savingIdentity, setSavingIdentity] = useState(false);
+  const [identityError, setIdentityError] = useState<string | null>(null);
 
   const [editingBio, setEditingBio] = useState(false);
-  const [bio, setBio] = useState('Weekend hacker, fairway optimist. Will play anyone for a teh tarik.');
-  const [bioDraft, setBioDraft] = useState(bio);
+  const [bioDraft, setBioDraft] = useState('');
+  const [savingBio, setSavingBio] = useState(false);
+  const [bioError, setBioError] = useState<string | null>(null);
 
   function startEditIdentity() {
-    setNameDraft(name);
-    setHandleDraft(handle);
+    if (!profile) return;
+    setNameDraft(profile.displayName);
+    setHandleDraft(`@${profile.handle}`);
+    setIdentityError(null);
     setEditingIdentity(true);
   }
-  function saveIdentity() {
-    setName(nameDraft);
-    setHandle(handleDraft);
-    setEditingIdentity(false);
+  async function saveIdentity() {
+    setSavingIdentity(true);
+    setIdentityError(null);
+    try {
+      await updateProfile({ displayName: nameDraft.trim(), handle: stripHandlePrefix(handleDraft) });
+      setEditingIdentity(false);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      setIdentityError(message.includes('duplicate') ? 'That handle is taken.' : "Couldn't save — try again.");
+    } finally {
+      setSavingIdentity(false);
+    }
   }
 
   function startEditBio() {
-    setBioDraft(bio);
+    if (!profile) return;
+    setBioDraft(profile.bio ?? '');
+    setBioError(null);
     setEditingBio(true);
   }
-  function saveBio() {
-    setBio(bioDraft);
-    setEditingBio(false);
+  async function saveBio() {
+    setSavingBio(true);
+    setBioError(null);
+    try {
+      await updateProfile({ bio: bioDraft.trim() });
+      setEditingBio(false);
+    } catch {
+      setBioError("Couldn't save — try again.");
+    } finally {
+      setSavingBio(false);
+    }
+  }
+
+  if (!profile) {
+    return <View style={styles.page} />;
   }
 
   return (
@@ -69,7 +98,7 @@ export function ProfileScreen({ navigation }: Props) {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <View style={styles.avatarWrap}>
             <View style={styles.avatarRing}>
-              <Avatar initials="WL" size={88} bordered style={styles.profileAvatar} />
+              <Avatar initials={getInitials(profile.displayName)} size={88} bordered style={styles.profileAvatar} />
             </View>
             <View style={styles.cameraBadge}>
               <Camera size={14} color={palette.white} />
@@ -86,21 +115,22 @@ export function ProfileScreen({ navigation }: Props) {
                 <Text style={styles.inputLabel}>Handle</Text>
                 <TextInput value={handleDraft} onChangeText={setHandleDraft} style={styles.inputHandle} />
               </View>
-              <EditActions onSave={saveIdentity} onCancel={() => setEditingIdentity(false)} />
+              {identityError ? <Text style={styles.editErrorText}>{identityError}</Text> : null}
+              <EditActions onSave={saveIdentity} onCancel={() => setEditingIdentity(false)} saving={savingIdentity} />
             </View>
           ) : (
             <>
               <View style={styles.nameRow}>
-                <Text style={styles.name}>{name}</Text>
+                <Text style={styles.name}>{profile.displayName}</Text>
                 <Pressable style={styles.editPencilBtn} onPress={startEditIdentity}>
                   <Pencil size={13} color={colors.primary} />
                 </Pressable>
               </View>
-              <Text style={styles.handle}>{handle} · Singapore</Text>
+              <Text style={styles.handle}>@{profile.handle}{profile.location ? ` · ${profile.location}` : ''}</Text>
             </>
           )}
 
-          <HandicapBadge value={7} label="Handicap" variant="orange" size="lg" style={styles.handicapBadge} />
+          <HandicapBadge value={profile.handicap} label="Handicap" variant="orange" size="lg" style={styles.handicapBadge} />
 
           <View style={styles.autoCountRow}>
             <RefreshCw size={12} color={colors.textDisabled} />
@@ -116,11 +146,12 @@ export function ProfileScreen({ navigation }: Props) {
                 textAlignVertical="top"
                 style={styles.bioInput}
               />
-              <EditActions onSave={saveBio} onCancel={() => setEditingBio(false)} />
+              {bioError ? <Text style={styles.editErrorText}>{bioError}</Text> : null}
+              <EditActions onSave={saveBio} onCancel={() => setEditingBio(false)} saving={savingBio} />
             </View>
           ) : (
             <>
-              <Text style={styles.bio}>{bio}</Text>
+              <Text style={styles.bio}>{profile.bio || 'Add a bio to tell your kaki about your game.'}</Text>
               <Pressable style={styles.editBioRow} onPress={startEditBio}>
                 <Pencil size={13} color={colors.primary} />
                 <Text style={styles.editBioLabel}>Edit bio</Text>
@@ -186,13 +217,17 @@ export function ProfileScreen({ navigation }: Props) {
   );
 }
 
-function EditActions({ onSave, onCancel }: { onSave: () => void; onCancel: () => void }) {
+function EditActions({ onSave, onCancel, saving }: { onSave: () => void; onCancel: () => void; saving?: boolean }) {
   return (
     <View style={styles.editActionsRow}>
-      <Pressable style={styles.editSaveBtn} onPress={onSave}>
-        <Text style={styles.editSaveLabel}>Save</Text>
+      <Pressable
+        style={[styles.editSaveBtn, saving && styles.editSaveBtnDisabled]}
+        onPress={onSave}
+        disabled={saving}
+      >
+        <Text style={styles.editSaveLabel}>{saving ? 'Saving…' : 'Save'}</Text>
       </Pressable>
-      <Pressable style={styles.editCancelBtn} onPress={onCancel}>
+      <Pressable style={styles.editCancelBtn} onPress={onCancel} disabled={saving}>
         <Text style={styles.editCancelLabel}>Cancel</Text>
       </Pressable>
     </View>
@@ -335,6 +370,11 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     padding: 0,
   },
+  editErrorText: {
+    fontFamily: getFontFamily('body', '500'),
+    fontSize: 12,
+    color: colors.statusDanger,
+  },
   editActionsRow: {
     flexDirection: 'row',
     gap: spacing[2],
@@ -347,6 +387,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  editSaveBtnDisabled: {
+    opacity: 0.6,
   },
   editSaveLabel: {
     fontFamily: getFontFamily('body', '600'),
