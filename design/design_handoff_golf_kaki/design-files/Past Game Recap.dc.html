@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/radius.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/tokens/base.css">
+  <link rel="stylesheet" href="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/styles.css">
+  <script src="_ds/golf-kaki-design-system-3b1eb911-55b4-4cdc-a8e6-5287394c250a/_ds_bundle.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    body { margin: 0; background: var(--sand-100, #F7F2E6); }
+  </style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px">
+  <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+    <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#fff;font-family:var(--font-numeric);font-size:13px;font-weight:600;background:#134914">
+      <span>9:41</span>
+      <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+    </div>
+
+    <!-- hero -->
+    <div style="background:#134914;color:#fff;padding:6px 18px 22px;position:relative;overflow:hidden">
+      <div style="position:absolute;right:-40px;top:-30px;width:200px;height:200px;border-radius:50%;border:2px solid rgba(255,255,255,.06)"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2">
+        <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="chevron-left" style="width:20px;height:20px;color:#fff"></i></div>
+        <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:rgba(255,255,255,.85)">Past game</div>
+        <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="share-2" style="width:16px;height:16px;color:#fff"></i></div>
+      </div>
+      <div style="position:relative;z-index:2;margin-top:16px">
+        <div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:700;font-size:10px;letter-spacing:.14em;color:#FFC79E;text-transform:uppercase">Skins · 18 holes</div>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:27px;line-height:1.1;margin-top:5px">Friday Skins</div>
+        <div style="display:flex;align-items:center;gap:6px;font-family:var(--font-body);font-size:13px;color:rgba(255,255,255,.72);margin-top:6px"><i data-lucide="map-pin" style="width:14px;height:14px"></i>Tanah Merah · 14 Jun 2026</div>
+      </div>
+      <div style="display:flex;align-items:stretch;gap:0;margin-top:18px;background:rgba(255,255,255,.08);border-radius:14px;padding:12px 4px;position:relative;z-index:2">
+        <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:24px;line-height:1">88</div><div style="font-family:var(--font-body);font-size:10px;color:rgba(255,255,255,.6);margin-top:3px">Gross</div></div>
+        <div style="flex:1;text-align:center;border-left:1px solid rgba(255,255,255,.14);border-right:1px solid rgba(255,255,255,.14)"><div style="font-family:var(--font-numeric);font-weight:700;font-size:24px;line-height:1">81</div><div style="font-family:var(--font-body);font-size:10px;color:rgba(255,255,255,.6);margin-top:3px">Nett</div></div>
+        <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:24px;line-height:1;color:#FFC79E">+16</div><div style="font-family:var(--font-body);font-size:10px;color:rgba(255,255,255,.6);margin-top:3px">To par</div></div>
+      </div>
+    </div>
+
+    <div class="gkscreen" style="flex:1;overflow-y:auto;padding:14px 18px 22px">
+      <!-- winnings -->
+      <div style="display:flex;align-items:center;gap:12px;background:#FFF3E9;border:1px solid #FFDCC2;border-radius:16px;padding:13px 15px">
+        <div style="width:42px;height:42px;border-radius:12px;background:#FF914D;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 4px 12px rgba(255,145,77,.4)"><i data-lucide="trophy" style="width:21px;height:21px;color:#fff"></i></div>
+        <div style="flex:1">
+          <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:#1C2B22">You won the day</div>
+          <div style="font-family:var(--font-body);font-size:12px;color:#9A6B3E;margin-top:1px">7 skins · up <b style="color:#C75F1E">$18</b> — Dinesh buys the teh tarik</div>
+        </div>
+      </div>
+
+      <!-- final standings -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 10px">
+        <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">Final standings</div>
+        <div style="display:flex;gap:4px;background:#EFE8D5;border-radius:999px;padding:3px">
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;color:#fff;background:#134914;border-radius:999px;padding:4px 11px">Kaki Match Play</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #AED4A9;border-radius:14px;padding:11px 13px">
+          <div style="width:22px;font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#C98A23;text-align:center">1</div>
+          <div style="width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#DFEEDC;color:#134914">WL</div>
+          <div style="flex:1"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Wei Liang <span style="color:#1E8A4C;font-size:12px">(You)</span></div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">7 skins · 88 gross</div></div>
+          <div style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#1E6E16">+$18</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px">
+          <div style="width:22px;font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#B4BCB5;text-align:center">2</div>
+          <div style="width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#E8F0E6;color:#1E6E16">M</div>
+          <div style="flex:1"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Marcus</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">5 skins · 79 gross</div></div>
+          <div style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#1E6E16">+$4</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px">
+          <div style="width:22px;font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#B4BCB5;text-align:center">3</div>
+          <div style="width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#F3E0E8;color:#9C4A6E">J</div>
+          <div style="flex:1"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Jia Hui</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">4 skins · 91 gross</div></div>
+          <div style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#C0492A">−$2</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px">
+          <div style="width:22px;font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#B4BCB5;text-align:center">4</div>
+          <div style="width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#EFE8D5;color:#5E6B62">D</div>
+          <div style="flex:1"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Dinesh</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">2 skins · 96 gross</div></div>
+          <div style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#C0492A">−$20</div>
+        </div>
+      </div>
+
+      <!-- your round -->
+      <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin:20px 0 10px">Your round</div>
+      <div style="background:#fff;border:1px solid #EFE8D5;border-radius:16px;padding:14px 15px">
+        <div style="display:flex;align-items:stretch">
+          <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#1C2B22">43</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:2px">Out</div></div>
+          <div style="flex:1;text-align:center;border-left:1px solid #EFE8D5;border-right:1px solid #EFE8D5"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#1C2B22">45</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:2px">In</div></div>
+          <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#134914">88</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:2px">Total</div></div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:14px;border-top:1px solid #EFE8D5;padding-top:13px">
+          <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#C98A23">0</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:1px">Eagle+</div></div>
+          <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#E0742E">2</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:1px">Birdies</div></div>
+          <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#1E6E16">7</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:1px">Pars</div></div>
+          <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#5A7184">6</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:1px">Bogeys</div></div>
+          <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#C0492A">3</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:1px">Double+</div></div>
+        </div>
+      </div>
+
+      <!-- full scorecard -->
+      <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin:20px 0 10px">Scorecard</div>
+      <div style="background:#fff;border:1px solid #EFE8D5;border-radius:16px;overflow:hidden">
+        <div style="display:flex;align-items:center;background:#F4F1E8;padding:9px 10px;border-bottom:1px solid #EAE3D2">
+          <div style="width:26px;text-align:center;font-family:var(--font-body);font-weight:700;font-size:10px;color:#8A958C">H</div>
+          <div style="width:30px;text-align:center;font-family:var(--font-body);font-weight:700;font-size:10px;color:#8A958C">Par</div>
+          <sc-for list="{{ recapHeaderCols }}" as="c" hint-placeholder-count="4">
+            <div style="flex:1;min-width:46px"><div style="{{ c.avStyle }}">{{ c.label }}</div></div>
+          </sc-for>
+        </div>
+        <div style="padding:2px 10px 0">
+          <sc-for list="{{ recapRows }}" as="r" hint-placeholder-count="18">
+            <div style="{{ r.rowStyle }}">
+              <div style="width:26px;text-align:center;font-family:var(--font-numeric);font-weight:600;font-size:12px;color:#1C2B22">{{ r.n }}</div>
+              <div style="width:30px;text-align:center;font-family:var(--font-numeric);font-size:12px;color:#8A958C">{{ r.par }}</div>
+              <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="4">
+                <div style="{{ c.style }}">{{ c.mark }}<span style="position:relative;z-index:1">{{ c.val }}</span></div>
+              </sc-for>
+            </div>
+          </sc-for>
+        </div>
+        <sc-for list="{{ recapSummary }}" as="s" hint-placeholder-count="3">
+          <div style="{{ s.rowStyle }}">
+            <div style="{{ s.labelStyle }}">{{ s.label }}</div>
+            <sc-for list="{{ s.cells }}" as="c" hint-placeholder-count="4">
+              <div style="{{ c.style }}">{{ c.val }}</div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px 14px;flex-wrap:wrap;margin-top:11px;padding:0 2px;font-family:var(--font-body);font-size:10px;color:#8A958C">
+        <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:13px;height:13px;border:1.5px solid #E0742E;border-radius:50%;display:inline-block;box-sizing:border-box"></span>birdie</span>
+        <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:14px;border:1.5px solid #C98A23;border-radius:50%;box-shadow:inset 0 0 0 1.5px #fff,inset 0 0 0 3px #C98A23;display:inline-block;box-sizing:border-box"></span>eagle</span>
+        <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:13px;height:13px;border:1.5px solid #5A7184;border-radius:3px;display:inline-block;box-sizing:border-box"></span>bogey</span>
+        <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:14px;border:1.5px solid #C0492A;border-radius:3px;box-shadow:inset 0 0 0 1.5px #fff,inset 0 0 0 3px #C0492A;display:inline-block;box-sizing:border-box"></span>double+</span>
+      </div>
+
+      <!-- carry-forward strokes -->
+      <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin:22px 0 4px">Carry-forward strokes</div>
+      <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;margin-bottom:10px">Strokes agreed in the lobby — applied head-to-head</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+
+        <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px">
+          <div style="width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#E8F0E6;color:#1E6E16">M</div>
+          <div style="flex:1">
+            <div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Marcus</div>
+            <div style="font-family:var(--font-body);font-size:11px;color:#C0492A;margin-top:2px">2 down head-to-head</div>
+          </div>
+          <div style="display:inline-flex;align-items:center;gap:7px;background:#EAF5EC;border:1px solid #BFE3C6;border-radius:999px;padding:5px 7px 5px 11px">
+            <span style="font-family:var(--font-body);font-size:10px;font-weight:600;color:#1E8A4C;letter-spacing:.02em">Get</span>
+            <span style="font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#1E6E16;background:#fff;border-radius:999px;min-width:24px;text-align:center;padding:0 4px">5</span>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px">
+          <div style="width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#F3E0E8;color:#9C4A6E">J</div>
+          <div style="flex:1">
+            <div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Jia Hui</div>
+            <div style="font-family:var(--font-body);font-size:11px;color:#1E6E16;margin-top:2px">3 up head-to-head</div>
+          </div>
+          <div style="display:inline-flex;align-items:center;gap:7px;background:#FFEFE3;border:1px solid #FFD2B0;border-radius:999px;padding:5px 7px 5px 11px">
+            <span style="font-family:var(--font-body);font-size:10px;font-weight:600;color:#C75F1E;letter-spacing:.02em">Give</span>
+            <span style="font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#C75F1E;background:#fff;border-radius:999px;min-width:24px;text-align:center;padding:0 4px">6</span>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px">
+          <div style="width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;background:#EFE8D5;color:#5E6B62">D</div>
+          <div style="flex:1">
+            <div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Dinesh</div>
+            <div style="font-family:var(--font-body);font-size:11px;color:#1E6E16;margin-top:2px">5 up head-to-head</div>
+          </div>
+          <div style="display:inline-flex;align-items:center;gap:7px;background:#FFEFE3;border:1px solid #FFD2B0;border-radius:999px;padding:5px 7px 5px 11px">
+            <span style="font-family:var(--font-body);font-size:10px;font-weight:600;color:#C75F1E;letter-spacing:.02em">Give</span>
+            <span style="font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#C75F1E;background:#fff;border-radius:999px;min-width:24px;text-align:center;padding:0 4px">9</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() {
+    if (window.lucide) window.lucide.createIcons();
+  }
+  componentDidUpdate() {
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  renderVals() {
+    const recapPar = [4,5,3,4,4,5,3,4,4, 4,4,3,5,4,4,3,5,4];
+    const recapScores = {
+      WL: [5,6,4,5,5,5,3,5,5, 4,5,4,6,5,5,4,7,5],
+      M:  [5,5,4,4,5,5,3,5,4, 4,5,3,5,5,4,4,5,4],
+      J:  [5,6,4,5,5,6,4,5,5, 5,5,4,6,5,5,4,6,6],
+      D:  [6,6,4,5,6,6,4,6,5, 5,5,4,6,6,5,4,7,6],
+    };
+    const recapCols = [
+      { k: 'WL', label: 'WL', bg: '#DFEEDC', fg: '#134914' },
+      { k: 'M', label: 'M', bg: '#E8F0E6', fg: '#1E6E16' },
+      { k: 'J', label: 'J', bg: '#F3E0E8', fg: '#9C4A6E' },
+      { k: 'D', label: 'D', bg: '#EFE8D5', fg: '#5E6B62' },
+    ];
+    const recapHeaderCols = recapCols.map((c) => ({
+      label: c.label,
+      avStyle: 'width:26px;height:26px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;'
+        + 'font-family:var(--font-display);font-weight:700;font-size:11px;background:' + c.bg + ';color:' + c.fg + ';',
+    }));
+    const scoreColor = (g, par) => {
+      const d = g - par;
+      if (d <= -1) return '#E0742E';
+      if (d === 0) return '#1C2B22';
+      if (d === 1) return '#5A7184';
+      return '#C0492A';
+    };
+    // Classic scorecard notation: circle = birdie, double circle = eagle+,
+    // square = bogey, double square = double bogey+. Par = no mark.
+    const notationEl = (g, par) => {
+      const d = g - par;
+      if (d === 0) return null;
+      const under = d < 0;
+      const dbl = Math.abs(d) >= 2;
+      const sz = 19;
+      let color;
+      if (d <= -2) color = '#C98A23';
+      else if (d === -1) color = '#E0742E';
+      else if (d === 1) color = '#5A7184';
+      else color = '#C0492A';
+      const ring = (extra, rad) => React.createElement('div', {
+        key: 'r' + extra, style: {
+          position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)',
+          width: (sz + extra) + 'px', height: (sz + extra) + 'px',
+          border: '1.5px solid ' + color, borderRadius: rad, pointerEvents: 'none', boxSizing: 'border-box',
+        },
+      });
+      return dbl
+        ? React.createElement(React.Fragment, null, ring(0, under ? '50%' : '4px'), ring(6, under ? '50%' : '6px'))
+        : ring(0, under ? '50%' : '4px');
+    };
+    const recapCellStyle = (col) => 'flex:1;min-width:46px;position:relative;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);'
+      + 'font-variant-numeric:tabular-nums;font-weight:600;font-size:13px;color:' + col + ';';
+    const recapRows = recapPar.map((par, i) => ({
+      n: i + 1, par: par,
+      rowStyle: 'display:flex;align-items:center;min-height:29px;'
+        + (i === 8 ? 'border-bottom:2px solid #E3D9C0;' : 'border-bottom:1px solid #F4F1E8;'),
+      cells: recapCols.map((c) => ({ val: String(recapScores[c.k][i]), mark: notationEl(recapScores[c.k][i], par), style: recapCellStyle(scoreColor(recapScores[c.k][i], par)) })),
+    }));
+    const recapSum = (k, a, b) => { let s = 0; for (let j = a; j < b; j++) s += recapScores[k][j]; return s; };
+    const mkRecapSum = (label, a, b, strong) => ({
+      label: label,
+      rowStyle: 'display:flex;align-items:center;min-height:30px;background:#F4F1E8;'
+        + (strong ? 'border-radius:0 0 12px 12px;' : 'border-bottom:1px solid #EAE3D2;'),
+      labelStyle: 'width:56px;padding-left:10px;font-family:var(--font-body);font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:' + (strong ? '#134914' : '#5E6B62') + ';',
+      cells: recapCols.map((c) => ({
+        val: String(recapSum(c.k, a, b)),
+        style: 'flex:1;min-width:46px;text-align:center;font-family:var(--font-numeric);font-variant-numeric:tabular-nums;font-weight:700;font-size:' + (strong ? 14 : 13) + 'px;color:' + (strong ? '#134914' : '#1C2B22') + ';',
+      })),
+    });
+    const recapSummary = [mkRecapSum('Out', 0, 9, false), mkRecapSum('In', 9, 18, false), mkRecapSum('Total', 0, 18, true)];
+
+    return { recapHeaderCols, recapRows, recapSummary };
+  }
+}
+
+</script>
+</body>
+</html>

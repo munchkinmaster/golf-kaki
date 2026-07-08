@@ -19,7 +19,6 @@ import { ScorecardScreen } from '../screens/ScorecardScreen';
 import { SelectCourseScreen } from '../screens/SelectCourseScreen';
 import { TrophyCabinetScreen } from '../screens/TrophyCabinetScreen';
 import { useAuth } from '../state/AuthContext';
-import { RoundProvider } from '../state/RoundContext';
 import { colors } from '../theme/tokens';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -34,26 +33,24 @@ export function RootNavigator() {
   }
 
   return (
-    <RoundProvider>
-      <Stack.Navigator initialRouteName={session ? 'Home' : 'Landing'} screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Landing" component={LandingScreen} />
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-        <Stack.Screen name="Kaki" component={KakiScreen} />
-        <Stack.Screen name="Rounds" component={RoundsScreen} />
-        <Stack.Screen name="TrophyCabinet" component={TrophyCabinetScreen} />
-        <Stack.Screen name="BragCard" component={BragCardScreen} />
-        <Stack.Screen name="SelectCourse" component={SelectCourseScreen} />
-        <Stack.Screen name="JoinGame" component={JoinGameScreen} />
-        <Stack.Screen name="CreateGame" component={CreateGameScreen} />
-        <Stack.Screen name="MatchLobby" component={MatchLobbyScreen} />
-        <Stack.Screen name="Scorecard" component={ScorecardScreen} />
-        <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
-        <Stack.Screen name="InGameLobby" component={InGameLobbyScreen} />
-        <Stack.Screen name="Finish" component={FinishScreen} />
-        <Stack.Screen name="Recap" component={RecapScreen} />
-      </Stack.Navigator>
-    </RoundProvider>
+    <Stack.Navigator initialRouteName={session ? 'Home' : 'Landing'} screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Landing" component={LandingScreen} />
+      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+      <Stack.Screen name="Kaki" component={KakiScreen} />
+      <Stack.Screen name="Rounds" component={RoundsScreen} />
+      <Stack.Screen name="TrophyCabinet" component={TrophyCabinetScreen} />
+      <Stack.Screen name="BragCard" component={BragCardScreen} />
+      <Stack.Screen name="SelectCourse" component={SelectCourseScreen} />
+      <Stack.Screen name="JoinGame" component={JoinGameScreen} />
+      <Stack.Screen name="CreateGame" component={CreateGameScreen} />
+      <Stack.Screen name="MatchLobby" component={MatchLobbyScreen} />
+      <Stack.Screen name="Scorecard" component={ScorecardScreen} />
+      <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
+      <Stack.Screen name="InGameLobby" component={InGameLobbyScreen} />
+      <Stack.Screen name="Finish" component={FinishScreen} />
+      <Stack.Screen name="Recap" component={RecapScreen} />
+    </Stack.Navigator>
   );
 }
 

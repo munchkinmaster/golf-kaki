@@ -1,50 +1,48 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import {
-  Check,
-  ChevronLeft,
-  CircleCheck,
-  CircleCheckBig,
-  Coffee,
-  Flag,
-  List,
-  Lock,
-  PartyPopper,
-  Trophy,
-  Users,
-} from 'lucide-react-native';
+import { ChevronLeft, CircleCheckBig, Coffee, Flag, List, Lock, PartyPopper, Trophy, Users } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
-import { HOLES, PLAYERS, VIEWER_KEY, grossTotal, money, moneyLabel, pairwiseTotal, playerName, runningUp } from '../data/round';
-import type { PlayerKey } from '../data/round';
+import { money, moneyLabel, pairwiseTotal, playerName, runningUp } from '../data/round';
+import { useLiveRound } from '../hooks/useLiveRound';
 import type { RootStackParamList } from '../navigation/types';
-import { useRound } from '../state/RoundContext';
-import { colors, getFontFamily, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
+import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Finish'>;
 
-const THRU = HOLES.length;
-
-const OPPONENTS = PLAYERS.filter((p) => p.key !== VIEWER_KEY).map((p) => p.key);
-
 export function FinishScreen({ navigation, route }: Props) {
-  const { matchName, courseName, gameModeName } = route.params;
-  const { gross, frontNineDeals, stakePerHole } = useRound();
-  const [reminded, setReminded] = useState(false);
+  const { matchId, matchName, courseName, gameModeName } = route.params;
+  const { loading, viewerId, isHostViewer, matchStatus, roster, holes, schedule, gross, thru, frontNineDeals, backNineDeals, stakePerHole, finishRound } =
+    useLiveRound(matchId);
+  const [finishing, setFinishing] = useState(false);
+  const [finishError, setFinishError] = useState<string | null>(null);
 
-  const matchTotal = runningUp(VIEWER_KEY, THRU, gross, frontNineDeals);
+  const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
+  const opponents = rosterIds.filter((id) => id !== viewerId);
 
-  const dominantOpponentKey = OPPONENTS.reduce((worst, opp) =>
-    pairwiseTotal(VIEWER_KEY, opp, THRU, gross, frontNineDeals) < pairwiseTotal(VIEWER_KEY, worst, THRU, gross, frontNineDeals) ? opp : worst,
-  OPPONENTS[0]);
+  const matchTotal = viewerId ? runningUp(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals) : 0;
+
+  const dominantOpponentId =
+    viewerId && opponents.length > 0
+      ? opponents.reduce((worst, opp) =>
+          pairwiseTotal(viewerId, opp, thru, gross, holes, frontNineDeals, schedule, backNineDeals) <
+          pairwiseTotal(viewerId, worst, thru, gross, holes, frontNineDeals, schedule, backNineDeals)
+            ? opp
+            : worst,
+        opponents[0]!)
+      : null;
 
   const settlement = useMemo(
-    () => PLAYERS.map((p) => ({ player: p, money: money(p.key, THRU, gross, frontNineDeals, stakePerHole) })),
-    [gross, frontNineDeals, stakePerHole],
+    () =>
+      roster.map((p) => ({
+        player: p,
+        money: money(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole),
+      })),
+    [roster, rosterIds, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole],
   );
-  const minMoney = Math.min(...settlement.map((s) => s.money));
+  const minMoney = settlement.length > 0 ? Math.min(...settlement.map((s) => s.money)) : 0;
   const buyers = settlement.filter((s) => s.money === minMoney && minMoney < 0).map((s) => s.player.name);
 
   const resultHeadline =
@@ -57,10 +55,26 @@ export function FinishScreen({ navigation, route }: Props) {
     matchTotal > 0
       ? `Finished ${matchTotal} up overall — nice finish.`
       : matchTotal < 0
-        ? `Finished ${Math.abs(matchTotal)} down overall — ${playerName(dominantOpponentKey)} had the edge.`
-        : 'Tied it up after 18 — no clear winner today.';
+        ? `Finished ${Math.abs(matchTotal)} down overall — ${dominantOpponentId ? playerName(dominantOpponentId, roster.map((p) => ({ id: p.playerId, name: p.name }))) : 'your opponent'} had the edge.`
+        : `Tied it up after ${holes.length} — no clear winner today.`;
 
-  const confirmedCount = PLAYERS.length - (reminded ? 0 : 1);
+  async function handleFinish() {
+    if (!isHostViewer || finishing) return;
+    setFinishing(true);
+    setFinishError(null);
+    try {
+      await finishRound();
+      navigation.navigate('Recap', { matchId, matchName, courseName, gameModeName });
+    } catch (err) {
+      setFinishError(err instanceof Error ? err.message : 'Could not finish the round — try again.');
+    } finally {
+      setFinishing(false);
+    }
+  }
+
+  function viewRecap() {
+    navigation.navigate('Recap', { matchId, matchName, courseName, gameModeName });
+  }
 
   return (
     <View style={styles.page}>
@@ -78,8 +92,8 @@ export function FinishScreen({ navigation, route }: Props) {
               </Text>
             </View>
             <View style={styles.holesInBadge}>
-              <Check size={12} color={palette.green[300]} />
-              <Text style={styles.holesInLabel}>18 holes in</Text>
+              <Flag size={12} color={palette.green[300]} />
+              <Text style={styles.holesInLabel}>{thru} of {holes.length} holes in</Text>
             </View>
           </View>
 
@@ -96,53 +110,8 @@ export function FinishScreen({ navigation, route }: Props) {
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionLabel}>Confirm scores</Text>
-            <View style={styles.confirmedPill}>
-              <View style={styles.confirmedDot} />
-              <Text style={styles.confirmedPillLabel}>
-                {confirmedCount} of {PLAYERS.length} confirmed
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.confirmList}>
-            {PLAYERS.map((p) => {
-              const isViewer = p.key === VIEWER_KEY;
-              const isDinesh = p.key === 'C';
-              const waiting = isDinesh && !reminded;
-
-              return (
-                <View
-                  key={p.key}
-                  style={[
-                    styles.confirmRow,
-                    waiting ? styles.confirmRowWaiting : isViewer ? styles.confirmRowViewer : styles.confirmRowDefault,
-                  ]}
-                >
-                  <View style={[styles.confirmAvatar, { backgroundColor: p.avatarBg }]}>
-                    <Text style={[styles.confirmAvatarLabel, { color: p.avatarFg }]}>{p.name.charAt(0)}</Text>
-                  </View>
-                  <View style={styles.confirmBody}>
-                    <Text style={styles.confirmName}>
-                      {p.name}
-                      {isViewer ? <Text style={styles.confirmYou}> (You)</Text> : null}
-                    </Text>
-                    <Text style={[styles.confirmMeta, waiting && styles.confirmMetaWaiting]}>
-                      {waiting ? 'Waiting to confirm card' : `Card confirmed · ${grossTotal(p.key, THRU, gross)} gross`}
-                    </Text>
-                  </View>
-                  {waiting ? (
-                    <Pressable style={styles.remindButton} onPress={() => setReminded(true)}>
-                      <Text style={styles.remindButtonLabel}>Remind</Text>
-                    </Pressable>
-                  ) : (
-                    <CircleCheck size={20} color={colors.statusSuccess} />
-                  )}
-                </View>
-              );
-            })}
-          </View>
+          {loading ? <Text style={styles.loadingText}>Loading round…</Text> : null}
+          {finishError ? <Text style={styles.loadErrorText}>{finishError}</Text> : null}
 
           <Text style={styles.sectionLabel}>Settlement</Text>
           <View style={styles.settlementCard}>
@@ -154,17 +123,25 @@ export function FinishScreen({ navigation, route }: Props) {
               <Text style={styles.settlementMeta}>${stakePerHole} / hole</Text>
             </View>
             <View style={styles.settlementList}>
-              {settlement.map(({ player, money: m }) => (
-                <View key={player.key} style={styles.settlementRow}>
-                  <Text style={styles.settlementName}>
-                    {player.name}
-                    {player.key === VIEWER_KEY ? <Text style={styles.settlementYou}> (You)</Text> : null}
-                  </Text>
-                  <Text style={[styles.settlementAmount, { color: m > 0 ? colors.statusSuccess : m < 0 ? colors.statusDanger : colors.textMuted }]}>
-                    {moneyLabel(m)}
-                  </Text>
-                </View>
-              ))}
+              {settlement.map(({ player, money: m }, index) => {
+                const playerColor = getPlayerColors(index);
+                return (
+                  <View key={player.playerId} style={styles.settlementRow}>
+                    <View style={styles.settlementNameRow}>
+                      <View style={[styles.settlementAvatar, { backgroundColor: playerColor.background }]}>
+                        <Text style={[styles.settlementAvatarLabel, { color: playerColor.color }]}>{player.name.charAt(0)}</Text>
+                      </View>
+                      <Text style={styles.settlementName}>
+                        {player.name}
+                        {player.playerId === viewerId ? <Text style={styles.settlementYou}> (You)</Text> : null}
+                      </Text>
+                    </View>
+                    <Text style={[styles.settlementAmount, { color: m > 0 ? colors.statusSuccess : m < 0 ? colors.statusDanger : colors.textMuted }]}>
+                      {moneyLabel(m)}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
             {buyers.length > 0 ? (
               <View style={styles.settlementFooter}>
@@ -178,38 +155,50 @@ export function FinishScreen({ navigation, route }: Props) {
 
           <View style={styles.lockNote}>
             <Lock size={13} color={colors.textDisabled} />
-            <Text style={styles.lockNoteText}>Once finished, scores lock and the round moves to your history.</Text>
+            <Text style={styles.lockNoteText}>
+              {isHostViewer
+                ? 'Once finished, scores lock and the round moves to everyone’s history.'
+                : 'Only the host can finish the round — you’ll see the recap once they do.'}
+            </Text>
           </View>
         </ScrollView>
 
         <View style={styles.ctaWrap}>
-          <Pressable
-            style={styles.ctaButton}
-            onPress={() => navigation.navigate('Recap', { matchName, courseName, gameModeName })}
-          >
-            <Flag size={18} color={palette.white} />
-            <Text style={styles.ctaLabel}>Finish & save round</Text>
-          </Pressable>
+          {isHostViewer ? (
+            <Pressable style={styles.ctaButton} onPress={handleFinish} disabled={finishing || loading}>
+              <Flag size={18} color={palette.white} />
+              <Text style={styles.ctaLabel}>{finishing ? 'Finishing…' : 'Finish & save round'}</Text>
+            </Pressable>
+          ) : matchStatus === 'finished' ? (
+            <Pressable style={styles.ctaButton} onPress={viewRecap}>
+              <Flag size={18} color={palette.white} />
+              <Text style={styles.ctaLabel}>View recap</Text>
+            </Pressable>
+          ) : (
+            <View style={[styles.ctaButton, styles.ctaButtonDisabled]}>
+              <Text style={styles.ctaLabel}>Waiting for host to finish</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.inRoundNav}>
           <Pressable
             style={styles.inRoundTab}
-            onPress={() => navigation.navigate('Scorecard', { matchName, courseName, gameModeName, isHost: true })}
+            onPress={() => navigation.navigate('Scorecard', { matchId, matchName, courseName, gameModeName, isHost: isHostViewer })}
           >
             <List size={21} color={palette.sand[400]} />
             <Text style={styles.inRoundTabLabel}>Scorecard</Text>
           </Pressable>
           <Pressable
             style={styles.inRoundTab}
-            onPress={() => navigation.navigate('Leaderboard', { matchName, courseName, gameModeName })}
+            onPress={() => navigation.navigate('Leaderboard', { matchId, matchName, courseName, gameModeName })}
           >
             <Trophy size={21} color={palette.sand[400]} />
             <Text style={styles.inRoundTabLabel}>Leaderboard</Text>
           </Pressable>
           <Pressable
             style={styles.inRoundTab}
-            onPress={() => navigation.navigate('InGameLobby', { matchName, courseName, gameModeName })}
+            onPress={() => navigation.navigate('InGameLobby', { matchId, matchName, courseName, gameModeName })}
           >
             <Users size={21} color={palette.sand[400]} />
             <Text style={styles.inRoundTabLabel}>Lobby</Text>
@@ -332,12 +321,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing[4],
     paddingBottom: spacing[5],
   },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing[2] + 2,
-  },
   sectionLabel: {
     fontFamily: getFontFamily('body', '600'),
     fontWeight: '600',
@@ -347,100 +330,17 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginBottom: spacing[2] + 2,
   },
-  confirmedPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1] + 1,
-  },
-  confirmedDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.accent,
-  },
-  confirmedPillLabel: {
+  loadingText: {
     fontFamily: getFontFamily('body', '400'),
-    fontSize: 11,
-    color: palette.orange[700],
-  },
-  confirmList: {
-    gap: spacing[2],
-    marginBottom: spacing[5],
-  },
-  confirmRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2] + 3,
-    borderRadius: radius.lg,
-    paddingVertical: spacing[2] + 2,
-    paddingHorizontal: spacing[3] + 1,
-    ...shadows.xs,
-  },
-  confirmRowDefault: {
-    backgroundColor: colors.surfaceCard,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  confirmRowViewer: {
-    backgroundColor: colors.surfaceCard,
-    borderWidth: 1.5,
-    borderColor: palette.green[200],
-  },
-  confirmRowWaiting: {
-    backgroundColor: '#FFF9EC',
-    borderWidth: 1.5,
-    borderColor: '#F0E0B0',
-  },
-  confirmAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  confirmAvatarLabel: {
-    fontFamily: getFontFamily('display', '700'),
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  confirmBody: {
-    flex: 1,
-    minWidth: 0,
-  },
-  confirmName: {
-    fontFamily: getFontFamily('body', '600'),
-    fontWeight: '600',
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  confirmYou: {
-    fontFamily: getFontFamily('body', '600'),
-    fontWeight: '600',
     fontSize: 12,
-    color: colors.statusSuccess,
+    color: colors.textDisabled,
+    marginBottom: spacing[2],
   },
-  confirmMeta: {
+  loadErrorText: {
     fontFamily: getFontFamily('body', '400'),
-    fontSize: 11,
-    color: colors.statusSuccess,
-    marginTop: 1,
-  },
-  confirmMetaWaiting: {
-    color: colors.scoreEagle,
-  },
-  remindButton: {
-    backgroundColor: colors.accent,
-    borderRadius: radius.pill,
-    paddingVertical: spacing[1] + 3,
-    paddingHorizontal: spacing[3],
-    ...shadows.accent,
-  },
-  remindButtonLabel: {
-    fontFamily: getFontFamily('body', '600'),
-    fontWeight: '600',
     fontSize: 12,
-    color: palette.white,
+    color: colors.statusDanger,
+    marginBottom: spacing[2],
   },
   settlementCard: {
     backgroundColor: palette.orange[100],
@@ -482,6 +382,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  settlementNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  settlementAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  settlementAvatarLabel: {
+    fontFamily: getFontFamily('display', '700'),
+    fontWeight: '700',
+    fontSize: 11,
   },
   settlementName: {
     fontFamily: getFontFamily('body', '400'),
@@ -540,6 +458,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     borderRadius: radius.pill,
     ...shadows.accent,
+  },
+  ctaButtonDisabled: {
+    backgroundColor: palette.sand[300],
+    shadowOpacity: 0,
+    elevation: 0,
   },
   ctaLabel: {
     fontFamily: getFontFamily('body', '700'),

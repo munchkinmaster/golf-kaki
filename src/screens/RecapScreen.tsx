@@ -1,59 +1,59 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChevronLeft, Crown, MapPin, Share2, Trophy } from 'lucide-react-native';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { ScoreBadge } from '../components/ScoreBadge';
-import {
-  COURSE_PAR,
-  HOLES,
-  PLAYERS,
-  VIEWER_KEY,
-  formatDeal,
-  getNextRoundDeals,
-  grossTotal,
-  money,
-  moneyLabel,
-  record,
-  runningUp,
-  scoreClassCounts,
-  sumRange,
-  upLabel,
-} from '../data/round';
-import type { PlayerKey } from '../data/round';
+import { getNextRoundDeals, grossTotal, money, moneyLabel, pairwiseTotal, record, runningUp, scoreClassCounts, sumRange, upLabel } from '../data/round';
+import type { StrokeMode } from '../data/round';
+import { useLiveRound } from '../hooks/useLiveRound';
 import type { RootStackParamList } from '../navigation/types';
-import { useRound } from '../state/RoundContext';
-import { colors, getFontFamily, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
+import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Recap'>;
 
 const WATERMARK_SOURCE = require('../assets/golf-kaki-mark-white.png');
 const WATERMARK_SIZE = 230;
 
-const THRU = HOLES.length;
-
 function firstName(name: string) {
   return name.split(' ')[0];
 }
 
-export function RecapScreen({ navigation, route }: Props) {
-  const { matchName, courseName, gameModeName } = route.params;
-  const { gross, frontNineDeals, stakePerHole } = useRound();
+function formatRecapDate(iso: string | null): string {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
-  const standings = [...PLAYERS]
+export function RecapScreen({ navigation, route }: Props) {
+  const { matchId, matchName, courseName, gameModeName } = route.params;
+  const { loading, viewerId, matchStatus, finishedAt, roster, holes, schedule, gross, thru, frontNineDeals, backNineDeals, stakePerHole, syncLedger } =
+    useLiveRound(matchId);
+  const ledgerSynced = useRef(false);
+
+  useEffect(() => {
+    if (matchStatus !== 'finished' || ledgerSynced.current) return;
+    ledgerSynced.current = true;
+    syncLedger().catch(() => {
+      ledgerSynced.current = false;
+    });
+  }, [matchStatus, syncLedger]);
+
+  const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
+
+  const standings = roster
     .map((p) => ({
       player: p,
-      net: runningUp(p.key, THRU, gross, frontNineDeals),
-      money: money(p.key, THRU, gross, frontNineDeals, stakePerHole),
-      record: record(p.key, THRU, gross, frontNineDeals),
+      net: runningUp(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals),
+      money: money(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole),
+      record: record(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals),
     }))
-    .sort((a, b) => b.money - a.money || a.player.handicap - b.player.handicap);
+    .sort((a, b) => b.money - a.money || (a.player.handicap ?? 0) - (b.player.handicap ?? 0));
 
-  const viewerNet = runningUp(VIEWER_KEY, THRU, gross, frontNineDeals);
-  const viewerMoney = money(VIEWER_KEY, THRU, gross, frontNineDeals, stakePerHole);
-  const minMoney = Math.min(...standings.map((s) => s.money));
+  const viewerNet = viewerId ? runningUp(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals) : 0;
+  const viewerMoney = viewerId ? money(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole) : 0;
+  const minMoney = standings.length > 0 ? Math.min(...standings.map((s) => s.money)) : 0;
   const buyers = standings.filter((s) => s.money === minMoney && minMoney < 0).map((s) => s.player.name);
 
   const resultHeadline = viewerNet > 0 ? 'You won the match' : viewerNet < 0 ? 'You lost the match' : 'Match all square';
@@ -62,20 +62,40 @@ export function RecapScreen({ navigation, route }: Props) {
       ? `${moneyLabel(viewerMoney)} for you — ${buyers.join(' & ')} ${buyers.length > 1 ? 'split' : 'buys'} the teh tarik.`
       : `${moneyLabel(viewerMoney)} for you — everyone's square on stakes.`;
 
-  const viewerGross = grossTotal(VIEWER_KEY, THRU, gross);
-  const viewerToPar = viewerGross - COURSE_PAR;
+  const coursePar = holes.reduce((sum, h) => sum + h.par, 0);
+  const viewerGross = viewerId ? grossTotal(viewerId, thru, gross) : 0;
+  const viewerToPar = viewerGross - coursePar;
   const viewerToParLabel = viewerToPar === 0 ? 'E' : viewerToPar > 0 ? `+${viewerToPar}` : `${viewerToPar}`;
 
-  const outScores = sumRange(THRU, 0, 9, gross);
-  const inScores = sumRange(THRU, 9, 18, gross);
-  const totalScores: Record<PlayerKey, number> = {
-    A: outScores.A + inScores.A,
-    B: outScores.B + inScores.B,
-    C: outScores.C + inScores.C,
-  };
+  const outScores = sumRange(rosterIds, thru, 0, 9, gross);
+  const inScores = sumRange(rosterIds, thru, 9, 18, gross);
+  const totalScores: Record<string, number> = {};
+  rosterIds.forEach((id) => {
+    totalScores[id] = (outScores[id] ?? 0) + (inScores[id] ?? 0);
+  });
 
-  const viewerClassCounts = scoreClassCounts(VIEWER_KEY, THRU, gross);
-  const nextRoundDeals = getNextRoundDeals(gross, frontNineDeals);
+  const viewerClassCounts = viewerId ? scoreClassCounts(viewerId, thru, gross, holes) : { eagle: 0, birdie: 0, par: 0, bogey: 0, doublePlus: 0 };
+  const nextRoundDeals = getNextRoundDeals(rosterIds, gross, frontNineDeals, holes, schedule, backNineDeals);
+
+  // Scoped to the viewer's own pairs — the full pairwise table (every other
+  // player's deal with every other player) isn't the viewer's business here.
+  const carryForwardRows = useMemo(() => {
+    if (!viewerId) return [];
+    return nextRoundDeals
+      .filter((deal) => deal.giver === viewerId || deal.receiver === viewerId)
+      .map((deal) => {
+        const opponentId = deal.giver === viewerId ? deal.receiver : deal.giver;
+        const opponent = roster.find((p) => p.playerId === opponentId);
+        if (!opponent) return null;
+        return {
+          opponent,
+          mode: (deal.giver === viewerId ? 'give' : 'get') as StrokeMode,
+          strokes: deal.amount,
+          h2h: pairwiseTotal(viewerId, opponentId, thru, gross, holes, frontNineDeals, schedule, backNineDeals),
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
+  }, [nextRoundDeals, viewerId, roster, thru, gross, holes, frontNineDeals, schedule, backNineDeals]);
 
   const onShare = () => {
     Share.share({
@@ -111,12 +131,15 @@ export function RecapScreen({ navigation, route }: Props) {
 
           <View style={styles.heroBody}>
             <Text style={styles.heroOverline}>
-              {gameModeName} · {THRU} holes
+              {gameModeName} · {holes.length} holes
             </Text>
             <Text style={styles.heroTitle}>{matchName}</Text>
             <View style={styles.heroMetaRow}>
               <MapPin size={14} color="rgba(255,255,255,0.72)" />
-              <Text style={styles.heroMetaText}>{courseName} · 27 Jun 2026</Text>
+              <Text style={styles.heroMetaText}>
+                {courseName}
+                {finishedAt ? ` · ${formatRecapDate(finishedAt)}` : ''}
+              </Text>
             </View>
           </View>
 
@@ -147,23 +170,26 @@ export function RecapScreen({ navigation, route }: Props) {
             </View>
           </View>
 
+          {loading ? <Text style={styles.loadingText}>Loading recap…</Text> : null}
+
           <Text style={styles.sectionLabel}>Final standings</Text>
           <View style={styles.standingsList}>
             {standings.map(({ player, net, money: m, record: rec }, i) => {
               const leader = i === 0;
-              const isViewer = player.key === VIEWER_KEY;
+              const isViewer = player.playerId === viewerId;
               const moneyColor = m > 0 ? colors.statusSuccess : m < 0 ? colors.statusDanger : colors.textMuted;
+              const playerColor = getPlayerColors(rosterIds.indexOf(player.playerId));
 
               return (
                 <View
-                  key={player.key}
+                  key={player.playerId}
                   style={[styles.standingRow, leader ? styles.standingRowLeader : isViewer ? styles.standingRowViewer : styles.standingRowDefault]}
                 >
                   <View style={styles.standingRank}>
                     {leader ? <Crown size={17} color={colors.scoreEagle} /> : <Text style={styles.standingRankNumber}>{i + 1}</Text>}
                   </View>
-                  <View style={[styles.standingAvatar, { backgroundColor: player.avatarBg }]}>
-                    <Text style={[styles.standingAvatarLabel, { color: player.avatarFg }]}>{player.name.charAt(0)}</Text>
+                  <View style={[styles.standingAvatar, { backgroundColor: playerColor.background }]}>
+                    <Text style={[styles.standingAvatarLabel, { color: playerColor.color }]}>{player.name.charAt(0)}</Text>
                   </View>
                   <View style={styles.standingBody}>
                     <Text style={styles.standingName}>
@@ -171,7 +197,7 @@ export function RecapScreen({ navigation, route }: Props) {
                       {isViewer ? <Text style={styles.standingYou}> (You)</Text> : null}
                     </Text>
                     <Text style={styles.standingSub}>
-                      {upLabel(net)} · {grossTotal(player.key, THRU, gross)} gross · {rec.w}W {rec.l}L {rec.h}H
+                      {upLabel(net)} · {grossTotal(player.playerId, thru, gross)} gross · {rec.w}W {rec.l}L {rec.h}H
                     </Text>
                   </View>
                   <Text style={[styles.standingMoney, { color: moneyColor }]}>{moneyLabel(m)}</Text>
@@ -184,19 +210,23 @@ export function RecapScreen({ navigation, route }: Props) {
           <View style={styles.roundCard}>
             <View style={styles.roundTotalsRow}>
               <View style={styles.roundTotalsItem}>
-                <Text style={styles.roundTotalsValue}>{outScores[VIEWER_KEY]}</Text>
+                <Text style={styles.roundTotalsValue}>{viewerId ? outScores[viewerId] ?? 0 : 0}</Text>
                 <Text style={styles.roundTotalsLabel}>Out</Text>
               </View>
               <View style={[styles.roundTotalsItem, styles.roundTotalsItemDivided]}>
-                <Text style={styles.roundTotalsValue}>{inScores[VIEWER_KEY]}</Text>
+                <Text style={styles.roundTotalsValue}>{viewerId ? inScores[viewerId] ?? 0 : 0}</Text>
                 <Text style={styles.roundTotalsLabel}>In</Text>
               </View>
               <View style={styles.roundTotalsItem}>
-                <Text style={[styles.roundTotalsValue, styles.roundTotalsValueAccent]}>{totalScores[VIEWER_KEY]}</Text>
+                <Text style={[styles.roundTotalsValue, styles.roundTotalsValueAccent]}>{viewerId ? totalScores[viewerId] ?? 0 : 0}</Text>
                 <Text style={styles.roundTotalsLabel}>Total</Text>
               </View>
             </View>
             <View style={styles.roundStatsRow}>
+              <View style={styles.roundStatsItem}>
+                <Text style={[styles.roundStatsValue, { color: colors.scoreEagle }]}>{viewerClassCounts.eagle}</Text>
+                <Text style={styles.roundStatsLabel}>Eagle+</Text>
+              </View>
               <View style={styles.roundStatsItem}>
                 <Text style={[styles.roundStatsValue, { color: colors.scoreBirdie }]}>{viewerClassCounts.birdie}</Text>
                 <Text style={styles.roundStatsLabel}>Birdies</Text>
@@ -221,20 +251,20 @@ export function RecapScreen({ navigation, route }: Props) {
             <View style={styles.gridHeaderRow}>
               <Text style={styles.gridHeaderH}>H</Text>
               <Text style={styles.gridHeaderMeta}>Par</Text>
-              {PLAYERS.map((p) => (
-                <Text key={p.key} style={[styles.gridHeaderPlayer, p.key === VIEWER_KEY && styles.gridHeaderPlayerYou]}>
-                  {p.key === VIEWER_KEY ? 'You' : firstName(p.name)}
+              {roster.map((p) => (
+                <Text key={p.playerId} style={[styles.gridHeaderPlayer, p.playerId === viewerId && styles.gridHeaderPlayerYou]}>
+                  {p.playerId === viewerId ? 'You' : firstName(p.name)}
                 </Text>
               ))}
             </View>
             <View style={styles.gridBody}>
-              {HOLES.map((hole, i) => (
+              {holes.map((hole, i) => (
                 <View key={hole.n} style={styles.gridRow}>
                   <Text style={styles.gridCellNum}>{hole.n}</Text>
                   <Text style={styles.gridCellMeta}>{hole.par}</Text>
-                  {PLAYERS.map((p) => (
-                    <View key={p.key} style={styles.gridCell}>
-                      <ScoreBadge value={gross[p.key][i]} par={hole.par} size={24} />
+                  {roster.map((p) => (
+                    <View key={p.playerId} style={styles.gridCell}>
+                      <ScoreBadge value={gross[p.playerId]?.[i] ?? hole.par} par={hole.par} size={24} />
                     </View>
                   ))}
                 </View>
@@ -243,9 +273,9 @@ export function RecapScreen({ navigation, route }: Props) {
             {summaryRows.map((row) => (
               <View key={row.label} style={[styles.summaryRow, row.strong && styles.summaryRowStrong]}>
                 <Text style={[styles.summaryLabel, row.strong && styles.summaryLabelStrong]}>{row.label}</Text>
-                {PLAYERS.map((p) => (
-                  <Text key={p.key} style={[styles.summaryValue, row.strong && styles.summaryValueStrong]}>
-                    {row.scores[p.key]}
+                {rosterIds.map((id) => (
+                  <Text key={id} style={[styles.summaryValue, row.strong && styles.summaryValueStrong]}>
+                    {row.scores[id] ?? 0}
                   </Text>
                 ))}
               </View>
@@ -266,15 +296,35 @@ export function RecapScreen({ navigation, route }: Props) {
             </View>
           </View>
 
-          {nextRoundDeals.length > 0 ? (
+          {carryForwardRows.length > 0 ? (
             <>
-              <Text style={styles.sectionLabel}>Next round</Text>
-              <View style={styles.nextRoundCard}>
-                {nextRoundDeals.map((deal) => (
-                  <Text key={`${deal.giver}-${deal.receiver}`} style={styles.nextRoundLine}>
-                    {formatDeal(deal)}
-                  </Text>
-                ))}
+              <Text style={styles.sectionLabel}>Carry-forward strokes</Text>
+              <Text style={styles.carrySubtitle}>Strokes agreed in the lobby — applied head-to-head</Text>
+              <View style={styles.carryList}>
+                {carryForwardRows.map(({ opponent, mode, strokes, h2h }) => {
+                  const playerColor = getPlayerColors(rosterIds.indexOf(opponent.playerId));
+                  const h2hColor = h2h > 0 ? colors.statusSuccess : h2h < 0 ? colors.statusDanger : colors.textMuted;
+                  const h2hLabel = h2h > 0 ? `${h2h} up head-to-head` : h2h < 0 ? `${-h2h} down head-to-head` : 'Square head-to-head';
+                  const isGet = mode === 'get';
+
+                  return (
+                    <View key={opponent.playerId} style={styles.carryRow}>
+                      <View style={[styles.carryAvatar, { backgroundColor: playerColor.background }]}>
+                        <Text style={[styles.carryAvatarLabel, { color: playerColor.color }]}>{opponent.name.charAt(0)}</Text>
+                      </View>
+                      <View style={styles.carryBody}>
+                        <Text style={styles.carryName}>{opponent.name}</Text>
+                        <Text style={[styles.carryH2h, { color: h2hColor }]}>{h2hLabel}</Text>
+                      </View>
+                      <View style={[styles.pill, isGet ? styles.pillGet : styles.pillGive]}>
+                        <Text style={[styles.pillLabel, { color: isGet ? colors.statusSuccess : palette.orange[700] }]}>
+                          {isGet ? 'Get' : 'Give'}
+                        </Text>
+                        <Text style={[styles.pillNumber, { color: isGet ? palette.green[600] : palette.orange[700] }]}>{strokes}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
             </>
           ) : null}
@@ -435,6 +485,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9A6B3E',
     marginTop: 1,
+  },
+  loadingText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.textDisabled,
+    marginTop: spacing[3],
   },
   sectionLabel: {
     fontFamily: getFontFamily('body', '600'),
@@ -738,20 +794,89 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textDisabled,
   },
-  nextRoundCard: {
+  carrySubtitle: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: -spacing[1] - 1,
+    marginBottom: spacing[2] + 2,
+  },
+  carryList: {
+    gap: spacing[2],
+  },
+  carryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2] + 3,
     backgroundColor: colors.surfaceCard,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
-    padding: spacing[3] + 2,
-    gap: spacing[1] + 2,
+    paddingVertical: spacing[2] + 3,
+    paddingHorizontal: spacing[3] + 1,
     ...shadows.xs,
   },
-  nextRoundLine: {
+  carryAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  carryAvatarLabel: {
+    fontFamily: getFontFamily('display', '700'),
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  carryBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  carryName: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  carryH2h: {
     fontFamily: getFontFamily('body', '400'),
-    fontWeight: '400',
-    fontSize: 12,
-    color: colors.textSecondary,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1] + 3,
+    borderWidth: 1,
+    borderRadius: radius.pill,
+    paddingVertical: spacing[1] + 1,
+    paddingLeft: spacing[2] + 3,
+    paddingRight: spacing[1] + 1,
+    flexShrink: 0,
+  },
+  pillGet: {
+    backgroundColor: palette.green[100],
+    borderColor: palette.green[200],
+  },
+  pillGive: {
+    backgroundColor: palette.orange[100],
+    borderColor: palette.orange[200],
+  },
+  pillLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 10,
+  },
+  pillNumber: {
+    fontFamily: getFontFamily('numeric', '700'),
+    fontWeight: '700',
+    fontSize: 15,
+    backgroundColor: palette.white,
+    borderRadius: radius.pill,
+    minWidth: 24,
+    textAlign: 'center',
+    paddingHorizontal: 4,
   },
   stakesNote: {
     fontFamily: getFontFamily('body', '400'),

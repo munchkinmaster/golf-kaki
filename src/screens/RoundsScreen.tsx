@@ -1,6 +1,7 @@
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChevronRight, SlidersHorizontal } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -9,70 +10,72 @@ import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { IconButton } from '../components/IconButton';
+import type { RoundSummary } from '../data/rounds';
+import { fetchRoundSummaries } from '../data/rounds';
+import { moneyLabel } from '../data/round';
 import type { RootStackParamList } from '../navigation/types';
+import { useAuth } from '../state/AuthContext';
 import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Rounds'>;
 
 type RoundsTab = 'live' | 'past';
 
-type LiveRound = {
-  id: string;
-  name: string;
-  format: string;
-  sub: string;
-  score: string;
-  scoreUnit: string;
-  players: string[];
-  /** Canonical course name, for resuming into the Scorecard. */
-  course: string;
-};
+function initialsFor(round: RoundSummary): string[] {
+  return round.players.map((p) => p.name.charAt(0).toUpperCase());
+}
 
-type PastRound = {
-  id: string;
-  name: string;
-  club: string;
-  date: string;
-  gross: number;
-  money: number;
-  players: string[];
-  /** Canonical course name, for opening the Recap. */
-  course: string;
-};
-
-const LIVE_ROUNDS: LiveRound[] = [
-  {
-    id: 'sat-fourball',
-    name: 'Sat Fourball',
-    format: 'Match play',
-    sub: 'Sentosa GC · Serapong · Thru 4',
-    score: '4',
-    scoreUnit: 'up',
-    players: ['M', 'W', 'D', 'J'],
-    course: 'Sentosa Golf Club',
-  },
-  {
-    id: 'kaki-cup-r2',
-    name: 'Kaki Cup',
-    format: 'Tournament',
-    sub: 'Round 2 of 3 · Tanah Merah · Thru 11',
-    score: 'T2',
-    scoreUnit: 'of 12',
-    players: ['M', 'W', 'D', 'A', 'P'],
-    course: 'Tanah Merah Country Club',
-  },
-];
-
-const PAST_ROUNDS: PastRound[] = [
-  { id: 'friday-skins', name: 'Friday Skins', club: 'Tanah Merah GC · Garden', date: '14 Jun', gross: 88, money: 18, players: ['W', 'M', 'D', 'J'], course: 'Tanah Merah Country Club' },
-  { id: 'sat-fourball-past', name: 'Sat Fourball', club: 'Sentosa GC · Serapong', date: '7 Jun', gross: 82, money: 6, players: ['W', 'M', 'D', 'A'], course: 'Sentosa Golf Club' },
-  { id: 'sunday-stroke', name: 'Sunday Stroke', club: 'Sentosa GC · New Tanjong', date: '25 May', gross: 78, money: 0, players: ['W', 'M', 'P'], course: 'Sentosa Golf Club' },
-  { id: 'teh-tarik-match', name: 'Teh Tarik Match', club: 'Marina Bay GC', date: '11 May', gross: 90, money: -8, players: ['W', 'D'], course: 'Marina Bay Golf Course' },
-  { id: 'kaki-cup-r1', name: 'Kaki Cup · R1', club: 'Laguna National · Classic', date: '3 May', gross: 85, money: -2, players: ['W', 'M', 'D', 'A', 'P'], course: 'Laguna National G&CC' },
-];
+function shortDate(iso: string | null): string {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' });
+}
 
 export function RoundsScreen({ navigation, route }: Props) {
+  const { session } = useAuth();
+  const viewerId = session?.user.id ?? null;
   const [tab, setTab] = useState<RoundsTab>(route.params?.initialTab ?? 'live');
+  const [liveRounds, setLiveRounds] = useState<RoundSummary[]>([]);
+  const [pastRounds, setPastRounds] = useState<RoundSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!viewerId) return;
+    const [live, past] = await Promise.all([fetchRoundSummaries(viewerId, 'live'), fetchRoundSummaries(viewerId, 'finished')]);
+    setLiveRounds(live);
+    setPastRounds(past);
+  }, [viewerId]);
+
+  // Refetch every time this screen gains focus — the viewer just as often
+  // arrives here right after finishing a round (from Recap) or starting one
+  // (from Match Lobby) as from cold mount.
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      load()
+        .catch((err) => setLoadError(err instanceof Error ? err.message : "Couldn't load your rounds."))
+        .finally(() => setLoading(false));
+    }, [load]),
+  );
+
+  function openLiveRound(round: RoundSummary) {
+    navigation.navigate('Scorecard', {
+      matchId: round.matchId,
+      matchName: round.matchName,
+      courseName: round.courseName,
+      gameModeName: round.gameModeName,
+      isHost: false,
+    });
+  }
+
+  function openPastRound(round: RoundSummary) {
+    navigation.navigate('Recap', {
+      matchId: round.matchId,
+      matchName: round.matchName,
+      courseName: round.courseName,
+      gameModeName: round.gameModeName,
+    });
+  }
 
   return (
     <View style={styles.page}>
@@ -84,44 +87,36 @@ export function RoundsScreen({ navigation, route }: Props) {
         </View>
 
         <View style={styles.segmentWrap}>
-          <SegmentedControl tab={tab} liveCount={LIVE_ROUNDS.length} onChange={setTab} />
+          <SegmentedControl tab={tab} liveCount={liveRounds.length} onChange={setTab} />
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-          {tab === 'live' ? (
-            <View style={styles.liveList}>
-              {LIVE_ROUNDS.map((round) => (
-                <LiveRoundCard
-                  key={round.id}
-                  round={round}
-                  onResume={() =>
-                    navigation.navigate('Scorecard', {
-                      matchName: round.name,
-                      courseName: round.course,
-                      gameModeName: round.format,
-                      isHost: true,
-                    })
-                  }
-                />
-              ))}
-            </View>
-          ) : (
-            <View style={styles.pastList}>
-              {PAST_ROUNDS.map((round) => (
-                <PastRoundRow
-                  key={round.id}
-                  round={round}
-                  onPress={() =>
-                    navigation.navigate('Recap', {
-                      matchName: round.name,
-                      courseName: round.course,
-                      gameModeName: 'Kaki Match Play',
-                    })
-                  }
-                />
-              ))}
-            </View>
-          )}
+          {loadError ? <Text style={styles.stateText}>{loadError}</Text> : null}
+          {!loadError && loading ? <Text style={styles.stateText}>Loading rounds…</Text> : null}
+
+          {!loading && !loadError && tab === 'live' ? (
+            liveRounds.length > 0 ? (
+              <View style={styles.liveList}>
+                {liveRounds.map((round) => (
+                  <LiveRoundCard key={round.matchId} round={round} onResume={() => openLiveRound(round)} />
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.stateText}>No live rounds right now — start one from Home.</Text>
+            )
+          ) : null}
+
+          {!loading && !loadError && tab === 'past' ? (
+            pastRounds.length > 0 ? (
+              <View style={styles.pastList}>
+                {pastRounds.map((round) => (
+                  <PastRoundRow key={round.matchId} round={round} onPress={() => openPastRound(round)} />
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.stateText}>No past rounds yet.</Text>
+            )
+          ) : null}
         </ScrollView>
 
         <BottomNav
@@ -206,7 +201,12 @@ function PlayerAvatarStack({ players, onGreen }: { players: string[]; onGreen: b
   );
 }
 
-function LiveRoundCard({ round, onResume }: { round: LiveRound; onResume: () => void }) {
+function LiveRoundCard({ round, onResume }: { round: RoundSummary; onResume: () => void }) {
+  const up = round.viewerUp ?? 0;
+  const scoreValue = round.viewerUp === null ? '–' : String(Math.abs(up));
+  const scoreUnit = round.viewerUp === null ? '' : up > 0 ? 'up' : up < 0 ? 'down' : 'square';
+  const sub = [round.courseName, round.comboLabel, `Thru ${round.thru}`].filter(Boolean).join(' · ');
+
   return (
     <Card variant="inverse" watermark>
       <View style={styles.liveCardTop}>
@@ -214,19 +214,19 @@ function LiveRoundCard({ round, onResume }: { round: LiveRound; onResume: () => 
           <View style={styles.liveOverlineRow}>
             <PulseDot color={colors.accent} size={7} />
             <Text style={styles.liveOverline}>
-              Live · {round.format}
+              Live · {round.gameModeName}
             </Text>
           </View>
-          <Text style={styles.liveTitle}>{round.name}</Text>
-          <Text style={styles.liveSubtitle}>{round.sub}</Text>
+          <Text style={styles.liveTitle}>{round.matchName}</Text>
+          <Text style={styles.liveSubtitle}>{sub}</Text>
         </View>
         <View style={styles.liveScoreWrap}>
-          <Text style={styles.liveScoreValue}>{round.score}</Text>
-          <Text style={styles.liveScoreUnit}>{round.scoreUnit}</Text>
+          <Text style={styles.liveScoreValue}>{scoreValue}</Text>
+          <Text style={styles.liveScoreUnit}>{scoreUnit}</Text>
         </View>
       </View>
       <View style={styles.liveCardBottom}>
-        <PlayerAvatarStack players={round.players} onGreen />
+        <PlayerAvatarStack players={initialsFor(round)} onGreen />
         <Button
           label="Resume"
           variant="accent"
@@ -240,14 +240,10 @@ function LiveRoundCard({ round, onResume }: { round: LiveRound; onResume: () => 
   );
 }
 
-function getMoneyInfo(money: number) {
-  if (money > 0) return { text: `+$${money}`, color: colors.statusSuccess };
-  if (money < 0) return { text: `−$${Math.abs(money)}`, color: colors.statusDanger };
-  return { text: 'Even', color: colors.textDisabled };
-}
-
-function PastRoundRow({ round, onPress }: { round: PastRound; onPress: () => void }) {
-  const money = getMoneyInfo(round.money);
+function PastRoundRow({ round, onPress }: { round: RoundSummary; onPress: () => void }) {
+  const money = round.viewerMoney ?? 0;
+  const moneyColor = money > 0 ? colors.statusSuccess : money < 0 ? colors.statusDanger : colors.textDisabled;
+  const club = [round.courseName, round.comboLabel].filter(Boolean).join(' · ');
 
   return (
     <Pressable onPress={onPress}>
@@ -255,19 +251,19 @@ function PastRoundRow({ round, onPress }: { round: PastRound; onPress: () => voi
       <View style={styles.pastTopRow}>
         <View style={styles.pastInfo}>
           <Text style={styles.pastName} numberOfLines={1}>
-            {round.name}
+            {round.matchName}
           </Text>
           <Text style={styles.pastMeta} numberOfLines={1}>
-            {round.club} · {round.date}
+            {club} · {shortDate(round.finishedAt)}
           </Text>
         </View>
         <View style={styles.pastScoreWrap}>
-          <Text style={styles.pastGross}>{round.gross}</Text>
+          <Text style={styles.pastGross}>{round.viewerGross ?? '–'}</Text>
           <Text style={styles.pastGrossLabel}>gross</Text>
-          <Text style={[styles.pastMoney, { color: money.color }]}>{money.text}</Text>
+          <Text style={[styles.pastMoney, { color: moneyColor }]}>{round.viewerMoney === null ? '' : moneyLabel(money)}</Text>
         </View>
       </View>
-      <PlayerAvatarStack players={round.players} onGreen={false} />
+      <PlayerAvatarStack players={initialsFor(round)} onGreen={false} />
     </Card>
     </Pressable>
   );
@@ -368,6 +364,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: screenGutter,
     paddingBottom: spacing[7],
+  },
+  stateText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 13,
+    color: colors.textDisabled,
+    textAlign: 'center',
+    marginTop: spacing[5],
   },
   liveList: {
     gap: spacing[3] + 2,

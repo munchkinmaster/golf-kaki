@@ -6,6 +6,7 @@
  * stored per-9 rather than per-18.
  */
 
+import { withRetry } from '../lib/retry';
 import { supabase } from '../lib/supabase';
 
 export type KakiPerson = {
@@ -55,6 +56,10 @@ function fromProfileRow(row: ProfileRow): KakiPerson {
 
 /** Fetches the viewer's friends, incoming requests, and an addable directory in two queries. */
 export async function fetchKakiOverview(userId: string): Promise<KakiOverview> {
+  return withRetry(() => fetchKakiOverviewOnce(userId));
+}
+
+async function fetchKakiOverviewOnce(userId: string): Promise<KakiOverview> {
   const [relationships, otherProfiles] = await Promise.all([
     supabase
       .from('kaki_relationships')
@@ -139,4 +144,57 @@ export async function sendFriendRequest(userId: string, targetId: string): Promi
     .single();
   if (error) throw error;
   return (data as { id: string }).id;
+}
+
+/**
+ * Updates ONE pair's carry-forward stroke ledger after a match — a plain
+ * UPDATE, never an insert, so a pair with no existing 'accepted' kaki
+ * relationship silently no-ops (playing a match with someone never
+ * auto-friends them). `netStrokesPer9` is already in the same per-9,
+ * positive-a-gives-b unit the column stores — round.ts's `getNextRoundNet`
+ * (keyed the same canonical way) is what callers pass in here, so no
+ * conversion is needed beyond re-canonicalizing a/b if the caller didn't.
+ */
+export async function updateLedgerStrokes(playerAId: string, playerBId: string, netStrokesPer9: number): Promise<void> {
+  await withRetry(async () => {
+    const [a, b] = playerAId < playerBId ? [playerAId, playerBId] : [playerBId, playerAId];
+    const signed = playerAId < playerBId ? netStrokesPer9 : -netStrokesPer9;
+    const { error } = await supabase
+      .from('kaki_relationships')
+      .update({ net_strokes_per_9: signed })
+      .eq('player_a_id', a)
+      .eq('player_b_id', b)
+      .eq('status', 'accepted');
+    if (error) throw error;
+  });
+}
+
+/**
+ * Strokes-over-18 for every accepted-kaki pair *within* `playerIds`, keyed by
+ * canonical `"a:b"` (a < b, string comparison) — signed from a's perspective
+ * (positive = a gives b). For seeding a Match Lobby's full pairwise stroke
+ * matrix (every player vs every other player, not just vs one distinguished
+ * viewer) from the accepted kaki ledger. Pairs with no accepted relationship
+ * yet are omitted (caller defaults to 0 — even strokes).
+ */
+export async function fetchLedgerStrokesForGroup(playerIds: string[]): Promise<Record<string, number>> {
+  if (playerIds.length < 2) return {};
+  return withRetry(() => fetchLedgerStrokesForGroupOnce(playerIds));
+}
+
+async function fetchLedgerStrokesForGroupOnce(playerIds: string[]): Promise<Record<string, number>> {
+  const { data, error } = await supabase
+    .from('kaki_relationships')
+    .select('player_a_id, player_b_id, net_strokes_per_9')
+    .eq('status', 'accepted')
+    .in('player_a_id', playerIds)
+    .in('player_b_id', playerIds);
+  if (error) throw error;
+
+  const strokes: Record<string, number> = {};
+  for (const row of data as { player_a_id: string; player_b_id: string; net_strokes_per_9: number }[]) {
+    // kaki_relationships already stores player_a_id < player_b_id, so this is already canonical.
+    strokes[`${row.player_a_id}:${row.player_b_id}`] = row.net_strokes_per_9 * 2;
+  }
+  return strokes;
 }

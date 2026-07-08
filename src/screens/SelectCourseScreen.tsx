@@ -201,9 +201,15 @@ export function SelectCourseScreen({ navigation }: Props) {
             block
             disabled={!selectedCourse}
             onPress={() => {
-              if (!selectedCourse) return;
-              const summaryLine = selectedCombo ? `${holesToPlay} holes · ${selectedCombo.label}` : `${holesToPlay} holes`;
-              navigation.navigate('CreateGame', { courseName: selectedCourse.name, summaryLine });
+              if (!selectedCourse || !selectedCombo) return;
+              const summaryLine = `${holesToPlay} holes · ${selectedCombo.label}`;
+              navigation.navigate('CreateGame', {
+                courseId: selectedCourse.id,
+                comboId: selectedCombo.id,
+                holesToPlay,
+                courseName: selectedCourse.name,
+                summaryLine,
+              });
             }}
             icon={<ArrowRight size={19} color={colors.textOnAccent} />}
             iconPosition="right"

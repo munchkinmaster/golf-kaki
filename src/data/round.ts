@@ -1,119 +1,76 @@
 /**
- * Shared mock round — same hole-by-hole gross scores feed the Scorecard,
- * Leaderboard, Finish, and Recap screens so the numbers always agree.
+ * Pure Kaki Match Play scoring math — no Supabase here (see data/scores.ts for
+ * the live fetch/write layer). Generalized to any real roster/course: every
+ * function takes its `players`/`holes` explicitly rather than closing over a
+ * fixed 3-player mock, so the same arithmetic works for any match.
  *
- * Kaki Match Play strokes are whatever each PAIR agreed in the Match Lobby —
- * handicap index plays no part in the ongoing match, though it's a sensible
- * way to strike the very first deal (the two lobby-configured pairs below
- * both happen to equal their handicap gap; the third pair, which the lobby
- * UI doesn't expose a control for, defaults to its handicap gap the same
- * way). Every PAIR of players has its own independent deal — there's no
+ * Every PAIR of players has its own independent stroke deal — there's no
  * single "the field's strokes," each side-bet is handicapped on its own.
+ * Deals are canonical a<b (string compare on player id), positive-giver
+ * convention: `{ giver, receiver, amount }`.
  *
- * Each deal is preset for the front 9 only, allocated to the hardest holes
- * in that pair's agreed amount (by stroke index). The deal is re-struck once
- * at hole 10: for every full 2-hole net swing in the front-9 head-to-head
- * for that pair, the stroke count shifts by 1 (lose more, receive more
- * help; win more, give more / need less) — then fixed for holes 10-18, no
- * further recompute. The same re-strike happens again at the end of the
- * round, from the back-9 record, producing the deal each pair would carry
- * into their next round together.
+ * A deal is preset for the front 9 only, allocated to the hardest holes in
+ * that pair's agreed amount (by stroke index). For an 18-hole match with a
+ * 9-hole strokes basis, the deal is re-struck once at hole 10: for every full
+ * 2-hole net swing in the front-9 head-to-head for that pair, the stroke
+ * count shifts by 1 (lose more, receive more help; win more, give more / need
+ * less) — then fixed for holes 10-18. The same re-strike happens again at the
+ * end of the round (from the back-9 record for that case, or from the whole
+ * round otherwise), producing the deal each pair would carry into their next
+ * round together.
  */
 
-import { colors, palette } from '../theme/tokens';
-
-export type PlayerKey = 'A' | 'B' | 'C';
+export type PlayerKey = string;
 
 export type Hole = { n: number; par: number; si: number };
 
-export const HOLES: Hole[] = [
-  { n: 1, par: 4, si: 5 }, { n: 2, par: 5, si: 11 }, { n: 3, par: 3, si: 17 },
-  { n: 4, par: 4, si: 1 }, { n: 5, par: 4, si: 7 }, { n: 6, par: 5, si: 3 },
-  { n: 7, par: 3, si: 15 }, { n: 8, par: 4, si: 9 }, { n: 9, par: 4, si: 13 },
-  { n: 10, par: 4, si: 6 }, { n: 11, par: 4, si: 12 }, { n: 12, par: 3, si: 18 },
-  { n: 13, par: 5, si: 2 }, { n: 14, par: 4, si: 8 }, { n: 15, par: 4, si: 4 },
-  { n: 16, par: 3, si: 16 }, { n: 17, par: 5, si: 10 }, { n: 18, par: 4, si: 14 },
-];
+/** Dense per-player gross-score array, indexed 0..holes.length-1. */
+export type GrossMap = Record<PlayerKey, number[]>;
 
-export const PLAYERS: { key: PlayerKey; name: string; handicap: number; avatarBg: string; avatarFg: string }[] = [
-  { key: 'A', name: 'Marcus', handicap: 2, avatarBg: palette.green[100], avatarFg: colors.primary },
-  { key: 'B', name: 'Wei Liang', handicap: 7, avatarBg: palette.orange[200], avatarFg: palette.orange[700] },
-  { key: 'C', name: 'Dinesh', handicap: 16, avatarBg: palette.sand[200], avatarFg: palette.ink[500] },
-];
+/** Sparse hole-by-hole scores as recorded so far — gaps mean "not scored yet." */
+export type HoleScoreMap = Record<PlayerKey, Partial<Record<number, number>>>;
 
-export const VIEWER_KEY: PlayerKey = 'B';
-export const STAKE = 2;
-
-export const GROSS: Record<PlayerKey, number[]> = {
-  A: [4, 5, 2, 4, 4, 6, 3, 5, 4, 4, 5, 3, 5, 4, 4, 3, 5, 4],
-  B: [5, 6, 3, 5, 4, 5, 4, 4, 5, 5, 4, 4, 6, 5, 4, 3, 6, 5],
-  C: [6, 7, 4, 5, 6, 7, 4, 6, 5, 5, 5, 4, 6, 5, 5, 4, 6, 5],
-};
-
-export const COURSE_PAR = HOLES.reduce((sum, h) => sum + h.par, 0);
-
-type GrossMap = Record<PlayerKey, number[]>;
+export type StrokeMode = 'get' | 'give';
 
 export type StrokeDeal = { giver: PlayerKey; receiver: PlayerKey; amount: number };
 
-const ALL_PAIRS: [PlayerKey, PlayerKey][] = (() => {
+/** How this match schedules its strokes — drives which SI ranking/restrike case applies. */
+export type RoundSchedule = { holesToPlay: 9 | 18; strokesBasis: 9 | 18 };
+
+export function pairKey(a: string, b: string): string {
+  return a < b ? `${a}:${b}` : `${b}:${a}`;
+}
+
+/** Every unordered pair among `players`, canonically ordered (a < b). */
+export function buildAllPairs(players: PlayerKey[]): [PlayerKey, PlayerKey][] {
   const pairs: [PlayerKey, PlayerKey][] = [];
-  for (let i = 0; i < PLAYERS.length; i++) {
-    for (let j = i + 1; j < PLAYERS.length; j++) pairs.push([PLAYERS[i].key, PLAYERS[j].key]);
+  for (let i = 0; i < players.length; i++) {
+    for (let j = i + 1; j < players.length; j++) {
+      const [a, b] = players[i]! < players[j]! ? [players[i]!, players[j]!] : [players[j]!, players[i]!];
+      pairs.push([a, b]);
+    }
   }
   return pairs;
-})();
+}
 
 function findDeal(deals: StrokeDeal[], p1: PlayerKey, p2: PlayerKey): StrokeDeal | undefined {
   return deals.find((d) => (d.giver === p1 && d.receiver === p2) || (d.giver === p2 && d.receiver === p1));
 }
 
-function playerHandicap(key: PlayerKey): number {
-  return PLAYERS.find((p) => p.key === key)!.handicap;
+/** Amount `from` gives `to` under this deal set — negative means `from` receives instead. */
+function givesAmount(deals: StrokeDeal[], from: PlayerKey, to: PlayerKey): number {
+  const deal = findDeal(deals, from, to);
+  if (!deal) return 0;
+  return deal.giver === from ? deal.amount : -deal.amount;
 }
 
-export type StrokeMode = 'get' | 'give';
-
-/** "Get" = the viewer receives strokes from this opponent; "give" = the viewer spots them. */
-export function viewerStrokeAgainst(opponentKey: PlayerKey, deals: StrokeDeal[]): { strokes: number; mode: StrokeMode } {
-  const deal = findDeal(deals, VIEWER_KEY, opponentKey);
-  if (!deal) return { strokes: 0, mode: 'give' };
-  return deal.giver === opponentKey ? { strokes: deal.amount, mode: 'get' } : { strokes: deal.amount, mode: 'give' };
+function receivesStroke(deals: StrokeDeal[], player: PlayerKey, opponent: PlayerKey, rank: Record<number, number>, holeN: number): boolean {
+  const deal = findDeal(deals, player, opponent);
+  return !!deal && deal.receiver === player && rank[holeN] <= deal.amount;
 }
-
-export function buildViewerDeal(opponentKey: PlayerKey, strokes: number, mode: StrokeMode): StrokeDeal {
-  return mode === 'get'
-    ? { giver: opponentKey, receiver: VIEWER_KEY, amount: strokes }
-    : { giver: VIEWER_KEY, receiver: opponentKey, amount: strokes };
-}
-
-// Agreed in the Match Lobby — defaults to Marcus gives the viewer 5, the
-// viewer gives Dinesh 9, matching the lobby's default stroke settings. The
-// lobby UI only lets the host set strokes vs themselves, so any pair left
-// unconfigured (e.g. Marcus vs Dinesh) defaults to its handicap gap.
-const DEFAULT_CONFIGURED_DEALS: StrokeDeal[] = [
-  { giver: 'A', receiver: 'B', amount: 5 },
-  { giver: 'B', receiver: 'C', amount: 9 },
-];
-
-/** Fills in any pair the lobby didn't configure with their handicap gap. */
-export function buildFrontNineDeals(configured: StrokeDeal[] = DEFAULT_CONFIGURED_DEALS): StrokeDeal[] {
-  const deals = [...configured];
-  ALL_PAIRS.forEach(([p1, p2]) => {
-    if (findDeal(deals, p1, p2)) return;
-    const gap = Math.abs(playerHandicap(p1) - playerHandicap(p2));
-    if (gap === 0) return;
-    const giver = playerHandicap(p1) < playerHandicap(p2) ? p1 : p2;
-    const receiver = playerHandicap(p1) < playerHandicap(p2) ? p2 : p1;
-    deals.push({ giver, receiver, amount: gap });
-  });
-  return deals;
-}
-
-const DEFAULT_FRONT_NINE_DEALS = buildFrontNineDeals();
 
 function rankBySi(holes: Hole[]): Record<number, number> {
-  const ranked = holes.map((h) => ({ n: h.n, si: h.si })).sort((a, b) => a.si - b.si);
+  const ranked = [...holes].sort((a, b) => a.si - b.si);
   const rank: Record<number, number> = {};
   ranked.forEach((h, i) => {
     rank[h.n] = i + 1;
@@ -121,71 +78,142 @@ function rankBySi(holes: Hole[]): Record<number, number> {
   return rank;
 }
 
-const FRONT_NINE_SI_RANK = rankBySi(HOLES.slice(0, 9));
-const BACK_NINE_SI_RANK = rankBySi(HOLES.slice(9, 18));
-const FRONT_NINE_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-const BACK_NINE_INDICES = [9, 10, 11, 12, 13, 14, 15, 16, 17];
-
-function receivesStroke(deals: StrokeDeal[], player: PlayerKey, opponent: PlayerKey, rank: Record<number, number>, holeN: number): boolean {
-  const deal = findDeal(deals, player, opponent);
-  return !!deal && deal.receiver === player && rank[holeN] <= deal.amount;
+function frontRank(holes: Hole[]): Record<number, number> {
+  return rankBySi(holes.slice(0, Math.min(9, holes.length)));
 }
 
-function holeResult(p1: PlayerKey, p2: PlayerKey, holeIndex: number, deals: StrokeDeal[], rank: Record<number, number>, gross: GrossMap): number {
-  const holeN = HOLES[holeIndex].n;
-  const n1 = gross[p1][holeIndex] - (receivesStroke(deals, p1, p2, rank, holeN) ? 1 : 0);
-  const n2 = gross[p2][holeIndex] - (receivesStroke(deals, p2, p1, rank, holeN) ? 1 : 0);
+function backRank(holes: Hole[]): Record<number, number> {
+  return rankBySi(holes.slice(9, 18));
+}
+
+function fullRank(holes: Hole[]): Record<number, number> {
+  return rankBySi(holes);
+}
+
+function rangeIndices(start: number, end: number): number[] {
+  return Array.from({ length: Math.max(0, end - start) }, (_, i) => start + i);
+}
+
+function holeResult(p1: PlayerKey, p2: PlayerKey, holeIndex: number, deals: StrokeDeal[], rank: Record<number, number>, gross: GrossMap, holes: Hole[]): number {
+  const holeN = holes[holeIndex]!.n;
+  const n1 = gross[p1]![holeIndex]! - (receivesStroke(deals, p1, p2, rank, holeN) ? 1 : 0);
+  const n2 = gross[p2]![holeIndex]! - (receivesStroke(deals, p2, p1, rank, holeN) ? 1 : 0);
   if (n1 < n2) return 1;
   if (n1 > n2) return -1;
   return 0;
 }
 
-// Re-strike every pair's deal from their head-to-head record over a set of
-// holes: every full 2-hole net swing shifts the stroke count by 1.
-function restrike(deals: StrokeDeal[], rank: Record<number, number>, holeIndices: number[], gross: GrossMap = GROSS): StrokeDeal[] {
-  const next: StrokeDeal[] = [];
-  ALL_PAIRS.forEach(([p1, p2]) => {
-    const deal = findDeal(deals, p1, p2);
-    const baseline = deal ? (deal.receiver === p1 ? deal.amount : -deal.amount) : 0;
-    let net = 0;
+/**
+ * Re-strikes every pair's deal from their head-to-head record over a set of
+ * holes: every full 2-hole net swing shifts the "gives" amount by 1. Returns
+ * the signed net for EVERY pair (including zero, unlike `restrike`) — the
+ * kaki-ledger write-back needs to zero out a pair that evened out, not skip
+ * it. Keyed by `pairKey(a, b)`, positive = a gives b.
+ */
+export function restrikeNet(
+  players: PlayerKey[],
+  deals: StrokeDeal[],
+  rank: Record<number, number>,
+  holeIndices: number[],
+  gross: GrossMap,
+  holes: Hole[],
+): Record<string, number> {
+  const net: Record<string, number> = {};
+  buildAllPairs(players).forEach(([p1, p2]) => {
+    const baselineGives = givesAmount(deals, p1, p2);
+    let swing = 0;
     holeIndices.forEach((i) => {
-      net += holeResult(p1, p2, i, deals, rank, gross);
+      swing += holeResult(p1, p2, i, deals, rank, gross, holes);
     });
-    const adjusted = baseline - Math.trunc(net / 2);
-    if (adjusted > 0) next.push({ giver: p2, receiver: p1, amount: adjusted });
-    else if (adjusted < 0) next.push({ giver: p1, receiver: p2, amount: -adjusted });
+    net[pairKey(p1, p2)] = baselineGives + Math.trunc(swing / 2);
   });
-  return next;
+  return net;
 }
 
-// Re-struck from the front-9 record, so editing a front-9 score correctly
-// reshapes the back 9's give/receive strokes (not just the displayed deal).
-function getBackNineDeals(gross: GrossMap = GROSS, frontNineDeals: StrokeDeal[] = DEFAULT_FRONT_NINE_DEALS): StrokeDeal[] {
-  return restrike(frontNineDeals, FRONT_NINE_SI_RANK, FRONT_NINE_INDICES, gross);
+function netToDeals(net: Record<string, number>): StrokeDeal[] {
+  const deals: StrokeDeal[] = [];
+  Object.entries(net).forEach(([key, amount]) => {
+    if (amount === 0) return;
+    const [a, b] = key.split(':') as [string, string];
+    deals.push(amount > 0 ? { giver: a, receiver: b, amount } : { giver: b, receiver: a, amount: -amount });
+  });
+  return deals;
 }
 
-/** What each pair's deal would be if they played this same field again. */
-export function getNextRoundDeals(gross: GrossMap = GROSS, frontNineDeals: StrokeDeal[] = DEFAULT_FRONT_NINE_DEALS): StrokeDeal[] {
-  return restrike(getBackNineDeals(gross, frontNineDeals), BACK_NINE_SI_RANK, BACK_NINE_INDICES, gross);
+/** Re-struck from the front-9 record — the signed net (including zero) for every pair, for persisting to game_matchups.back_nine_strokes. */
+export function getBackNineNet(players: PlayerKey[], gross: GrossMap, frontNineDeals: StrokeDeal[], holes: Hole[]): Record<string, number> {
+  return restrikeNet(players, frontNineDeals, frontRank(holes), rangeIndices(0, Math.min(9, holes.length)), gross, holes);
 }
 
-function dealsAndRankForHole(holeN: number, gross: GrossMap, frontNineDeals: StrokeDeal[]) {
-  return holeN <= 9
-    ? { deals: frontNineDeals, rank: FRONT_NINE_SI_RANK }
-    : { deals: getBackNineDeals(gross, frontNineDeals), rank: BACK_NINE_SI_RANK };
+/** Re-struck from the front-9 record — the deal that applies to holes 10-18 in an 18-hole/9-strokes-basis match. */
+export function getBackNineDeals(players: PlayerKey[], gross: GrossMap, frontNineDeals: StrokeDeal[], holes: Hole[]): StrokeDeal[] {
+  return netToDeals(getBackNineNet(players, gross, frontNineDeals, holes));
+}
+
+/**
+ * What each pair's deal would be if they played this same field again —
+ * re-struck from whichever record actually determined this match's stakes:
+ * the whole round for a 9-hole match or an 18-hole/18-strokes-basis match
+ * (no mid-match restrike happened), or just the back-9 record for an
+ * 18-hole/9-strokes-basis match (the front 9 already fed its own restrike at
+ * the turn; re-applying it here would double-count).
+ */
+export function getNextRoundNet(
+  players: PlayerKey[],
+  gross: GrossMap,
+  frontNineDeals: StrokeDeal[],
+  holes: Hole[],
+  schedule: RoundSchedule,
+  backNineDeals: StrokeDeal[] | null,
+): Record<string, number> {
+  if (schedule.holesToPlay === 9) {
+    return restrikeNet(players, frontNineDeals, frontRank(holes), rangeIndices(0, holes.length), gross, holes);
+  }
+  if (schedule.strokesBasis === 18) {
+    return restrikeNet(players, frontNineDeals, fullRank(holes), rangeIndices(0, holes.length), gross, holes);
+  }
+  const effectiveBackNine = backNineDeals ?? getBackNineDeals(players, gross, frontNineDeals, holes);
+  return restrikeNet(players, effectiveBackNine, backRank(holes), rangeIndices(9, holes.length), gross, holes);
+}
+
+export function getNextRoundDeals(
+  players: PlayerKey[],
+  gross: GrossMap,
+  frontNineDeals: StrokeDeal[],
+  holes: Hole[],
+  schedule: RoundSchedule,
+  backNineDeals: StrokeDeal[] | null,
+): StrokeDeal[] {
+  return netToDeals(getNextRoundNet(players, gross, frontNineDeals, holes, schedule, backNineDeals));
+}
+
+function dealsAndRankForHole(
+  schedule: RoundSchedule,
+  holeN: number,
+  frontNineDeals: StrokeDeal[],
+  backNineDeals: StrokeDeal[] | null,
+  holes: Hole[],
+): { deals: StrokeDeal[]; rank: Record<number, number> } {
+  if (schedule.holesToPlay === 9) return { deals: frontNineDeals, rank: frontRank(holes) };
+  if (schedule.strokesBasis === 18) return { deals: frontNineDeals, rank: fullRank(holes) };
+  if (holeN <= 9) return { deals: frontNineDeals, rank: frontRank(holes) };
+  return { deals: backNineDeals ?? frontNineDeals, rank: backRank(holes) };
 }
 
 /** Give/receive flags for the viewer-vs-opponent pairing on a given hole (for the Scorecard grid). */
 export function getFlags(
   opponent: PlayerKey,
+  viewer: PlayerKey,
   holeN: number,
-  gross: GrossMap = GROSS,
-  frontNineDeals: StrokeDeal[] = DEFAULT_FRONT_NINE_DEALS,
+  holes: Hole[],
+  frontNineDeals: StrokeDeal[],
+  schedule: RoundSchedule,
+  backNineDeals: StrokeDeal[] | null,
 ) {
-  const { deals, rank } = dealsAndRankForHole(holeN, gross, frontNineDeals);
+  const { deals, rank } = dealsAndRankForHole(schedule, holeN, frontNineDeals, backNineDeals, holes);
   return {
-    give: receivesStroke(deals, opponent, VIEWER_KEY, rank, holeN),
-    recv: receivesStroke(deals, VIEWER_KEY, opponent, rank, holeN),
+    give: receivesStroke(deals, opponent, viewer, rank, holeN),
+    recv: receivesStroke(deals, viewer, opponent, rank, holeN),
   };
 }
 
@@ -194,52 +222,70 @@ export function pairwiseResult(
   p1: PlayerKey,
   p2: PlayerKey,
   holeIndex: number,
-  gross: GrossMap = GROSS,
-  frontNineDeals: StrokeDeal[] = DEFAULT_FRONT_NINE_DEALS,
+  gross: GrossMap,
+  holes: Hole[],
+  frontNineDeals: StrokeDeal[],
+  schedule: RoundSchedule,
+  backNineDeals: StrokeDeal[] | null,
 ): number {
-  const holeN = HOLES[holeIndex].n;
-  const { deals, rank } = dealsAndRankForHole(holeN, gross, frontNineDeals);
-  return holeResult(p1, p2, holeIndex, deals, rank, gross);
+  const holeN = holes[holeIndex]!.n;
+  const { deals, rank } = dealsAndRankForHole(schedule, holeN, frontNineDeals, backNineDeals, holes);
+  return holeResult(p1, p2, holeIndex, deals, rank, gross, holes);
 }
 
-function others(playerKey: PlayerKey) {
-  return PLAYERS.filter((p) => p.key !== playerKey).map((p) => p.key);
+function others(players: PlayerKey[], playerKey: PlayerKey): PlayerKey[] {
+  return players.filter((p) => p !== playerKey);
 }
 
 /** Net wins-minus-losses against every other player, for one hole. */
 export function holeUpValue(
+  players: PlayerKey[],
   playerKey: PlayerKey,
   holeIndex: number,
-  gross: GrossMap = GROSS,
-  frontNineDeals: StrokeDeal[] = DEFAULT_FRONT_NINE_DEALS,
+  gross: GrossMap,
+  holes: Hole[],
+  frontNineDeals: StrokeDeal[],
+  schedule: RoundSchedule,
+  backNineDeals: StrokeDeal[] | null,
 ): number {
-  return others(playerKey).reduce((sum, opp) => sum + pairwiseResult(playerKey, opp, holeIndex, gross, frontNineDeals), 0);
+  return others(players, playerKey).reduce(
+    (sum, opp) => sum + pairwiseResult(playerKey, opp, holeIndex, gross, holes, frontNineDeals, schedule, backNineDeals),
+    0,
+  );
 }
 
 /** Running "up" total across the holes played so far. */
 export function runningUp(
+  players: PlayerKey[],
   playerKey: PlayerKey,
   thru: number,
-  gross: GrossMap = GROSS,
-  frontNineDeals: StrokeDeal[] = DEFAULT_FRONT_NINE_DEALS,
+  gross: GrossMap,
+  holes: Hole[],
+  frontNineDeals: StrokeDeal[],
+  schedule: RoundSchedule,
+  backNineDeals: StrokeDeal[] | null,
 ): number {
   let total = 0;
-  for (let i = 0; i < thru; i++) total += holeUpValue(playerKey, i, gross, frontNineDeals);
+  for (let i = 0; i < thru; i++) total += holeUpValue(players, playerKey, i, gross, holes, frontNineDeals, schedule, backNineDeals);
   return total;
 }
 
 /** Win/loss/halve count (by hole-level sign) across the holes played so far. */
 export function record(
+  players: PlayerKey[],
   playerKey: PlayerKey,
   thru: number,
-  gross: GrossMap = GROSS,
-  frontNineDeals: StrokeDeal[] = DEFAULT_FRONT_NINE_DEALS,
+  gross: GrossMap,
+  holes: Hole[],
+  frontNineDeals: StrokeDeal[],
+  schedule: RoundSchedule,
+  backNineDeals: StrokeDeal[] | null,
 ): { w: number; l: number; h: number } {
   let w = 0;
   let l = 0;
   let h = 0;
   for (let i = 0; i < thru; i++) {
-    const v = holeUpValue(playerKey, i, gross, frontNineDeals);
+    const v = holeUpValue(players, playerKey, i, gross, holes, frontNineDeals, schedule, backNineDeals);
     if (v > 0) w++;
     else if (v < 0) l++;
     else h++;
@@ -248,13 +294,17 @@ export function record(
 }
 
 export function money(
+  players: PlayerKey[],
   playerKey: PlayerKey,
   thru: number,
-  gross: GrossMap = GROSS,
-  frontNineDeals: StrokeDeal[] = DEFAULT_FRONT_NINE_DEALS,
-  stake: number = STAKE,
+  gross: GrossMap,
+  holes: Hole[],
+  frontNineDeals: StrokeDeal[],
+  schedule: RoundSchedule,
+  backNineDeals: StrokeDeal[] | null,
+  stake: number,
 ): number {
-  return runningUp(playerKey, thru, gross, frontNineDeals) * stake;
+  return runningUp(players, playerKey, thru, gross, holes, frontNineDeals, schedule, backNineDeals) * stake;
 }
 
 /** Summed result of one player against one specific opponent. */
@@ -262,16 +312,22 @@ export function pairwiseTotal(
   playerKey: PlayerKey,
   opponent: PlayerKey,
   thru: number,
-  gross: GrossMap = GROSS,
-  frontNineDeals: StrokeDeal[] = DEFAULT_FRONT_NINE_DEALS,
+  gross: GrossMap,
+  holes: Hole[],
+  frontNineDeals: StrokeDeal[],
+  schedule: RoundSchedule,
+  backNineDeals: StrokeDeal[] | null,
 ): number {
   let total = 0;
-  for (let i = 0; i < thru; i++) total += pairwiseResult(playerKey, opponent, i, gross, frontNineDeals);
+  for (let i = 0; i < thru; i++) total += pairwiseResult(playerKey, opponent, i, gross, holes, frontNineDeals, schedule, backNineDeals);
   return total;
 }
 
-export function grossTotal(playerKey: PlayerKey, thru: number = HOLES.length, gross: GrossMap = GROSS): number {
-  return gross[playerKey].slice(0, thru).reduce((sum, v) => sum + v, 0);
+export function grossTotal(playerKey: PlayerKey, thru: number, gross: GrossMap): number {
+  // gross[playerKey] can be legitimately absent for a beat after mount —
+  // viewerId comes from auth (available immediately) while gross only fills
+  // in once the round's roster/scores finish loading.
+  return (gross[playerKey] ?? []).slice(0, thru).reduce((sum, v) => sum + v, 0);
 }
 
 export function upLabel(net: number): string {
@@ -286,24 +342,24 @@ export function moneyLabel(amount: number): string {
   return '$0';
 }
 
-export function playerName(key: PlayerKey): string {
-  return PLAYERS.find((p) => p.key === key)?.name ?? '';
+export function playerName(key: PlayerKey, roster: { id: string; name: string }[]): string {
+  return roster.find((p) => p.id === key)?.name ?? '';
 }
 
 /** "Marcus gives Dinesh 6 strokes" — for next-round deal previews. */
-export function formatDeal(deal: StrokeDeal): string {
-  return `${playerName(deal.giver)} gives ${playerName(deal.receiver)} ${deal.amount} strokes`;
+export function formatDeal(deal: StrokeDeal, roster: { id: string; name: string }[]): string {
+  return `${playerName(deal.giver, roster)} gives ${playerName(deal.receiver, roster)} ${deal.amount} strokes`;
 }
 
 /** Scorecard ring/notation classification — same thresholds as ScoreBadge. */
-export function scoreClassCounts(playerKey: PlayerKey, thru: number = HOLES.length, gross: GrossMap = GROSS) {
+export function scoreClassCounts(playerKey: PlayerKey, thru: number, gross: GrossMap, holes: Hole[]) {
   let eagle = 0;
   let birdie = 0;
   let par = 0;
   let bogey = 0;
   let doublePlus = 0;
   for (let i = 0; i < thru; i++) {
-    const diff = gross[playerKey][i] - HOLES[i].par;
+    const diff = gross[playerKey]![i]! - holes[i]!.par;
     if (diff <= -2) eagle++;
     else if (diff === -1) birdie++;
     else if (diff === 0) par++;
@@ -313,14 +369,43 @@ export function scoreClassCounts(playerKey: PlayerKey, thru: number = HOLES.leng
   return { eagle, birdie, par, bogey, doublePlus };
 }
 
-export function sumRange(thru: number, start: number, end: number, gross: GrossMap = GROSS): Record<PlayerKey, number> {
-  const sums: Record<PlayerKey, number> = { A: 0, B: 0, C: 0 };
-  PLAYERS.forEach((p) => {
+export function sumRange(players: PlayerKey[], thru: number, start: number, end: number, gross: GrossMap): Record<PlayerKey, number> {
+  const sums: Record<PlayerKey, number> = {};
+  players.forEach((p) => {
     let total = 0;
     for (let i = start; i < end; i++) {
-      if (i + 1 <= thru) total += gross[p.key][i];
+      if (i + 1 <= thru) total += gross[p]![i]!;
     }
-    sums[p.key] = total;
+    sums[p] = total;
   });
   return sums;
+}
+
+/** "Get" = the viewer receives strokes from this opponent; "give" = the viewer spots them. */
+export function viewerStrokeAgainst(viewer: PlayerKey, opponentKey: PlayerKey, deals: StrokeDeal[]): { strokes: number; mode: StrokeMode } {
+  const deal = findDeal(deals, viewer, opponentKey);
+  if (!deal) return { strokes: 0, mode: 'give' };
+  return deal.giver === opponentKey ? { strokes: deal.amount, mode: 'get' } : { strokes: deal.amount, mode: 'give' };
+}
+
+export function buildViewerDeal(viewer: PlayerKey, opponentKey: PlayerKey, strokes: number, mode: StrokeMode): StrokeDeal {
+  return mode === 'get'
+    ? { giver: opponentKey, receiver: viewer, amount: strokes }
+    : { giver: viewer, receiver: opponentKey, amount: strokes };
+}
+
+/**
+ * Largest contiguous prefix of holes for which every roster player has a
+ * recorded score — holes 1..thru are considered "played" everywhere else in
+ * this module. A gap (someone's card missing a hole) stalls thru at the last
+ * fully-scored hole, even if later holes happen to be filled in already.
+ */
+export function computeThru(players: PlayerKey[], scores: HoleScoreMap, totalHoles: number): number {
+  let thru = 0;
+  for (let n = 1; n <= totalHoles; n++) {
+    const allScored = players.every((p) => scores[p]?.[n] !== undefined);
+    if (!allScored) break;
+    thru = n;
+  }
+  return thru;
 }

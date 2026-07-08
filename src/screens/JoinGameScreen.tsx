@@ -20,84 +20,39 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { IconButton } from '../components/IconButton';
+import type { LiveKakiGame, MatchByCode } from '../data/matches';
+import { fetchLiveKakiGames, findMatchByCode, joinLiveMatch, joinMatchByCode } from '../data/matches';
 import type { RootStackParamList } from '../navigation/types';
-import { colors, getFontFamily, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
+import { useAuth } from '../state/AuthContext';
+import { useProfile } from '../state/ProfileContext';
+import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'JoinGame'>;
 
 const CODE_LENGTH = 4;
-const JOIN_DELAY_MS = 700;
-
-// Matches the demo match ID used throughout the in-game screens (MatchLobby's
-// and InGameLobby's `MATCH_ID = 'GK-7Q4D'`, Home's game-invite notification) —
-// this app only has live round data for the one Sat Fourball demo match.
-const KNOWN_CODE = '7Q4D';
-const KNOWN_CODE_MATCH = { matchName: 'Sat Fourball', courseName: 'Sentosa Golf Club', gameModeName: 'Kaki Match Play' };
-
-type LiveGame = {
-  id: string;
-  name: string;
-  initial: string;
-  avatarBg: string;
-  avatarFg: string;
-  courseLabel: string;
-  courseName: string;
-  gameModeName: string;
-  players: string;
-  thru: string;
-  stakes: string;
-};
-
-const LIVE_GAMES: LiveGame[] = [
-  {
-    id: 'g1',
-    name: "Marcus's Fourball",
-    initial: 'M',
-    avatarBg: palette.green[100],
-    avatarFg: colors.primary,
-    courseLabel: 'Sentosa · Serapong',
-    courseName: 'Sentosa Golf Club',
-    gameModeName: 'Kaki Match Play',
-    players: '3 / 4',
-    thru: '4',
-    stakes: 'Skins · $5',
-  },
-  {
-    id: 'g2',
-    name: 'Sunday Stableford',
-    initial: 'D',
-    avatarBg: '#DDEAF3',
-    avatarFg: '#3E6480',
-    courseLabel: 'Tanah Merah · Garden',
-    courseName: 'Tanah Merah Country Club',
-    gameModeName: 'Stableford',
-    players: '2 / 4',
-    thru: '7',
-    stakes: 'Teh tarik',
-  },
-  {
-    id: 'g3',
-    name: "Jia Hui's Skins",
-    initial: 'J',
-    avatarBg: palette.orange[200],
-    avatarFg: palette.orange[700],
-    courseLabel: 'Laguna · Classic',
-    courseName: 'Laguna National G&CC',
-    gameModeName: 'Skins',
-    players: '3 / 4',
-    thru: '2',
-    stakes: 'Skins · $10',
-  },
-];
 
 export function JoinGameScreen({ navigation }: Props) {
+  const { session } = useAuth();
+  const { profile } = useProfile();
+  const viewerId = session?.user.id;
+
   const [code, setCode] = useState('');
   const [inputFocused, setInputFocused] = useState(false);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [matchInfo, setMatchInfo] = useState<MatchByCode | null>(null);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [liveGames, setLiveGames] = useState<LiveKakiGame[]>([]);
+  const [liveGamesLoading, setLiveGamesLoading] = useState(true);
+  const [liveGamesError, setLiveGamesError] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
   const caretOpacity = useRef(new Animated.Value(1)).current;
   const pulse = useRef(new Animated.Value(1)).current;
+  // Guards against a slower, stale lookup (e.g. from an edited-then-reverted code)
+  // overwriting the result of a newer one.
+  const lookupToken = useRef(0);
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -121,10 +76,57 @@ export function JoinGameScreen({ navigation }: Props) {
     return () => loop.stop();
   }, [pulse]);
 
-  const selectedGame = LIVE_GAMES.find((g) => g.id === selectedGameId) ?? null;
+  useEffect(() => {
+    if (code.length !== CODE_LENGTH) {
+      setMatchInfo(null);
+      setLookupError(null);
+      setLookingUp(false);
+      return;
+    }
+    const token = ++lookupToken.current;
+    setLookingUp(true);
+    findMatchByCode(code)
+      .then((match) => {
+        if (lookupToken.current !== token) return;
+        setMatchInfo(match);
+        setLookupError(match ? null : 'No match found with that code.');
+      })
+      .catch((err) => {
+        if (lookupToken.current !== token) return;
+        setMatchInfo(null);
+        setLookupError(err instanceof Error ? err.message : "Couldn't check that code.");
+      })
+      .finally(() => {
+        if (lookupToken.current === token) setLookingUp(false);
+      });
+  }, [code]);
+
+  useEffect(() => {
+    if (!viewerId) return;
+    let cancelled = false;
+    setLiveGamesLoading(true);
+    fetchLiveKakiGames(viewerId)
+      .then((games) => {
+        if (cancelled) return;
+        setLiveGames(games);
+        setLiveGamesError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setLiveGamesError(err instanceof Error ? err.message : "Couldn't load live games.");
+      })
+      .finally(() => {
+        if (!cancelled) setLiveGamesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewerId]);
+
+  const selectedGame = liveGames.find((g) => g.matchId === selectedGameId) ?? null;
   const full = code.length === CODE_LENGTH;
-  const matched = full && code === KNOWN_CODE;
-  const ready = full || selectedGameId !== null;
+  const matched = matchInfo !== null;
+  const ready = matched || selectedGameId !== null;
 
   function onCodeChange(text: string) {
     const cleaned = text
@@ -133,11 +135,13 @@ export function JoinGameScreen({ navigation }: Props) {
       .slice(0, CODE_LENGTH);
     setCode(cleaned);
     setSelectedGameId(null);
+    setJoinError(null);
   }
 
   function selectGame(id: string) {
     setSelectedGameId(id);
     setCode('');
+    setJoinError(null);
     inputRef.current?.blur();
   }
 
@@ -148,14 +152,51 @@ export function JoinGameScreen({ navigation }: Props) {
 
   function handleJoin() {
     if (!ready || joining) return;
+
+    if (selectedGame) {
+      if (!viewerId) return;
+      setJoining(true);
+      setJoinError(null);
+      joinLiveMatch(selectedGame.matchId, viewerId, profile?.handicap ?? null)
+        .then(() => {
+          navigation.navigate('InGameLobby', {
+            matchId: selectedGame.matchId,
+            matchName: selectedGame.matchName,
+            courseName: selectedGame.courseName,
+            gameModeName: selectedGame.gameModeName,
+          });
+        })
+        .catch((err) => setJoinError(err instanceof Error ? err.message : "Couldn't join that game."))
+        .finally(() => setJoining(false));
+      return;
+    }
+
+    if (!matchInfo || !viewerId) return;
     setJoining(true);
-    setTimeout(() => {
-      setJoining(false);
-      const target = selectedGame
-        ? { matchName: selectedGame.name, courseName: selectedGame.courseName, gameModeName: selectedGame.gameModeName }
-        : KNOWN_CODE_MATCH;
-      navigation.navigate('InGameLobby', target);
-    }, JOIN_DELAY_MS);
+    setJoinError(null);
+    joinMatchByCode(matchInfo.matchCode, viewerId, profile?.handicap ?? null)
+      .then((joined) => {
+        if (joined.status === 'lobby') {
+          navigation.navigate('MatchLobby', {
+            matchId: joined.id,
+            matchCode: joined.matchCode,
+            matchName: joined.matchName,
+            courseName: joined.courseName,
+            summaryLine: joined.summaryLine,
+            gameModeName: joined.gameModeName,
+            holesToPlay: joined.holesToPlay,
+          });
+        } else {
+          navigation.navigate('InGameLobby', {
+            matchId: joined.id,
+            matchName: joined.matchName,
+            courseName: joined.courseName,
+            gameModeName: joined.gameModeName,
+          });
+        }
+      })
+      .catch((err) => setJoinError(err instanceof Error ? err.message : "Couldn't join that match."))
+      .finally(() => setJoining(false));
   }
 
   return (
@@ -212,9 +253,19 @@ export function JoinGameScreen({ navigation }: Props) {
 
           <View style={styles.hintRow}>
             <View style={styles.hintLeft}>
-              {matched ? <Check size={14} color={palette.green[600]} /> : <Hash size={14} color={palette.sand[500]} />}
-              <Text style={[styles.hintText, matched && styles.hintTextOk]}>
-                {matched ? "Code found — Marcus's game" : `${CODE_LENGTH} characters after GK-`}
+              {matched ? (
+                <Check size={14} color={palette.green[600]} />
+              ) : lookingUp ? (
+                <ActivityIndicator size="small" color={palette.sand[500]} />
+              ) : (
+                <Hash size={14} color={palette.sand[500]} />
+              )}
+              <Text style={[styles.hintText, matched && styles.hintTextOk]} numberOfLines={1}>
+                {matchInfo
+                  ? `Code found — ${matchInfo.matchName}`
+                  : full && lookupError
+                    ? lookupError
+                    : `${CODE_LENGTH} characters after GK-`}
               </Text>
             </View>
             <Pressable style={styles.pasteButton} onPress={onPaste}>
@@ -223,18 +274,22 @@ export function JoinGameScreen({ navigation }: Props) {
             </Pressable>
           </View>
 
-          {matched ? (
+          {matchInfo ? (
             <View style={styles.matchedCard}>
               <View style={styles.matchedIconChip}>
                 <Flag size={19} color={colors.primary} />
               </View>
               <View style={styles.matchedBody}>
-                <Text style={styles.matchedTitle}>Sat Fourball</Text>
-                <Text style={styles.matchedSubtitle}>Marcus's game · Sentosa · Serapong</Text>
+                <Text style={styles.matchedTitle}>{matchInfo.matchName}</Text>
+                <Text style={styles.matchedSubtitle}>
+                  {matchInfo.courseName} · {matchInfo.gameModeName}
+                </Text>
               </View>
               <CheckCircle2 size={22} color={palette.green[600]} />
             </View>
           ) : null}
+
+          {joinError ? <Text style={styles.joinErrorText}>{joinError}</Text> : null}
 
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
@@ -244,61 +299,75 @@ export function JoinGameScreen({ navigation }: Props) {
 
           <View style={styles.liveHeaderRow}>
             <Text style={styles.sectionLabel}>Kaki playing now</Text>
-            <View style={styles.liveCountRow}>
-              <Animated.View style={[styles.liveDot, { opacity: pulse }]} />
-              <Text style={styles.liveCountLabel}>{LIVE_GAMES.length} live</Text>
-            </View>
+            {liveGames.length > 0 ? (
+              <View style={styles.liveCountRow}>
+                <Animated.View style={[styles.liveDot, { opacity: pulse }]} />
+                <Text style={styles.liveCountLabel}>{liveGames.length} live</Text>
+              </View>
+            ) : null}
           </View>
 
-          <View style={styles.liveList}>
-            {LIVE_GAMES.map((game) => {
-              const selected = game.id === selectedGameId;
-              return (
-                <Pressable
-                  key={game.id}
-                  style={[styles.liveCard, selected ? styles.liveCardSelected : styles.liveCardDefault]}
-                  onPress={() => selectGame(game.id)}
-                >
-                  <View style={[styles.liveAvatar, { backgroundColor: game.avatarBg }]}>
-                    <Text style={[styles.liveAvatarLabel, { color: game.avatarFg }]}>{game.initial}</Text>
-                  </View>
-                  <View style={styles.liveBody}>
-                    <View style={styles.liveNameRow}>
-                      <Text style={styles.liveName} numberOfLines={1}>
-                        {game.name}
+          {liveGamesLoading ? (
+            <Text style={styles.liveStatusText}>Checking who's out on the course…</Text>
+          ) : liveGamesError ? (
+            <Text style={styles.liveStatusText}>{liveGamesError}</Text>
+          ) : liveGames.length === 0 ? (
+            <Text style={styles.liveStatusText}>No kaki playing right now.</Text>
+          ) : (
+            <View style={styles.liveList}>
+              {liveGames.map((game, i) => {
+                const selected = game.matchId === selectedGameId;
+                const avatarColor = getPlayerColors(i);
+                const stakes = game.stakePerHole > 0 ? `$${game.stakePerHole} / hole` : 'Teh tarik';
+                return (
+                  <Pressable
+                    key={game.matchId}
+                    style={[styles.liveCard, selected ? styles.liveCardSelected : styles.liveCardDefault]}
+                    onPress={() => selectGame(game.matchId)}
+                  >
+                    <View style={[styles.liveAvatar, { backgroundColor: avatarColor.background }]}>
+                      <Text style={[styles.liveAvatarLabel, { color: avatarColor.color }]}>{game.hostName.charAt(0)}</Text>
+                    </View>
+                    <View style={styles.liveBody}>
+                      <View style={styles.liveNameRow}>
+                        <Text style={styles.liveName} numberOfLines={1}>
+                          {game.matchName}
+                        </Text>
+                        <View style={styles.livePill}>
+                          <View style={styles.livePillDot} />
+                          <Text style={styles.livePillLabel}>Live</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.liveCourse} numberOfLines={1}>
+                        {game.courseName} · {game.gameModeName}
                       </Text>
-                      <View style={styles.livePill}>
-                        <View style={styles.livePillDot} />
-                        <Text style={styles.livePillLabel}>Live</Text>
+                      <View style={styles.liveMetaRow}>
+                        <View style={styles.liveMetaItem}>
+                          <Users size={13} color={colors.textDisabled} />
+                          <Text style={styles.liveMetaText}>
+                            {game.playerCount} / {game.golferCount}
+                          </Text>
+                        </View>
+                        <View style={styles.liveMetaItem}>
+                          <Flag size={13} color={colors.textDisabled} />
+                          <Text style={styles.liveMetaText}>Thru {game.thru}</Text>
+                        </View>
+                        <View style={styles.liveMetaItem}>
+                          <Coins size={13} color={colors.textDisabled} />
+                          <Text style={styles.liveMetaText}>{stakes}</Text>
+                        </View>
                       </View>
                     </View>
-                    <Text style={styles.liveCourse} numberOfLines={1}>
-                      {game.courseLabel}
-                    </Text>
-                    <View style={styles.liveMetaRow}>
-                      <View style={styles.liveMetaItem}>
-                        <Users size={13} color={colors.textDisabled} />
-                        <Text style={styles.liveMetaText}>{game.players}</Text>
-                      </View>
-                      <View style={styles.liveMetaItem}>
-                        <Flag size={13} color={colors.textDisabled} />
-                        <Text style={styles.liveMetaText}>Thru {game.thru}</Text>
-                      </View>
-                      <View style={styles.liveMetaItem}>
-                        <Coins size={13} color={colors.textDisabled} />
-                        <Text style={styles.liveMetaText}>{game.stakes}</Text>
-                      </View>
-                    </View>
-                  </View>
-                  {selected ? (
-                    <CheckCircle2 size={22} color={palette.green[600]} />
-                  ) : (
-                    <ChevronRight size={19} color={palette.sand[400]} />
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
+                    {selected ? (
+                      <CheckCircle2 size={22} color={palette.green[600]} />
+                    ) : (
+                      <ChevronRight size={19} color={palette.sand[400]} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
 
           <View style={styles.footerNoteRow}>
             <Info size={14} color={palette.sand[500]} />
@@ -576,6 +645,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: palette.green[600],
   },
+  liveStatusText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.textDisabled,
+  },
   liveList: {
     gap: spacing[2] + 2,
   },
@@ -687,6 +761,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: palette.sand[500],
     textAlign: 'center',
+  },
+  joinErrorText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.statusDanger,
+    textAlign: 'center',
+    marginTop: spacing[3],
   },
   toastWrap: {
     position: 'absolute',

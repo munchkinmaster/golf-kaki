@@ -12,134 +12,269 @@ import {
   RefreshCw,
   UserPlus,
 } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { Button } from '../components/Button';
-import { VIEWER_KEY } from '../data/round';
-import type { PlayerKey, StrokeDeal } from '../data/round';
+import { MatchupEditor } from '../components/MatchupEditor';
+import type { PairSetting } from '../components/MatchupEditor';
+import { fetchLedgerStrokesForGroup } from '../data/kaki';
+import { buildAllPairs, pairKey } from '../data/round';
+import type { MatchPlayer, MatchupPair, StrokeMode } from '../data/matches';
+import { fetchMatchLobby, fetchMatchups, startMatch, updateMatchSettings, upsertMatchup } from '../data/matches';
+import { supabase } from '../lib/supabase';
 import type { RootStackParamList } from '../navigation/types';
-import { useRound } from '../state/RoundContext';
-import { colors, getFontFamily, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
+import { useAuth } from '../state/AuthContext';
+import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'MatchLobby'>;
 
-const MATCH_ID = 'GK-7Q4D';
-
-type StrokeMode = 'get' | 'give';
-
-type JoinedPlayer = {
-  id: string;
-  name: string;
-  handicap: number;
-  isHost: boolean;
-  avatarBg: string;
-  avatarFg: string;
-};
-
-// Same player identities + colors as the "in play" card on Home, for the same match.
-const JOINED_PLAYERS: JoinedPlayer[] = [
-  { id: 'wl', name: 'Wei Liang', handicap: 7, isHost: true, avatarBg: palette.orange[200], avatarFg: palette.orange[700] },
-  { id: 'marcus', name: 'Marcus', handicap: 2, isHost: false, avatarBg: palette.green[100], avatarFg: colors.primary },
-  { id: 'dinesh', name: 'Dinesh', handicap: 16, isHost: false, avatarBg: palette.sand[200], avatarFg: palette.ink[500] },
-];
-
-type StrokeSetting = {
-  id: string;
-  name: string;
-  handicap: number;
-  avatarBg: string;
-  avatarFg: string;
-  strokes: number;
-  mode: StrokeMode;
-};
-
-// "get" = I get strokes from them; "give" = I give strokes to them.
-const INITIAL_STROKE_SETTINGS: StrokeSetting[] = [
-  { id: 'marcus', name: 'Marcus', handicap: 2, avatarBg: palette.green[100], avatarFg: colors.primary, strokes: 5, mode: 'get' },
-  { id: 'dinesh', name: 'Dinesh', handicap: 16, avatarBg: palette.sand[200], avatarFg: palette.ink[500], strokes: 9, mode: 'give' },
-];
-
-// Maps the lobby's opponent ids to round.ts's PlayerKeys — fixed for now since
-// the whole app still scores this same 3-person demo cast everywhere.
-const OPPONENT_KEY: Record<string, PlayerKey> = { marcus: 'A', dinesh: 'C' };
-
-/** "Get" means the viewer gets strokes from them; "give" means the viewer gives strokes to them. */
-function toStrokeDeals(settings: StrokeSetting[]): StrokeDeal[] {
-  return settings
-    .filter((s) => s.strokes > 0)
-    .map((s) =>
-      s.mode === 'get'
-        ? { giver: OPPONENT_KEY[s.id], receiver: VIEWER_KEY, amount: s.strokes }
-        : { giver: VIEWER_KEY, receiver: OPPONENT_KEY[s.id], amount: s.strokes },
-    );
+/** Seeds a pair from an existing persisted matchup if there is one, else the accepted kaki ledger (0 if none). */
+function seedPair(playerAId: string, playerBId: string, existing: MatchupPair | undefined, ledgerNet18: number): PairSetting {
+  if (existing) {
+    return { playerAId, playerBId, strokes: Math.abs(existing.frontNineStrokes), aGives: existing.frontNineStrokes > 0 };
+  }
+  return { playerAId, playerBId, strokes: Math.round(Math.abs(ledgerNet18) / 2), aGives: ledgerNet18 > 0 };
 }
 
 export function MatchLobbyScreen({ navigation, route }: Props) {
-  const { matchName, courseName, summaryLine, gameModeName, golferCount } = route.params;
+  const { matchId, matchCode, matchName, courseName, summaryLine, gameModeName, holesToPlay } = route.params;
   const holesPart = summaryLine.split(' · ')[0];
+  const displayCode = `GK-${matchCode}`;
+  // holes_to_play = 9 forces strokes_basis = 9 at the DB level (matches table's check constraint).
+  const canUse18Basis = holesToPlay === 18;
 
-  const { setFrontNineDeals, setStakePerHole: setRoundStake } = useRound();
+  const { session } = useAuth();
+  const viewerId = session?.user.id;
 
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [matchIdCopied, setMatchIdCopied] = useState(false);
+  const [hostId, setHostId] = useState<string | null>(null);
+  const [players, setPlayers] = useState<MatchPlayer[]>([]);
+  const [golferCount, setGolferCount] = useState<number | null>(null);
   const [strokesBasis, setStrokesBasis] = useState<9 | 18>(9);
-  const [strokeSettings, setStrokeSettings] = useState(INITIAL_STROKE_SETTINGS);
+  const [pairSettings, setPairSettings] = useState<PairSetting[]>([]);
   const [stakePerHole, setStakePerHole] = useState(2);
   const [stakeInput, setStakeInput] = useState('2');
+  const [starting, setStarting] = useState(false);
   const spin = useRef(new Animated.Value(0)).current;
 
-  const openSlots = Math.max(0, golferCount - JOINED_PLAYERS.length);
+  const openSlots = golferCount !== null ? Math.max(0, golferCount - players.length) : 0;
+  // Stake/strokes-basis (whole-match settings) stay host-only. Individual pair
+  // strokes below are different — MatchupEditor scopes those per-pair.
+  const isHostViewer = hostId !== null && hostId === viewerId;
+  const settingsSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const load = useCallback(async () => {
+    const lobby = await fetchMatchLobby(matchId);
+    // The host already leaves this screen via handleStartRound the moment they
+    // start it; a non-host who refreshes (or gets a realtime nudge after the
+    // host already started) needs this to notice and follow them into the round.
+    if (lobby.status === 'live') {
+      navigation.navigate('Scorecard', { matchId, matchName, courseName, gameModeName, isHost: lobby.hostId === viewerId });
+      return;
+    }
+
+    setPlayers(lobby.players);
+    setHostId(lobby.hostId);
+    setGolferCount(lobby.golferCount);
+    setStrokesBasis(lobby.strokesBasis);
+    setStakePerHole(lobby.stakePerHole);
+    setStakeInput(String(lobby.stakePerHole));
+
+    const playerIds = lobby.players.map((p) => p.playerId);
+    const allPairs = buildAllPairs(playerIds);
+    const [existingMatchups, ledger] = await Promise.all([
+      fetchMatchups(matchId),
+      fetchLedgerStrokesForGroup(playerIds),
+    ]);
+    const existingByPair = new Map(existingMatchups.map((m) => [pairKey(m.playerAId, m.playerBId), m]));
+
+    // A persisted matchup row is authoritative — anyone (including another
+    // client over realtime) may have changed it since our last load, so it
+    // always wins over whatever we're currently showing. Only a pair nobody
+    // has touched yet falls back to the in-flight local value, then the ledger.
+    //
+    // Exception: front_nine_strokes' sign is how get/give is encoded (positive =
+    // a gives b), which can't represent a direction at 0 strokes — 0 and -0 are
+    // the same row. Reloading would otherwise always read a 0-stroke pair back
+    // as "get" and stomp on a "give" tap made right before bumping the stepper
+    // off zero. Keep the pair's own last-known aGives in that case instead.
+    setPairSettings((prev) =>
+      allPairs.map(([a, b]) => {
+        const key = pairKey(a, b);
+        const existing = existingByPair.get(key);
+        const prevPair = prev.find((p) => p.playerAId === a && p.playerBId === b);
+        if (existing) {
+          if (existing.frontNineStrokes === 0 && prevPair) return { ...prevPair, strokes: 0 };
+          return seedPair(a, b, existing, 0);
+        }
+        return prevPair ?? seedPair(a, b, undefined, ledger[key] ?? 0);
+      }),
+    );
+  }, [matchId, viewerId, navigation, matchName, courseName, gameModeName]);
 
   useEffect(() => {
-    setFrontNineDeals(toStrokeDeals(strokeSettings));
-  }, [strokeSettings, setFrontNineDeals]);
+    load()
+      .catch((err) => setLoadError(err instanceof Error ? err.message : "Couldn't load the lobby."))
+      .finally(() => setLoading(false));
+  }, [load]);
 
+  // Other players joining, the host adjusting stakes/strokes-basis, or
+  // anyone's pairwise strokes changing should show up without the viewer
+  // having to tap refresh.
   useEffect(() => {
-    setRoundStake(stakePerHole);
-  }, [stakePerHole, setRoundStake]);
+    let syncTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleSync = () => {
+      if (syncTimer) clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => {
+        load().catch(() => {});
+      }, 250);
+    };
+
+    const channel = supabase
+      .channel(`match-lobby-${matchId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` }, scheduleSync)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'match_players', filter: `match_id=eq.${matchId}` },
+        scheduleSync,
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'game_matchups', filter: `match_id=eq.${matchId}` },
+        scheduleSync,
+      )
+      .subscribe();
+
+    return () => {
+      if (syncTimer) clearTimeout(syncTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [matchId, load]);
+
+  // Locks strokes_basis back to 9 if holes_to_play (9) makes 18 invalid.
+  useEffect(() => {
+    if (!canUse18Basis && strokesBasis === 18) setStrokesBasis(9);
+  }, [canUse18Basis, strokesBasis]);
 
   function refresh() {
     if (refreshing) return;
     setRefreshing(true);
     spin.setValue(0);
-    Animated.timing(spin, { toValue: 1, duration: 900, easing: Easing.linear, useNativeDriver: true }).start(() => {
-      setRefreshing(false);
-    });
+    const loop = Animated.loop(Animated.timing(spin, { toValue: 1, duration: 700, easing: Easing.linear, useNativeDriver: true }));
+    loop.start();
+    load()
+      .then(() => setLoadError(null))
+      .catch((err) => setLoadError(err instanceof Error ? err.message : "Couldn't refresh the lobby."))
+      .finally(() => {
+        loop.stop();
+        spin.setValue(0);
+        setRefreshing(false);
+      });
+  }
+
+  // Persists a whole-match setting change immediately (debounced) instead of
+  // holding it as a host-only local draft until Start — otherwise other
+  // participants never see the host's toggle/stake change at all, since it
+  // never actually reaches the DB until they hit Start.
+  function persistSettings(nextBasis: 9 | 18, nextStake: number) {
+    if (!isHostViewer) return;
+    if (settingsSyncTimer.current) clearTimeout(settingsSyncTimer.current);
+    settingsSyncTimer.current = setTimeout(() => {
+      updateMatchSettings(matchId, { strokesBasis: nextBasis, stakePerHole: nextStake }).catch(() => {
+        setLoadError("Couldn't save that setting — try again.");
+        load().catch(() => {});
+      });
+    }, 400);
   }
 
   async function copyMatchId() {
-    await Clipboard.setStringAsync(MATCH_ID);
+    await Clipboard.setStringAsync(displayCode);
     setMatchIdCopied(true);
     setTimeout(() => setMatchIdCopied(false), 1500);
   }
 
-  function adjustStrokes(id: string, delta: number) {
-    setStrokeSettings((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, strokes: Math.max(0, p.strokes + delta) } : p)),
-    );
+  // Pair edits save immediately, unlike stake/strokes-basis below — non-host
+  // participants have no "Start Round" action to batch their own edits into.
+  function persistPair(pair: PairSetting) {
+    const mode: StrokeMode = pair.aGives ? 'give' : 'get';
+    upsertMatchup(matchId, pair.playerAId, pair.playerBId, pair.strokes, mode).catch(() => {
+      setLoadError("Couldn't save that stroke change — try again.");
+      load().catch(() => {});
+    });
   }
 
-  function setStrokeMode(id: string, mode: StrokeMode) {
-    setStrokeSettings((prev) => prev.map((p) => (p.id === id ? { ...p, mode } : p)));
+  function updatePair(a: string, b: string, updater: (p: PairSetting) => PairSetting) {
+    const current = pairSettings.find((p) => p.playerAId === a && p.playerBId === b);
+    if (!current) return;
+    const updated = updater(current);
+    setPairSettings((prev) => prev.map((p) => (p.playerAId === a && p.playerBId === b ? updated : p)));
+    persistPair(updated);
+  }
+
+  function adjustPairStrokes(a: string, b: string, delta: number) {
+    updatePair(a, b, (p) => ({ ...p, strokes: Math.max(0, p.strokes + delta) }));
+  }
+
+  /** `aGivesNext` is always in canonical a/b terms — callers from the UI translate from whatever side they're looking at first. */
+  function setPairAGives(a: string, b: string, aGivesNext: boolean) {
+    updatePair(a, b, (p) => ({ ...p, aGives: aGivesNext }));
+  }
+
+  function setStrokesBasisAndPersist(next: 9 | 18) {
+    setStrokesBasis(next);
+    persistSettings(next, stakePerHole);
   }
 
   function setStake(value: number) {
     const clamped = Math.max(0, value);
     setStakePerHole(clamped);
     setStakeInput(String(clamped));
+    persistSettings(strokesBasis, clamped);
   }
 
   function onStakeInputChange(text: string) {
     const cleaned = text.replace(/[^0-9]/g, '');
     setStakeInput(cleaned);
-    if (cleaned !== '') setStakePerHole(parseInt(cleaned, 10));
+    if (cleaned !== '') {
+      const value = parseInt(cleaned, 10);
+      setStakePerHole(value);
+      persistSettings(strokesBasis, value);
+    }
   }
 
   function onStakeInputBlur() {
     if (stakeInput === '') setStake(0);
+  }
+
+  async function handleStartRound() {
+    if (!viewerId || !isHostViewer || starting) return;
+    setStarting(true);
+    setLoadError(null);
+    if (settingsSyncTimer.current) clearTimeout(settingsSyncTimer.current);
+    try {
+      // Flushes the settings write unconditionally (rather than relying on the
+      // debounce above having already fired) so a toggle right before Start
+      // is never lost.
+      await updateMatchSettings(matchId, { strokesBasis, stakePerHole });
+      await startMatch(matchId);
+      navigation.navigate('Scorecard', {
+        matchId,
+        matchName,
+        courseName,
+        gameModeName,
+        isHost: hostId === viewerId,
+      });
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Could not start the round — try again.');
+    } finally {
+      setStarting(false);
+    }
   }
 
   const spinRotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
@@ -169,7 +304,7 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
           <View style={styles.matchIdRow}>
             <View>
               <Text style={styles.matchIdLabel}>Match ID</Text>
-              <Text style={styles.matchIdValue}>{MATCH_ID}</Text>
+              <Text style={styles.matchIdValue}>{displayCode}</Text>
             </View>
             <Pressable style={styles.copyInviteButton} onPress={copyMatchId}>
               {matchIdCopied ? <CircleCheckBig size={14} color={palette.white} /> : <Copy size={14} color={palette.white} />}
@@ -179,9 +314,11 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          {loadError ? <Text style={styles.loadErrorText}>{loadError}</Text> : null}
+
           <View style={styles.playersHeaderRow}>
             <Text style={styles.sectionLabel}>
-              Players · {JOINED_PLAYERS.length} of {golferCount}
+              Players · {players.length}{golferCount !== null ? ` of ${golferCount}` : ''}
             </Text>
             {openSlots > 0 ? (
               <View style={styles.waitingRow}>
@@ -192,25 +329,32 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
           </View>
 
           <View style={styles.playerList}>
-            {JOINED_PLAYERS.map((player) => (
-              <View key={player.id} style={[styles.playerRow, player.isHost ? styles.playerRowHost : styles.playerRowDefault]}>
-                <View style={[styles.playerAvatar, { backgroundColor: player.avatarBg }]}>
-                  <Text style={[styles.playerAvatarLabel, { color: player.avatarFg }]}>{player.name.charAt(0)}</Text>
-                </View>
-                <View style={styles.playerInfo}>
-                  <View style={styles.playerNameRow}>
-                    <Text style={styles.playerName}>{player.name}</Text>
-                    {player.isHost ? (
-                      <View style={styles.hostBadge}>
-                        <Text style={styles.hostBadgeLabel}>HOST</Text>
-                      </View>
-                    ) : null}
+            {loading ? <Text style={styles.loadingText}>Loading players…</Text> : null}
+            {players.map((player, index) => {
+              const playerColor = getPlayerColors(index);
+              return (
+                <View
+                  key={player.playerId}
+                  style={[styles.playerRow, player.isHost ? styles.playerRowHost : styles.playerRowDefault]}
+                >
+                  <View style={[styles.playerAvatar, { backgroundColor: playerColor.background }]}>
+                    <Text style={[styles.playerAvatarLabel, { color: playerColor.color }]}>{player.name.charAt(0)}</Text>
                   </View>
-                  <Text style={styles.playerMeta}>HCP {player.handicap} · joined</Text>
+                  <View style={styles.playerInfo}>
+                    <View style={styles.playerNameRow}>
+                      <Text style={styles.playerName}>{player.name}</Text>
+                      {player.isHost ? (
+                        <View style={styles.hostBadge}>
+                          <Text style={styles.hostBadgeLabel}>HOST</Text>
+                        </View>
+                      ) : null}
+                    </View>
+                    <Text style={styles.playerMeta}>{player.handicap !== null ? `HCP ${player.handicap}` : 'No handicap yet'} · joined</Text>
+                  </View>
+                  <CircleCheckBig size={20} color={palette.green[600]} />
                 </View>
-                <CircleCheckBig size={20} color={palette.green[600]} />
-              </View>
-            ))}
+              );
+            })}
             {openSlots > 0
               ? Array.from({ length: openSlots }).map((_, index) => (
                   <Pressable key={`open-${index}`} style={styles.openSlotRow} onPress={copyMatchId}>
@@ -237,68 +381,43 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
             <Text style={styles.fieldLabel}>Strokes set for</Text>
             <View style={styles.strokesBasisRow}>
               <Pressable
-                style={[styles.strokesBasisToggle, strokesBasis === 9 && styles.strokesBasisToggleActive]}
-                onPress={() => setStrokesBasis(9)}
+                style={[
+                  styles.strokesBasisToggle,
+                  strokesBasis === 9 && styles.strokesBasisToggleActive,
+                  !isHostViewer && styles.strokesBasisToggleDisabled,
+                ]}
+                disabled={!isHostViewer}
+                onPress={() => setStrokesBasisAndPersist(9)}
               >
                 <Text style={[styles.strokesBasisLabel, strokesBasis === 9 && styles.strokesBasisLabelActive]}>9 holes</Text>
               </Pressable>
               <Pressable
-                style={[styles.strokesBasisToggle, strokesBasis === 18 && styles.strokesBasisToggleActive]}
-                onPress={() => setStrokesBasis(18)}
+                style={[
+                  styles.strokesBasisToggle,
+                  strokesBasis === 18 && styles.strokesBasisToggleActive,
+                  (!canUse18Basis || !isHostViewer) && styles.strokesBasisToggleDisabled,
+                ]}
+                disabled={!canUse18Basis || !isHostViewer}
+                onPress={() => setStrokesBasisAndPersist(18)}
               >
                 <Text style={[styles.strokesBasisLabel, strokesBasis === 18 && styles.strokesBasisLabelActive]}>18 holes</Text>
               </Pressable>
             </View>
             <Text style={styles.strokesBasisHint}>
-              Strokes will be auto-adjusted after 9 holes, 1 stroke adjustment for every 2 holes win
+              {canUse18Basis
+                ? 'Strokes will be auto-adjusted after 9 holes, 1 stroke adjustment for every 2 holes win'
+                : "This match is 9 holes, so strokes are set for the round — there's no turn to re-strike at."}
             </Text>
           </View>
 
-          <View style={styles.strokeSettingsCard}>
-            {strokeSettings.map((player, index) => (
-              <View
-                key={player.id}
-                style={[styles.strokeSettingRow, index < strokeSettings.length - 1 && styles.strokeSettingRowDivider]}
-              >
-                <View style={styles.strokeSettingTopRow}>
-                  <View style={[styles.strokeAvatar, { backgroundColor: player.avatarBg }]}>
-                    <Text style={[styles.strokeAvatarLabel, { color: player.avatarFg }]}>{player.name.charAt(0)}</Text>
-                  </View>
-                  <View style={styles.playerInfo}>
-                    <Text style={styles.playerName}>{player.name}</Text>
-                    <Text style={styles.playerMeta}>HCP {player.handicap}</Text>
-                  </View>
-                  <View style={styles.stepperRow}>
-                    <Pressable style={styles.stepperButton} onPress={() => adjustStrokes(player.id, -1)}>
-                      <Minus size={15} color={colors.textDisabled} />
-                    </Pressable>
-                    <Text style={styles.stepperValue}>{player.strokes}</Text>
-                    <Pressable style={[styles.stepperButton, styles.stepperButtonAccent]} onPress={() => adjustStrokes(player.id, 1)}>
-                      <Plus size={15} color={colors.primary} />
-                    </Pressable>
-                  </View>
-                </View>
-                <View style={styles.strokeModeRow}>
-                  <Text style={styles.strokeModeLabel}>I</Text>
-                  <View style={styles.strokeModeTrack}>
-                    <Pressable
-                      style={[styles.strokeModeOption, player.mode === 'get' && styles.strokeModeOptionActiveGet]}
-                      onPress={() => setStrokeMode(player.id, 'get')}
-                    >
-                      <Text style={[styles.strokeModeOptionLabel, player.mode === 'get' && styles.strokeModeOptionLabelGet]}>get</Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.strokeModeOption, player.mode === 'give' && styles.strokeModeOptionActiveGive]}
-                      onPress={() => setStrokeMode(player.id, 'give')}
-                    >
-                      <Text style={[styles.strokeModeOptionLabel, player.mode === 'give' && styles.strokeModeOptionLabelGive]}>give</Text>
-                    </Pressable>
-                  </View>
-                  <Text style={styles.strokeModeLabel}>{player.mode === 'get' ? `from ${player.name}` : `to ${player.name}`}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
+          <MatchupEditor
+            players={players}
+            viewerId={viewerId}
+            hostId={hostId}
+            pairSettings={pairSettings}
+            onAdjustStrokes={adjustPairStrokes}
+            onSetAGives={setPairAGives}
+          />
 
           <Text style={styles.sectionLabel}>Stakes</Text>
           <View style={styles.stakesCard}>
@@ -307,7 +426,7 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
               <Text style={styles.stakesLabel}>Per hole</Text>
             </View>
             <View style={styles.stakesStepper}>
-              <Pressable style={styles.stakesStepperButton} onPress={() => setStake(stakePerHole - 1)}>
+              <Pressable style={styles.stakesStepperButton} disabled={!isHostViewer} onPress={() => setStake(stakePerHole - 1)}>
                 <Minus size={16} color={palette.orange[600]} />
               </Pressable>
               <View style={styles.stakesInputRow}>
@@ -319,10 +438,11 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
                   keyboardType="number-pad"
                   maxLength={4}
                   selectTextOnFocus
+                  editable={isHostViewer}
                   style={styles.stakesInput}
                 />
               </View>
-              <Pressable style={styles.stakesStepperButton} onPress={() => setStake(stakePerHole + 1)}>
+              <Pressable style={styles.stakesStepperButton} disabled={!isHostViewer} onPress={() => setStake(stakePerHole + 1)}>
                 <Plus size={16} color={palette.orange[600]} />
               </Pressable>
             </View>
@@ -331,19 +451,12 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
 
         <View style={styles.footer}>
           <Button
-            label="Start round"
+            label={starting ? 'Starting…' : isHostViewer ? 'Start round' : 'Waiting for host to start'}
             variant="accent"
             size="lg"
             block
-            onPress={() =>
-              navigation.navigate('Scorecard', {
-                matchName,
-                courseName,
-                gameModeName,
-                // The viewer in this lobby is always the host (Wei Liang) in the current demo identity.
-                isHost: JOINED_PLAYERS.find((p) => p.id === 'wl')?.isHost ?? true,
-              })
-            }
+            disabled={starting || loading || !isHostViewer}
+            onPress={handleStartRound}
             icon={<Flag size={19} color={colors.textOnAccent} />}
           />
         </View>
@@ -457,6 +570,17 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textTransform: 'uppercase',
     marginBottom: spacing[2] + 1,
+  },
+  loadErrorText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.statusDanger,
+    marginBottom: spacing[3],
+  },
+  loadingText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.textDisabled,
   },
   playersHeaderRow: {
     flexDirection: 'row',
@@ -635,6 +759,9 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     ...shadows.sm,
   },
+  strokesBasisToggleDisabled: {
+    opacity: 0.5,
+  },
   strokesBasisLabel: {
     fontFamily: getFontFamily('body', '600'),
     fontWeight: '600',
@@ -649,111 +776,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textDisabled,
     marginTop: spacing[2] - 1,
-  },
-  strokeSettingsCard: {
-    backgroundColor: colors.surfaceCard,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing[3] + 1,
-    marginBottom: spacing[3] + 2,
-    ...shadows.xs,
-  },
-  strokeSettingRow: {
-    paddingVertical: spacing[3] - 1,
-  },
-  strokeSettingRowDivider: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.surfaceSunken,
-  },
-  strokeSettingTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2] + 3,
-  },
-  strokeAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  strokeAvatarLabel: {
-    fontFamily: getFontFamily('display', '700'),
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  stepperRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1] - 1,
-    backgroundColor: colors.surfaceCard,
-    borderWidth: 1,
-    borderColor: colors.borderDefault,
-    borderRadius: radius.pill,
-    padding: 3,
-  },
-  stepperButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepperButtonAccent: {
-    backgroundColor: colors.surfaceBrandSoft,
-  },
-  stepperValue: {
-    fontFamily: getFontFamily('numeric', '700'),
-    fontWeight: '700',
-    fontSize: 15,
-    color: colors.textPrimary,
-    minWidth: 20,
-    textAlign: 'center',
-  },
-  strokeModeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2] + 1,
-    marginTop: spacing[2] + 1,
-    paddingLeft: 34 + (spacing[2] + 3),
-  },
-  strokeModeLabel: {
-    fontFamily: getFontFamily('body', '400'),
-    fontSize: 11,
-    color: colors.textDisabled,
-  },
-  strokeModeTrack: {
-    flexDirection: 'row',
-    backgroundColor: colors.surfaceSunken,
-    borderRadius: radius.pill,
-    padding: 3,
-  },
-  strokeModeOption: {
-    paddingVertical: spacing[1] + 1,
-    paddingHorizontal: spacing[3] - 1,
-    borderRadius: radius.pill,
-  },
-  strokeModeOptionActiveGet: {
-    backgroundColor: colors.surfaceCard,
-    ...shadows.xs,
-  },
-  strokeModeOptionActiveGive: {
-    backgroundColor: colors.surfaceCard,
-    ...shadows.xs,
-  },
-  strokeModeOptionLabel: {
-    fontFamily: getFontFamily('body', '600'),
-    fontWeight: '600',
-    fontSize: 11,
-    color: colors.textDisabled,
-  },
-  strokeModeOptionLabelGet: {
-    color: colors.primary,
-  },
-  strokeModeOptionLabelGive: {
-    color: palette.orange[600],
   },
   stakesCard: {
     flexDirection: 'row',

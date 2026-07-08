@@ -11,16 +11,15 @@ import {
   Trophy,
   Users,
 } from 'lucide-react-native';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { ScoreBadge } from '../components/ScoreBadge';
-import { HOLES, PLAYERS, VIEWER_KEY, getFlags, pairwiseResult } from '../data/round';
-import type { PlayerKey } from '../data/round';
+import { computeThru, getFlags, pairwiseResult, sumRange } from '../data/round';
+import { useLiveRound } from '../hooks/useLiveRound';
 import type { RootStackParamList } from '../navigation/types';
-import { useRound } from '../state/RoundContext';
 import { colors, getFontFamily, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Scorecard'>;
@@ -34,86 +33,137 @@ function firstName(name: string) {
 type ResultTint = 'win' | 'lose' | 'halve' | null;
 
 export function ScorecardScreen({ navigation, route }: Props) {
-  const { matchName, courseName, gameModeName, isHost } = route.params;
+  const { matchId, matchName, courseName, gameModeName, isHost } = route.params;
 
-  // `thru` is the match's shared progress — holes up to and including it are
-  // played. `activeHole`/`activePlayerKey` are whichever card is open for
-  // editing right now, which defaults to your own live hole but can detour to
-  // any earlier hole (or, for the host, any player) via a grid tap.
-  const { gross, thru, frontNineDeals, adjustScore, setThru } = useRound();
-  const [activeHole, setActiveHole] = useState(6);
-  const [activePlayerKey, setActivePlayerKey] = useState<PlayerKey>(VIEWER_KEY);
+  const {
+    loading,
+    viewerId,
+    roster,
+    holes,
+    schedule,
+    gross,
+    scores,
+    thru,
+    frontNineDeals,
+    backNineDeals,
+    adjustScore,
+    refresh: refreshRound,
+  } = useLiveRound(matchId);
+
+  // `thru` is how many holes every roster player has fully scored — the live
+  // hole still being entered is always `thru + 1`. `activeHole`/
+  // `activePlayerKey` are whichever card is open for editing right now, which
+  // defaults to your own live hole but can detour to any earlier hole (or,
+  // for the host, any player) via a grid tap.
+  const [activeHole, setActiveHole] = useState(1);
+  const [activePlayerKey, setActivePlayerKey] = useState('');
   const [nineOverride, setNineOverride] = useState<Nine | null>(null);
   const [justSaved, setJustSaved] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const spin = useRef(new Animated.Value(0)).current;
+  const initialized = useRef(false);
 
-  const nine: Nine = nineOverride ?? (thru > 9 ? 'back' : 'front');
-  const displayHoles = nine === 'back' ? HOLES.slice(9, 18) : HOLES.slice(0, 9);
-  const activeHoleData = HOLES[activeHole - 1];
-  const activeScore = gross[activePlayerKey][activeHole - 1];
-  const activePlayerName = PLAYERS.find((p) => p.key === activePlayerKey)?.name;
-  const editingOwnCard = activePlayerKey === VIEWER_KEY;
-  const onLiveHole = activeHole === thru;
-  const roundComplete = thru >= HOLES.length;
+  useEffect(() => {
+    if (loading || initialized.current || holes.length === 0 || !viewerId) return;
+    initialized.current = true;
+    const viewerThru = computeThru([viewerId], scores, holes.length);
+    setActiveHole(Math.min(holes.length, viewerThru + 1));
+    setActivePlayerKey(viewerId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
+  // Follows whichever hole is actively being entered, not the whole group's
+  // `thru` — otherwise finishing hole 9 wouldn't flip the grid to Back 9
+  // until every slower playing partner also reached it.
+  const nine: Nine = nineOverride ?? (activeHole > 9 ? 'back' : 'front');
+  const displayHoles = nine === 'back' ? holes.slice(9, 18) : holes.slice(0, 9);
+  const activeHoleData = holes[activeHole - 1];
+  const activeScore = gross[activePlayerKey]?.[activeHole - 1] ?? activeHoleData?.par ?? 0;
+  const activePlayerName = roster.find((p) => p.playerId === activePlayerKey)?.name;
+  const editingOwnCard = activePlayerKey === viewerId;
+  // Each player moves through their own card at their own pace — gating this
+  // on the whole group's `thru` meant finishing a hole ahead of a slower
+  // partner immediately looked "not live" and bounced the cursor backward.
+  const activePlayerThru = useMemo(
+    () => (activePlayerKey ? computeThru([activePlayerKey], scores, holes.length) : 0),
+    [activePlayerKey, scores, holes.length],
+  );
+  const onLiveHole = activeHole === activePlayerThru + 1;
+  // True exactly when saving the currently active hole finishes the active
+  // player's own card — their next hole to play, and it's the last one.
+  // Deliberately not "activePlayerThru >= holes.length": that's stale by one
+  // tap, since the state update from committing hole 18 hasn't landed yet
+  // when this same button press needs to decide whether to redirect.
+  const roundComplete = onLiveHole && holes.length > 0 && activeHole === holes.length;
 
   function refresh() {
     if (refreshing) return;
     setRefreshing(true);
+    refreshRound();
     spin.setValue(0);
     Animated.timing(spin, { toValue: 1, duration: 900, easing: Easing.linear, useNativeDriver: true }).start(() => {
       setRefreshing(false);
     });
   }
 
-  function canEdit(playerKey: PlayerKey) {
-    return isHost || playerKey === VIEWER_KEY;
+  function canEdit(playerId: string) {
+    return isHost || playerId === viewerId;
   }
 
-  function selectCell(playerKey: PlayerKey, holeN: number) {
-    if (!canEdit(playerKey)) return;
-    setActivePlayerKey(playerKey);
+  function selectCell(playerId: string, holeN: number) {
+    if (!canEdit(playerId)) return;
+    setActivePlayerKey(playerId);
     setActiveHole(holeN);
   }
 
   function adjustActiveScore(delta: number) {
+    if (!activePlayerKey) return;
     adjustScore(activePlayerKey, activeHole - 1, delta);
   }
 
   function saveActiveScore() {
+    // A player who never touches the +/- stepper (e.g. they made the
+    // displayed default score) would otherwise leave this hole completely
+    // unwritten — commit whatever's currently shown so `thru` can advance
+    // once everyone's card actually has a row for this hole.
+    if (activePlayerKey) adjustScore(activePlayerKey, activeHole - 1, 0);
+
     if (onLiveHole && roundComplete) {
-      navigation.navigate('Finish', { matchName, courseName, gameModeName });
+      navigation.navigate('Finish', { matchId, matchName, courseName, gameModeName });
       return;
     }
     setJustSaved(true);
     setTimeout(() => setJustSaved(false), 900);
+    // Advancing the cursor should also clear any manual Front9/Back9 pick —
+    // otherwise reviewing an earlier hole once leaves the grid stuck on that
+    // half even as you keep entering new scores past the turn.
+    setNineOverride(null);
     if (onLiveHole) {
-      const nextHole = Math.min(HOLES.length, thru + 1);
-      setThru(nextHole);
-      setActiveHole(nextHole);
+      setActiveHole(Math.min(holes.length, activeHole + 1));
     } else {
-      setActiveHole(thru);
+      setActiveHole(Math.min(holes.length, activePlayerThru + 1) || 1);
     }
-    setActivePlayerKey(VIEWER_KEY);
+    if (viewerId) setActivePlayerKey(viewerId);
   }
 
-  function getResultTint(playerKey: PlayerKey, holeIndex: number, holeN: number): ResultTint {
-    if (playerKey === VIEWER_KEY || holeN > thru) return null;
-    const result = pairwiseResult(VIEWER_KEY, playerKey, holeIndex, gross, frontNineDeals);
+  function getResultTint(playerId: string, holeIndex: number, holeN: number): ResultTint {
+    if (!viewerId || playerId === viewerId || holeN > thru) return null;
+    const result = pairwiseResult(viewerId, playerId, holeIndex, gross, holes, frontNineDeals, schedule, backNineDeals);
     if (result > 0) return 'win';
     if (result < 0) return 'lose';
     return 'halve';
   }
 
-  const outScores = useMemo(() => sumRange(gross, 0, 9, thru), [gross, thru]);
-  const inScores = useMemo(() => sumRange(gross, 9, 18, thru), [gross, thru]);
+  const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
+  const outScores = useMemo(() => sumRange(rosterIds, thru, 0, 9, gross), [rosterIds, thru, gross]);
+  const inScores = useMemo(() => sumRange(rosterIds, thru, 9, 18, gross), [rosterIds, thru, gross]);
   const totalScores = useMemo(() => {
-    const totals: Record<PlayerKey, number> = { A: 0, B: 0, C: 0 };
-    PLAYERS.forEach((p) => {
-      totals[p.key] = outScores[p.key] + inScores[p.key];
+    const totals: Record<string, number> = {};
+    rosterIds.forEach((id) => {
+      totals[id] = (outScores[id] ?? 0) + (inScores[id] ?? 0);
     });
     return totals;
-  }, [outScores, inScores]);
+  }, [rosterIds, outScores, inScores]);
 
   const spinRotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
@@ -149,7 +199,8 @@ export function ScorecardScreen({ navigation, route }: Props) {
             <View>
               <Text style={styles.entryHole}>Hole {activeHole}</Text>
               <Text style={styles.entryMeta}>
-                Par {activeHoleData.par} · SI {activeHoleData.si} · {editingOwnCard ? 'your card' : `${activePlayerName}'s card`}
+                {activeHoleData ? `Par ${activeHoleData.par} · SI ${activeHoleData.si} · ` : ''}
+                {editingOwnCard ? 'your card' : `${activePlayerName}'s card`}
               </Text>
             </View>
             <View style={styles.entryStepper}>
@@ -182,16 +233,17 @@ export function ScorecardScreen({ navigation, route }: Props) {
             <Text style={styles.gridHeaderH}>H</Text>
             <Text style={styles.gridHeaderMeta}>Par</Text>
             <Text style={styles.gridHeaderMeta}>SI</Text>
-            {PLAYERS.map((p) => (
-              <Text key={p.key} style={[styles.gridHeaderPlayer, p.key === VIEWER_KEY && styles.gridHeaderPlayerYou]}>
-                {p.key === VIEWER_KEY ? 'You' : firstName(p.name)}
+            {roster.map((p) => (
+              <Text key={p.playerId} style={[styles.gridHeaderPlayer, p.playerId === viewerId && styles.gridHeaderPlayerYou]}>
+                {p.playerId === viewerId ? 'You' : firstName(p.name)}
               </Text>
             ))}
           </View>
 
+          {loading ? <Text style={styles.loadingText}>Loading scorecard…</Text> : null}
+
           {displayHoles.map((hole) => {
             const isActiveRow = hole.n === activeHole;
-            const played = hole.n <= thru;
             const i = hole.n - 1;
 
             return (
@@ -199,10 +251,17 @@ export function ScorecardScreen({ navigation, route }: Props) {
                 <Text style={[styles.gridCellNum, isActiveRow && styles.gridCellNumCurrent]}>{hole.n}</Text>
                 <Text style={styles.gridCellMeta}>{hole.par}</Text>
                 <Text style={styles.gridCellMeta}>{hole.si}</Text>
-                {PLAYERS.map((p) => {
-                  const isYou = p.key === VIEWER_KEY;
-                  const { give, recv } = getFlags(p.key, hole.n, gross, frontNineDeals);
-                  const resultTint = getResultTint(p.key, i, hole.n);
+                {roster.map((p) => {
+                  // Per-player, per-hole — a player's own entered score shows
+                  // immediately, independent of whether the rest of the
+                  // group has finished this hole yet (only the win/lose tint
+                  // below needs the whole hole resolved).
+                  const played = scores[p.playerId]?.[hole.n] !== undefined;
+                  const isYou = p.playerId === viewerId;
+                  const { give, recv } = viewerId
+                    ? getFlags(p.playerId, viewerId, hole.n, holes, frontNineDeals, schedule, backNineDeals)
+                    : { give: false, recv: false };
+                  const resultTint = getResultTint(p.playerId, i, hole.n);
                   const tintStyle =
                     resultTint === 'win'
                       ? styles.cellTintWin
@@ -213,17 +272,17 @@ export function ScorecardScreen({ navigation, route }: Props) {
                           : isYou
                             ? styles.cellTintYou
                             : null;
-                  const isSelected = isActiveRow && p.key === activePlayerKey;
+                  const isSelected = isActiveRow && p.playerId === activePlayerKey;
 
                   return (
                     <Pressable
-                      key={p.key}
+                      key={p.playerId}
                       style={[styles.gridCell, tintStyle, isSelected && styles.gridCellSelected]}
-                      disabled={!played || !canEdit(p.key)}
-                      onPress={() => selectCell(p.key, hole.n)}
+                      disabled={!played || !canEdit(p.playerId)}
+                      onPress={() => selectCell(p.playerId, hole.n)}
                     >
                       {played ? (
-                        <ScoreBadge value={gross[p.key][i]} par={hole.par} size={isActiveRow ? 28 : 22} />
+                        <ScoreBadge value={gross[p.playerId]?.[i] ?? hole.par} par={hole.par} size={isActiveRow ? 28 : 22} />
                       ) : (
                         <Text style={styles.gridCellDash}>–</Text>
                       )}
@@ -236,8 +295,8 @@ export function ScorecardScreen({ navigation, route }: Props) {
             );
           })}
 
-          <SummaryRow label={nine === 'back' ? 'In' : 'Out'} scores={nine === 'back' ? inScores : outScores} />
-          <SummaryRow label="Total" scores={totalScores} strong />
+          <SummaryRow playerIds={rosterIds} label={nine === 'back' ? 'In' : 'Out'} scores={nine === 'back' ? inScores : outScores} />
+          <SummaryRow playerIds={rosterIds} label="Total" scores={totalScores} strong />
 
           <View style={styles.nineToggle}>
             <Pressable
@@ -289,21 +348,21 @@ export function ScorecardScreen({ navigation, route }: Props) {
           </View>
           <Pressable
             style={styles.inRoundTab}
-            onPress={() => navigation.navigate('Leaderboard', { matchName, courseName, gameModeName })}
+            onPress={() => navigation.navigate('Leaderboard', { matchId, matchName, courseName, gameModeName })}
           >
             <Trophy size={21} color={palette.sand[400]} />
             <Text style={styles.inRoundTabLabel}>Leaderboard</Text>
           </Pressable>
           <Pressable
             style={styles.inRoundTab}
-            onPress={() => navigation.navigate('InGameLobby', { matchName, courseName, gameModeName })}
+            onPress={() => navigation.navigate('InGameLobby', { matchId, matchName, courseName, gameModeName })}
           >
             <Users size={21} color={palette.sand[400]} />
             <Text style={styles.inRoundTabLabel}>Lobby</Text>
           </Pressable>
           <Pressable
             style={styles.inRoundTab}
-            onPress={() => navigation.navigate('Finish', { matchName, courseName, gameModeName })}
+            onPress={() => navigation.navigate('Finish', { matchId, matchName, courseName, gameModeName })}
           >
             <CircleCheckBig size={21} color={palette.sand[400]} />
             <Text style={styles.inRoundTabLabel}>Finish</Text>
@@ -314,25 +373,23 @@ export function ScorecardScreen({ navigation, route }: Props) {
   );
 }
 
-function sumRange(gross: Record<PlayerKey, number[]>, start: number, end: number, thru: number) {
-  const sums: Record<PlayerKey, number> = { A: 0, B: 0, C: 0 };
-  PLAYERS.forEach((p) => {
-    let total = 0;
-    for (let i = start; i < end; i++) {
-      if (i + 1 <= thru) total += gross[p.key][i];
-    }
-    sums[p.key] = total;
-  });
-  return sums;
-}
-
-function SummaryRow({ label, scores, strong = false }: { label: string; scores: Record<PlayerKey, number>; strong?: boolean }) {
+function SummaryRow({
+  playerIds,
+  label,
+  scores,
+  strong = false,
+}: {
+  playerIds: string[];
+  label: string;
+  scores: Record<string, number>;
+  strong?: boolean;
+}) {
   return (
     <View style={[styles.summaryRow, strong && styles.summaryRowStrong]}>
       <Text style={[styles.summaryLabel, strong && styles.summaryLabelStrong]}>{label}</Text>
-      {PLAYERS.map((p) => (
-        <Text key={p.key} style={[styles.summaryValue, strong && styles.summaryValueStrong]}>
-          {scores[p.key]}
+      {playerIds.map((id) => (
+        <Text key={id} style={[styles.summaryValue, strong && styles.summaryValueStrong]}>
+          {scores[id] ?? 0}
         </Text>
       ))}
     </View>
@@ -492,6 +549,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3] + 2,
     paddingTop: spacing[3] + 2,
     paddingBottom: spacing[5],
+  },
+  loadingText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.textDisabled,
+    marginBottom: spacing[2],
   },
   gridHeaderRow: {
     flexDirection: 'row',

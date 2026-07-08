@@ -12,39 +12,36 @@ import {
   Trophy,
   Users,
 } from 'lucide-react-native';
-import { useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
-import { AcePinRow } from '../components/AcePin';
-import { HOLES, PLAYERS, VIEWER_KEY, holeUpValue, money, record, runningUp, upLabel } from '../data/round';
-import type { PlayerKey, StrokeDeal } from '../data/round';
-import { PLAYER_PINS, TIER_COLOR, TIER_RANK } from '../data/trophies';
+import { holeUpValue, money, record, runningUp, upLabel } from '../data/round';
+import type { GrossMap, Hole, RoundSchedule, StrokeDeal } from '../data/round';
+import { useLiveRound } from '../hooks/useLiveRound';
 import type { RootStackParamList } from '../navigation/types';
-import { useRound } from '../state/RoundContext';
-import { colors, getFontFamily, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
-
-type GrossMap = Record<PlayerKey, number[]>;
-
-/** The color of a player's single most-prized pin, for the avatar's glow ring — or null if they have none. */
-function topPinColor(playerKey: PlayerKey): string | null {
-  const awards = PLAYER_PINS[playerKey];
-  if (awards.length === 0) return null;
-  const top = awards.reduce((best, a) => (TIER_RANK[a.tier] < TIER_RANK[best.tier] ? a : best));
-  return TIER_COLOR[top.tier];
-}
+import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Leaderboard'>;
 
 type Track = { n: number; label: string; up: boolean; down: boolean };
 
-function buildTrack(playerKey: PlayerKey, thru: number, gross: GrossMap, frontNineDeals: StrokeDeal[]): Track[] {
+function buildTrack(
+  playerId: string,
+  players: string[],
+  thru: number,
+  gross: GrossMap,
+  holes: Hole[],
+  frontNineDeals: StrokeDeal[],
+  schedule: RoundSchedule,
+  backNineDeals: StrokeDeal[] | null,
+): Track[] {
   const track: Track[] = [];
   for (let i = 0; i < thru; i++) {
-    const net = holeUpValue(playerKey, i, gross, frontNineDeals);
+    const net = holeUpValue(players, playerId, i, gross, holes, frontNineDeals, schedule, backNineDeals);
     track.push({
-      n: HOLES[i].n,
+      n: holes[i]!.n,
       label: net > 0 ? `${net}↑` : net < 0 ? `${-net}↓` : 'AS',
       up: net > 0,
       down: net < 0,
@@ -53,47 +50,132 @@ function buildTrack(playerKey: PlayerKey, thru: number, gross: GrossMap, frontNi
   return track;
 }
 
-function recordLabel(playerKey: PlayerKey, thru: number, gross: GrossMap, frontNineDeals: StrokeDeal[]) {
-  const { w, l, h } = record(playerKey, thru, gross, frontNineDeals);
+function recordLabel(
+  playerId: string,
+  players: string[],
+  thru: number,
+  gross: GrossMap,
+  holes: Hole[],
+  frontNineDeals: StrokeDeal[],
+  schedule: RoundSchedule,
+  backNineDeals: StrokeDeal[] | null,
+) {
+  const { w, l, h } = record(players, playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals);
   return `${w}W ${l}L ${h}H`;
 }
 
-export function LeaderboardScreen({ navigation, route }: Props) {
-  const { matchName, courseName, gameModeName } = route.params;
-  const { gross, thru, frontNineDeals, stakePerHole } = useRound();
+/**
+ * The per-hole track row, as its own component so the drag-to-scroll effect
+ * below can hook a fresh `ScrollView` ref each time a different player's
+ * panel expands (only one panel is ever mounted at a time).
+ *
+ * RN's `ScrollView` only picks up trackpad/scrollbar/touch input for
+ * horizontal panning — a mouse click-drag does nothing, since the underlying
+ * web `<div>` doesn't listen for that. With 18 holes and no scroll indicator,
+ * a desktop/web tester has no way to see holes past what fits on screen. Wire
+ * up manual pointer-drag panning on web only; native touch scrolling on
+ * iOS/Android already works without this.
+ */
+function HoleTrack({ track }: { track: Track[] }) {
+  const scrollRef = useRef<ScrollView>(null);
 
-  const [expandedKey, setExpandedKey] = useState<PlayerKey | null>(null);
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const node = (scrollRef.current as unknown as { getScrollableNode?: () => HTMLElement } | null)?.getScrollableNode?.();
+    if (!node) return;
+
+    let dragging = false;
+    let startX = 0;
+    let startScrollLeft = 0;
+
+    const onPointerDown = (e: PointerEvent) => {
+      dragging = true;
+      startX = e.clientX;
+      startScrollLeft = node.scrollLeft;
+      node.setPointerCapture(e.pointerId);
+      node.style.cursor = 'grabbing';
+      e.preventDefault();
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!dragging) return;
+      node.scrollLeft = startScrollLeft - (e.clientX - startX);
+    };
+    const onPointerUp = (e: PointerEvent) => {
+      dragging = false;
+      node.style.cursor = 'grab';
+      if (node.hasPointerCapture(e.pointerId)) node.releasePointerCapture(e.pointerId);
+    };
+
+    node.style.cursor = 'grab';
+    node.style.userSelect = 'none';
+    node.addEventListener('pointerdown', onPointerDown);
+    node.addEventListener('pointermove', onPointerMove);
+    node.addEventListener('pointerup', onPointerUp);
+    node.addEventListener('pointercancel', onPointerUp);
+
+    return () => {
+      node.removeEventListener('pointerdown', onPointerDown);
+      node.removeEventListener('pointermove', onPointerMove);
+      node.removeEventListener('pointerup', onPointerUp);
+      node.removeEventListener('pointercancel', onPointerUp);
+    };
+  }, []);
+
+  return (
+    <ScrollView ref={scrollRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trackRow}>
+      {track.map((c) => (
+        <View key={c.n} style={styles.trackChipColumn}>
+          <Text style={styles.trackChipHole}>{c.n}</Text>
+          <View style={[styles.trackChip, c.up ? styles.trackChipUp : c.down ? styles.trackChipDown : styles.trackChipFlat]}>
+            <Text style={[styles.trackChipLabel, (c.up || c.down) && styles.trackChipLabelStrong]}>{c.label}</Text>
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+
+export function LeaderboardScreen({ navigation, route }: Props) {
+  const { matchId, matchName, courseName, gameModeName } = route.params;
+  const { loading, viewerId, hostId, roster, holes, schedule, gross, thru, frontNineDeals, backNineDeals, stakePerHole, refresh: refreshRound } =
+    useLiveRound(matchId);
+
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const spin = useRef(new Animated.Value(0)).current;
 
   function refresh() {
     if (refreshing) return;
     setRefreshing(true);
+    refreshRound();
     spin.setValue(0);
     Animated.timing(spin, { toValue: 1, duration: 900, easing: Easing.linear, useNativeDriver: true }).start(() => {
       setRefreshing(false);
     });
   }
 
-  function toggleExpanded(key: PlayerKey) {
+  function toggleExpanded(key: string) {
     setExpandedKey((prev) => (prev === key ? null : key));
   }
 
+  const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
+
   const rows = useMemo(() => {
-    const ranked = [...PLAYERS].sort(
+    const ranked = [...roster].sort(
       (a, b) =>
-        money(b.key, thru, gross, frontNineDeals, stakePerHole) - money(a.key, thru, gross, frontNineDeals, stakePerHole) ||
-        a.handicap - b.handicap,
+        money(rosterIds, b.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole) -
+          money(rosterIds, a.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole) ||
+        (a.handicap ?? 0) - (b.handicap ?? 0),
     );
     return ranked.map((p, i) => ({
       player: p,
       leader: i === 0,
       rank: i + 1,
-      net: runningUp(p.key, thru, gross, frontNineDeals),
-      track: buildTrack(p.key, thru, gross, frontNineDeals),
-      record: recordLabel(p.key, thru, gross, frontNineDeals),
+      net: runningUp(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals),
+      track: buildTrack(p.playerId, rosterIds, thru, gross, holes, frontNineDeals, schedule, backNineDeals),
+      record: recordLabel(p.playerId, rosterIds, thru, gross, holes, frontNineDeals, schedule, backNineDeals),
     }));
-  }, [gross, thru, frontNineDeals, stakePerHole]);
+  }, [roster, rosterIds, gross, holes, thru, frontNineDeals, schedule, backNineDeals, stakePerHole]);
 
   const spinRotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
@@ -134,22 +216,24 @@ export function LeaderboardScreen({ navigation, route }: Props) {
             </View>
           </View>
 
+          {loading ? <Text style={styles.loadingText}>Loading leaderboard…</Text> : null}
+
           {rows.map(({ player, leader, rank, net, track, record }) => {
-            const isViewer = player.key === VIEWER_KEY;
-            const isExpanded = expandedKey === player.key;
+            const isViewer = player.playerId === viewerId;
+            const isExpanded = expandedKey === player.playerId;
             const upColor = net > 0 ? colors.statusSuccess : net < 0 ? colors.statusDanger : colors.textDisabled;
 
             const dividerColor = leader ? 'rgba(138,106,18,0.3)' : isViewer ? palette.green[200] : colors.borderSubtle;
-            const pinGlow = topPinColor(player.key);
+            const playerColor = getPlayerColors(rosterIds.indexOf(player.playerId));
 
             return (
               <View
-                key={player.key}
+                key={player.playerId}
                 style={[styles.cardWrap, leader ? styles.cardWrapLeader : isViewer ? styles.cardWrapViewer : styles.cardWrapDefault]}
               >
                 <Pressable
                   style={[styles.row, leader && styles.rowLeaderPadding]}
-                  onPress={() => toggleExpanded(player.key)}
+                  onPress={() => toggleExpanded(player.playerId)}
                 >
                   <View style={styles.rank}>
                     {leader ? (
@@ -158,15 +242,8 @@ export function LeaderboardScreen({ navigation, route }: Props) {
                       <Text style={styles.rankNumber}>{rank}</Text>
                     )}
                   </View>
-                  <View
-                    style={[
-                      styles.avatar,
-                      leader && styles.avatarLeader,
-                      { backgroundColor: player.avatarBg },
-                      pinGlow ? { borderWidth: 2, borderColor: pinGlow, shadowColor: pinGlow, shadowOpacity: 0.45, shadowRadius: 8, shadowOffset: { width: 0, height: 0 }, elevation: 4 } : null,
-                    ]}
-                  >
-                    <Text style={[styles.avatarLabel, leader && styles.avatarLabelLeader, { color: player.avatarFg }]}>
+                  <View style={[styles.avatar, leader && styles.avatarLeader, { backgroundColor: playerColor.background }]}>
+                    <Text style={[styles.avatarLabel, leader && styles.avatarLabelLeader, { color: playerColor.color }]}>
                       {player.name.charAt(0)}
                     </Text>
                   </View>
@@ -176,10 +253,10 @@ export function LeaderboardScreen({ navigation, route }: Props) {
                         {player.name}
                         {isViewer ? ' (You)' : ''}
                       </Text>
-                      <AcePinRow awards={PLAYER_PINS[player.key]} />
                     </View>
                     <Text style={[styles.rowSub, leader && styles.rowSubLeader]}>
-                      HCP {player.handicap} · {record}
+                      {player.handicap !== null ? `HCP ${player.handicap} · ` : ''}
+                      {record}
                     </Text>
                   </View>
                   <View style={styles.rowEnd}>
@@ -208,28 +285,7 @@ export function LeaderboardScreen({ navigation, route }: Props) {
                         <Text style={[styles.expandedTotalLabel, { color: upColor }]}>{upLabel(net)}</Text>
                       </View>
                     </View>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.trackRow}>
-                      {track.map((c) => (
-                        <View key={c.n} style={styles.trackChipColumn}>
-                          <Text style={styles.trackChipHole}>{c.n}</Text>
-                          <View
-                            style={[
-                              styles.trackChip,
-                              c.up ? styles.trackChipUp : c.down ? styles.trackChipDown : styles.trackChipFlat,
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.trackChipLabel,
-                                (c.up || c.down) && styles.trackChipLabelStrong,
-                              ]}
-                            >
-                              {c.label}
-                            </Text>
-                          </View>
-                        </View>
-                      ))}
-                    </ScrollView>
+                    <HoleTrack track={track} />
                     <Text style={styles.expandedLegend}>
                       Net holes vs the field ·{' '}
                       <Text style={styles.expandedLegendUp}>&uarr;</Text> up ·{' '}
@@ -259,7 +315,10 @@ export function LeaderboardScreen({ navigation, route }: Props) {
         </ScrollView>
 
         <View style={styles.inRoundNav}>
-          <Pressable style={styles.inRoundTab} onPress={() => navigation.navigate('Scorecard', { matchName, courseName, gameModeName, isHost: true })}>
+          <Pressable
+            style={styles.inRoundTab}
+            onPress={() => navigation.navigate('Scorecard', { matchId, matchName, courseName, gameModeName, isHost: viewerId === hostId })}
+          >
             <List size={21} color={palette.sand[400]} />
             <Text style={styles.inRoundTabLabel}>Scorecard</Text>
           </Pressable>
@@ -269,14 +328,14 @@ export function LeaderboardScreen({ navigation, route }: Props) {
           </View>
           <Pressable
             style={styles.inRoundTab}
-            onPress={() => navigation.navigate('InGameLobby', { matchName, courseName, gameModeName })}
+            onPress={() => navigation.navigate('InGameLobby', { matchId, matchName, courseName, gameModeName })}
           >
             <Users size={21} color={palette.sand[400]} />
             <Text style={styles.inRoundTabLabel}>Lobby</Text>
           </Pressable>
           <Pressable
             style={styles.inRoundTab}
-            onPress={() => navigation.navigate('Finish', { matchName, courseName, gameModeName })}
+            onPress={() => navigation.navigate('Finish', { matchId, matchName, courseName, gameModeName })}
           >
             <CircleCheckBig size={21} color={palette.sand[400]} />
             <Text style={styles.inRoundTabLabel}>Finish</Text>
@@ -401,6 +460,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 12,
     color: colors.primary,
+  },
+  loadingText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.textDisabled,
+    marginBottom: spacing[2],
   },
   cardWrap: {
     borderRadius: radius.lg,

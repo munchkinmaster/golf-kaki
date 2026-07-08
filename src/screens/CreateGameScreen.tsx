@@ -1,18 +1,14 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import * as Clipboard from 'expo-clipboard';
 import type { LucideIcon } from 'lucide-react-native';
 import {
   ArrowRight,
-  Check,
   ChevronLeft,
-  Copy,
   Flag,
   Gauge,
   Info,
   ListChecks,
   Pencil,
   Search,
-  Share2,
   Spade,
   Swords,
   Trophy,
@@ -20,35 +16,31 @@ import {
   X,
 } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { IconButton } from '../components/IconButton';
+import { fetchKakiOverview } from '../data/kaki';
+import { createMatch, generateMatchCodePreview } from '../data/matches';
 import type { RootStackParamList } from '../navigation/types';
+import { useAuth } from '../state/AuthContext';
+import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, getPlayerColors, motion, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreateGame'>;
 
-const MATCH_ID = 'GK-7Q4D';
 const GOLFER_COUNT_OPTIONS = [1, 2, 3, 4, 5, 6];
+const GAME_MODE_ID = 'kaki_match_play';
 
 type InviteFriend = {
   id: string;
   name: string;
-  handicap: number;
+  handicap: number | null;
   status: 'added' | 'invite';
 };
-
-const INITIAL_INVITE_FRIENDS: InviteFriend[] = [
-  { id: 'marcus', name: 'Marcus Tan', handicap: 2, status: 'added' },
-  { id: 'dinesh', name: 'Dinesh Kumar', handicap: 16, status: 'added' },
-  { id: 'jiahui', name: 'Jia Hui', handicap: 11, status: 'added' },
-  { id: 'priscilla', name: 'Priscilla Goh', handicap: 8, status: 'invite' },
-  { id: 'samuel', name: 'Samuel Ong', handicap: 22, status: 'invite' },
-];
 
 type GameMode = {
   id: string;
@@ -105,14 +97,31 @@ const GAME_MODES: GameMode[] = [
 ];
 
 export function CreateGameScreen({ navigation, route }: Props) {
-  const { courseName, summaryLine } = route.params;
+  const { courseId, comboId, holesToPlay, courseName, summaryLine } = route.params;
+  const { session } = useAuth();
+  const { profile } = useProfile();
+  const viewerId = session?.user.id;
 
   const [matchName, setMatchName] = useState('Sat Fourball');
   const [golferCount, setGolferCount] = useState(4);
   const [inviteQuery, setInviteQuery] = useState('');
-  const [inviteFriends, setInviteFriends] = useState(INITIAL_INVITE_FRIENDS);
+  const [inviteFriends, setInviteFriends] = useState<InviteFriend[]>([]);
+  const [friendsError, setFriendsError] = useState(false);
   const [modeInfoOpen, setModeInfoOpen] = useState(false);
-  const [matchIdCopied, setMatchIdCopied] = useState(false);
+  const [matchCode] = useState(() => generateMatchCodePreview());
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!viewerId) return;
+    fetchKakiOverview(viewerId)
+      .then((overview) =>
+        setInviteFriends(
+          overview.friends.map((f) => ({ id: f.id, name: f.name, handicap: f.handicap, status: 'invite' as const })),
+        ),
+      )
+      .catch(() => setFriendsError(true));
+  }, [viewerId]);
 
   const q = inviteQuery.trim().toLowerCase();
   const filteredFriends = inviteFriends.filter((f) => !q || f.name.toLowerCase().includes(q));
@@ -123,14 +132,37 @@ export function CreateGameScreen({ navigation, route }: Props) {
     );
   }
 
-  async function copyMatchId() {
-    await Clipboard.setStringAsync(MATCH_ID);
-    setMatchIdCopied(true);
-    setTimeout(() => setMatchIdCopied(false), 1500);
-  }
-
-  function shareMatchId() {
-    Share.share({ message: `Join my round on Golf Kaki — Match ID: ${MATCH_ID}` }).catch(() => {});
+  async function handleCreate() {
+    if (!viewerId || creating) return;
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const invited = inviteFriends.filter((f) => f.status === 'added');
+      const { id: matchId, matchCode: finalMatchCode } = await createMatch({
+        matchCode,
+        hostId: viewerId,
+        courseId,
+        comboId,
+        holesToPlay,
+        matchName,
+        gameMode: GAME_MODE_ID,
+        golferCount,
+        players: [{ id: viewerId, handicap: profile?.handicap ?? null }, ...invited.map((f) => ({ id: f.id, handicap: f.handicap }))],
+      });
+      navigation.navigate('MatchLobby', {
+        matchId,
+        matchCode: finalMatchCode,
+        matchName,
+        courseName,
+        summaryLine,
+        gameModeName: GAME_MODES[0].name,
+        holesToPlay,
+      });
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Could not create the match — try again.');
+    } finally {
+      setCreating(false);
+    }
   }
 
   return (
@@ -179,17 +211,12 @@ export function CreateGameScreen({ navigation, route }: Props) {
 
           <View>
             <Text style={styles.fieldLabel}>
-              Match ID <Text style={styles.fieldLabelMuted}>· share to invite</Text>
+              Match ID <Text style={styles.fieldLabelMuted}>· ready once you create the game</Text>
             </Text>
-            <View style={styles.matchIdRow}>
-              <Text style={styles.matchIdValue}>{MATCH_ID}</Text>
-              <View style={styles.matchIdActions}>
-                <Pressable style={styles.matchIdActionGhost} onPress={copyMatchId}>
-                  {matchIdCopied ? <Check size={16} color={colors.primary} /> : <Copy size={16} color={colors.primary} />}
-                </Pressable>
-                <Pressable style={styles.matchIdActionSolid} onPress={shareMatchId}>
-                  <Share2 size={16} color={palette.white} />
-                </Pressable>
+            <View style={[styles.matchIdRow, styles.matchIdRowPending]}>
+              <Text style={[styles.matchIdValue, styles.matchIdValuePending]}>GK-{matchCode}</Text>
+              <View style={styles.matchIdPendingTag}>
+                <Text style={styles.matchIdPendingTagLabel}>PREVIEW</Text>
               </View>
             </View>
           </View>
@@ -225,9 +252,15 @@ export function CreateGameScreen({ navigation, route }: Props) {
               />
             </View>
             <View style={styles.inviteList}>
-              {filteredFriends.map((friend, index) => (
-                <InviteFriendRow key={friend.id} friend={friend} colorIndex={index} onToggle={() => toggleInvite(friend.id)} />
-              ))}
+              {friendsError ? (
+                <Text style={styles.inviteEmptyText}>Couldn't load your kaki — check your connection and try again.</Text>
+              ) : filteredFriends.length === 0 ? (
+                <Text style={styles.inviteEmptyText}>{q ? 'No kaki match that search.' : 'Add some kaki first to invite them here.'}</Text>
+              ) : (
+                filteredFriends.map((friend, index) => (
+                  <InviteFriendRow key={friend.id} friend={friend} colorIndex={index} onToggle={() => toggleInvite(friend.id)} />
+                ))
+              )}
             </View>
           </View>
 
@@ -256,20 +289,14 @@ export function CreateGameScreen({ navigation, route }: Props) {
         </ScrollView>
 
         <View style={styles.footer}>
+          {createError ? <Text style={styles.createErrorText}>{createError}</Text> : null}
           <Button
-            label="Create & open lobby"
+            label={creating ? 'Creating…' : 'Create & open lobby'}
             variant="accent"
             size="lg"
             block
-            onPress={() =>
-              navigation.navigate('MatchLobby', {
-                matchName,
-                courseName,
-                summaryLine,
-                gameModeName: GAME_MODES[0].name,
-                golferCount,
-              })
-            }
+            disabled={creating}
+            onPress={handleCreate}
             icon={<ArrowRight size={19} color={colors.textOnAccent} />}
           />
         </View>
@@ -307,7 +334,7 @@ function InviteFriendRow({
       </View>
       <View style={styles.inviteInfo}>
         <Text style={styles.inviteName}>{friend.name}</Text>
-        <Text style={styles.inviteMeta}>HCP {friend.handicap}</Text>
+        <Text style={styles.inviteMeta}>{friend.handicap !== null ? `HCP ${friend.handicap}` : 'No handicap yet'}</Text>
       </View>
       <Pressable style={[styles.inviteButton, added ? styles.inviteButtonAdded : styles.inviteButtonInvite]} onPress={onToggle}>
         <Text style={[styles.inviteButtonLabel, added ? styles.inviteButtonLabelAdded : styles.inviteButtonLabelInvite]}>
@@ -547,27 +574,24 @@ const styles = StyleSheet.create({
     letterSpacing: 2.4,
     color: colors.primary,
   },
-  matchIdActions: {
-    flexDirection: 'row',
-    gap: spacing[1] + 2,
+  matchIdRowPending: {
+    opacity: 0.6,
   },
-  matchIdActionGhost: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.md - 3,
+  matchIdValuePending: {
+    color: palette.sand[500],
+  },
+  matchIdPendingTag: {
     backgroundColor: colors.surfaceCard,
-    borderWidth: 1,
-    borderColor: palette.green[200],
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: radius.xs + 2,
+    paddingVertical: 3,
+    paddingHorizontal: spacing[2] - 1,
   },
-  matchIdActionSolid: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.md - 3,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+  matchIdPendingTagLabel: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    fontSize: 9,
+    letterSpacing: 0.5,
+    color: palette.sand[500],
   },
   golferCountRow: {
     flexDirection: 'row',
@@ -627,6 +651,12 @@ const styles = StyleSheet.create({
   },
   inviteList: {
     gap: spacing[2],
+  },
+  inviteEmptyText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.textDisabled,
+    paddingVertical: spacing[2],
   },
   inviteRow: {
     flexDirection: 'row',
@@ -776,6 +806,13 @@ const styles = StyleSheet.create({
     paddingTop: spacing[3],
     paddingBottom: spacing[5],
     backgroundColor: colors.surfacePage,
+  },
+  createErrorText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.statusDanger,
+    textAlign: 'center',
+    marginBottom: spacing[2],
   },
   modalRoot: {
     flex: 1,

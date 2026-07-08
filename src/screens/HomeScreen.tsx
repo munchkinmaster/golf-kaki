@@ -1,12 +1,8 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import {
-  Bell,
-  Calendar,
   Check,
-  CheckCircle2,
   ChevronRight,
-  ClipboardCheck,
-  Eye,
   Flag,
   MapPin,
   Plus,
@@ -16,7 +12,7 @@ import {
   Users,
   X,
 } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -26,30 +22,18 @@ import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { HandicapBadge } from '../components/HandicapBadge';
+import type { FriendRequest } from '../data/kaki';
+import { acceptFriendRequest, fetchKakiOverview, removeKakiRelationship } from '../data/kaki';
+import type { MatchInvite } from '../data/matches';
+import { acceptMatchInvite, declineMatchInvite, fetchMatchInvites } from '../data/matches';
 import { getInitials } from '../data/profile';
+import type { RoundSummary } from '../data/rounds';
+import { fetchRoundSummaries } from '../data/rounds';
 import type { RootStackParamList } from '../navigation/types';
 import { useProfile } from '../state/ProfileContext';
-import { colors, getFontFamily, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
+import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
-
-// Same identity as the "in play" live card below — accepting the invite joins that match.
-const INVITE_MATCH = { matchName: 'Sat Fourball', courseName: 'Sentosa Golf Club', gameModeName: 'Kaki Match Play' };
-
-type PastGame = {
-  title: string;
-  subtitle: string;
-  score: number;
-  icon: 'trophy' | 'flag';
-  /** Canonical course name, for opening the Recap. */
-  course: string;
-};
-
-const PAST_GAMES: PastGame[] = [
-  { title: 'Friday Skins', subtitle: 'Tanah Merah · 14 Jun · Won', score: 88, icon: 'trophy', course: 'Tanah Merah Country Club' },
-  { title: 'Sunday Medal', subtitle: 'Laguna · 8 Jun · 2nd', score: 95, icon: 'flag', course: 'Laguna National G&CC' },
-  { title: 'Kaki Cup R2', subtitle: 'Sentosa · 1 Jun · Won', score: 82, icon: 'flag', course: 'Sentosa Golf Club' },
-];
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -58,21 +42,89 @@ function getGreeting(): string {
   return 'Evening';
 }
 
+function pastGameSubtitle(round: RoundSummary): string {
+  const parts = [round.courseName, round.finishedAt ? new Date(round.finishedAt).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' }) : null];
+  return parts.filter(Boolean).join(' · ');
+}
+
 export function HomeScreen({ navigation }: Props) {
   const { profile, error, refresh } = useProfile();
-  const [showInvite, setShowInvite] = useState(true);
-  const [showFriendRequest, setShowFriendRequest] = useState(true);
-  const [showConfirmScore, setShowConfirmScore] = useState(true);
+  const [matchInvites, setMatchInvites] = useState<MatchInvite[]>([]);
+  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
+  const [liveRounds, setLiveRounds] = useState<RoundSummary[]>([]);
+  const [pastRounds, setPastRounds] = useState<RoundSummary[]>([]);
 
-  const notificationCount = [showInvite, showFriendRequest, showConfirmScore].filter(Boolean).length;
+  const notificationCount = matchInvites.length + friendRequests.length;
 
-  function acceptInvite() {
-    setShowInvite(false);
-    navigation.navigate('InGameLobby', INVITE_MATCH);
+  const loadNotifications = useCallback(async (viewerId: string) => {
+    const [invites, overview] = await Promise.all([fetchMatchInvites(viewerId), fetchKakiOverview(viewerId)]);
+    setMatchInvites(invites);
+    setFriendRequests(overview.requests);
+  }, []);
+
+  const loadRounds = useCallback(async (viewerId: string) => {
+    const [live, past] = await Promise.all([fetchRoundSummaries(viewerId, 'live'), fetchRoundSummaries(viewerId, 'finished')]);
+    setLiveRounds(live);
+    setPastRounds(past.slice(0, 3));
+  }, []);
+
+  useEffect(() => {
+    if (!profile) return;
+    // Notifications are supplementary — a failed fetch just means none show, not a blocking error.
+    loadNotifications(profile.id).catch(() => {});
+  }, [profile, loadNotifications]);
+
+  // Refetch on focus, not just mount — the viewer lands back on Home right
+  // after starting or finishing a round.
+  useFocusEffect(
+    useCallback(() => {
+      if (!profile) return;
+      loadRounds(profile.id).catch(() => {});
+    }, [profile, loadRounds]),
+  );
+
+  async function handleAcceptInvite(invite: MatchInvite) {
+    setMatchInvites((prev) => prev.filter((i) => i.matchId !== invite.matchId));
+    try {
+      await acceptMatchInvite(invite.matchId, profile!.id);
+      if (invite.status === 'live') {
+        navigation.navigate('Scorecard', {
+          matchId: invite.matchId,
+          matchName: invite.matchName,
+          courseName: invite.courseName,
+          gameModeName: invite.gameModeName,
+          isHost: false,
+        });
+      } else {
+        navigation.navigate('MatchLobby', {
+          matchId: invite.matchId,
+          matchCode: invite.matchCode,
+          matchName: invite.matchName,
+          courseName: invite.courseName,
+          summaryLine: invite.summaryLine,
+          gameModeName: invite.gameModeName,
+          holesToPlay: invite.holesToPlay,
+        });
+      }
+    } catch {
+      // Accept failed server-side — put the card back so they can retry.
+      setMatchInvites((prev) => [...prev, invite]);
+    }
   }
 
-  function viewConfirmCard() {
-    navigation.navigate('Scorecard', { ...INVITE_MATCH, isHost: true });
+  async function handleDeclineInvite(invite: MatchInvite) {
+    setMatchInvites((prev) => prev.filter((i) => i.matchId !== invite.matchId));
+    declineMatchInvite(invite.matchId, profile!.id).catch(() => setMatchInvites((prev) => [...prev, invite]));
+  }
+
+  async function handleAcceptFriendRequest(request: FriendRequest) {
+    setFriendRequests((prev) => prev.filter((r) => r.relationshipId !== request.relationshipId));
+    acceptFriendRequest(request.relationshipId).catch(() => setFriendRequests((prev) => [...prev, request]));
+  }
+
+  async function handleIgnoreFriendRequest(request: FriendRequest) {
+    setFriendRequests((prev) => prev.filter((r) => r.relationshipId !== request.relationshipId));
+    removeKakiRelationship(request.relationshipId).catch(() => setFriendRequests((prev) => [...prev, request]));
   }
 
   if (!profile) {
@@ -131,104 +183,89 @@ export function HomeScreen({ navigation }: Props) {
                 </View>
               </View>
 
-              {showInvite ? (
-                <GameInviteCard onDecline={() => setShowInvite(false)} onAccept={acceptInvite} />
-              ) : null}
-              {showFriendRequest ? (
-                <FriendRequestCard onIgnore={() => setShowFriendRequest(false)} onAccept={() => setShowFriendRequest(false)} />
-              ) : null}
-              {showConfirmScore ? (
-                <ConfirmScoreCard onViewCard={viewConfirmCard} onConfirm={() => setShowConfirmScore(false)} />
-              ) : null}
+              {matchInvites.map((invite, index) => (
+                <GameInviteCard
+                  key={invite.matchId}
+                  invite={invite}
+                  colorIndex={index}
+                  onDecline={() => handleDeclineInvite(invite)}
+                  onAccept={() => handleAcceptInvite(invite)}
+                />
+              ))}
+              {friendRequests.map((request, index) => (
+                <FriendRequestCard
+                  key={request.relationshipId}
+                  request={request}
+                  colorIndex={index}
+                  onIgnore={() => handleIgnoreFriendRequest(request)}
+                  onAccept={() => handleAcceptFriendRequest(request)}
+                />
+              ))}
             </View>
           ) : null}
 
-          <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>In play</Text>
-          <Card variant="inverse" watermark style={styles.liveCard}>
-            <View style={styles.liveCardTop}>
-              <View>
-                <LiveBadge />
-                <Text style={styles.liveTitle}>Sat Fourball</Text>
-                <Text style={styles.liveSubtitle}>Sentosa · Serapong · Thru 4</Text>
-              </View>
-              <View style={styles.liveScore}>
-                <Text style={styles.liveScoreValue}>4</Text>
-                <Text style={styles.liveScoreLabel}>up</Text>
-              </View>
-            </View>
-            <View style={styles.liveCardBottom}>
-              <View style={styles.avatarStack}>
-                <Avatar initials="M" size={30} style={[styles.stackedAvatar, { backgroundColor: palette.green[100] }]} />
-                <Avatar
-                  initials="W"
-                  size={30}
-                  style={[styles.stackedAvatar, styles.stackedAvatarOverlap, { backgroundColor: palette.orange[200] }]}
-                  color={palette.orange[700]}
-                />
-                <Avatar
-                  initials="D"
-                  size={30}
-                  style={[styles.stackedAvatar, styles.stackedAvatarOverlap, { backgroundColor: palette.sand[200] }]}
-                  color={palette.ink[500]}
-                />
-              </View>
-              <Button
-                label="Resume"
-                variant="accent"
-                size="sm"
-                icon={<ChevronRight size={16} color={colors.textOnAccent} />}
-                iconPosition="right"
-                onPress={() =>
+          {liveRounds[0] ? (
+            <>
+              <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>In play</Text>
+              <HomeLiveRoundCard
+                round={liveRounds[0]}
+                onResume={() =>
                   navigation.navigate('Scorecard', {
-                    matchName: 'Sat Fourball',
-                    courseName: 'Sentosa Golf Club',
-                    gameModeName: 'Kaki Match Play',
-                    isHost: true,
+                    matchId: liveRounds[0]!.matchId,
+                    matchName: liveRounds[0]!.matchName,
+                    courseName: liveRounds[0]!.courseName,
+                    gameModeName: liveRounds[0]!.gameModeName,
+                    isHost: false,
                   })
                 }
               />
-            </View>
-          </Card>
+            </>
+          ) : null}
 
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionLabel}>Past games</Text>
-            <Pressable onPress={() => navigation.navigate('Rounds', { initialTab: 'past' })}>
-              <Text style={styles.seeAll}>See all</Text>
-            </Pressable>
-          </View>
-          <View style={styles.pastGameList}>
-            {PAST_GAMES.map((game) => (
-              <Pressable
-                key={game.title}
-                onPress={() =>
-                  navigation.navigate('Recap', {
-                    matchName: game.title,
-                    courseName: game.course,
-                    gameModeName: 'Kaki Match Play',
-                  })
-                }
-              >
-                <Card style={styles.pastGameRow}>
-                  <View style={styles.pastGameIcon}>
-                    {game.icon === 'trophy' ? (
-                      <Trophy size={18} color={colors.scoreEagle} />
-                    ) : (
-                      <Flag size={18} color={colors.scorePar} />
-                    )}
-                  </View>
-                  <View style={styles.pastGameInfo}>
-                    <Text style={styles.pastGameTitle}>{game.title}</Text>
-                    <Text style={styles.pastGameSubtitle}>{game.subtitle}</Text>
-                  </View>
-                  <View style={styles.pastGameScoreWrap}>
-                    <Text style={styles.pastGameScore}>{game.score}</Text>
-                    <Text style={styles.pastGameScoreLabel}>gross</Text>
-                  </View>
-                  <ChevronRight size={17} color={palette.sand[400]} />
-                </Card>
-              </Pressable>
-            ))}
-          </View>
+          {pastRounds.length > 0 ? (
+            <>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionLabel}>Past games</Text>
+                <Pressable onPress={() => navigation.navigate('Rounds', { initialTab: 'past' })}>
+                  <Text style={styles.seeAll}>See all</Text>
+                </Pressable>
+              </View>
+              <View style={styles.pastGameList}>
+                {pastRounds.map((round) => (
+                  <Pressable
+                    key={round.matchId}
+                    onPress={() =>
+                      navigation.navigate('Recap', {
+                        matchId: round.matchId,
+                        matchName: round.matchName,
+                        courseName: round.courseName,
+                        gameModeName: round.gameModeName,
+                      })
+                    }
+                  >
+                    <Card style={styles.pastGameRow}>
+                      <View style={styles.pastGameIcon}>
+                        {(round.viewerMoney ?? 0) > 0 ? (
+                          <Trophy size={18} color={colors.scoreEagle} />
+                        ) : (
+                          <Flag size={18} color={colors.scorePar} />
+                        )}
+                      </View>
+                      <View style={styles.pastGameInfo}>
+                        <Text style={styles.pastGameTitle}>{round.matchName}</Text>
+                        <Text style={styles.pastGameSubtitle}>{pastGameSubtitle(round)}</Text>
+                      </View>
+                      <View style={styles.pastGameScoreWrap}>
+                        <Text style={styles.pastGameScore}>{round.viewerGross ?? '–'}</Text>
+                        <Text style={styles.pastGameScoreLabel}>gross</Text>
+                      </View>
+                      <ChevronRight size={17} color={palette.sand[400]} />
+                    </Card>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          ) : null}
         </ScrollView>
 
         <BottomNav
@@ -267,16 +304,76 @@ function LiveBadge() {
   );
 }
 
-function GameInviteCard({ onDecline, onAccept }: { onDecline: () => void; onAccept: () => void }) {
+function HomeLiveRoundCard({ round, onResume }: { round: RoundSummary; onResume: () => void }) {
+  const up = round.viewerUp ?? 0;
+  const scoreValue = round.viewerUp === null ? '–' : String(Math.abs(up));
+  const scoreLabel = round.viewerUp === null ? '' : up > 0 ? 'up' : up < 0 ? 'down' : 'square';
+  const sub = [round.courseName, round.comboLabel, `Thru ${round.thru}`].filter(Boolean).join(' · ');
+
+  return (
+    <Card variant="inverse" watermark style={styles.liveCard}>
+      <View style={styles.liveCardTop}>
+        <View>
+          <LiveBadge />
+          <Text style={styles.liveTitle}>{round.matchName}</Text>
+          <Text style={styles.liveSubtitle}>{sub}</Text>
+        </View>
+        <View style={styles.liveScore}>
+          <Text style={styles.liveScoreValue}>{scoreValue}</Text>
+          <Text style={styles.liveScoreLabel}>{scoreLabel}</Text>
+        </View>
+      </View>
+      <View style={styles.liveCardBottom}>
+        <View style={styles.avatarStack}>
+          {round.players.slice(0, 4).map((player, index) => {
+            const playerColor = getPlayerColors(index);
+            return (
+              <Avatar
+                key={player.playerId}
+                initials={getInitials(player.name)}
+                size={30}
+                style={[styles.stackedAvatar, index > 0 && styles.stackedAvatarOverlap, { backgroundColor: playerColor.background }]}
+                color={playerColor.color}
+              />
+            );
+          })}
+        </View>
+        <Button
+          label="Resume"
+          variant="accent"
+          size="sm"
+          icon={<ChevronRight size={16} color={colors.textOnAccent} />}
+          iconPosition="right"
+          onPress={onResume}
+        />
+      </View>
+    </Card>
+  );
+}
+
+function GameInviteCard({
+  invite,
+  colorIndex,
+  onDecline,
+  onAccept,
+}: {
+  invite: MatchInvite;
+  colorIndex: number;
+  onDecline: () => void;
+  onAccept: () => void;
+}) {
+  const playerColor = getPlayerColors(colorIndex);
+  const holesPart = invite.summaryLine.split(' · ')[0];
+
   return (
     <View style={[styles.notifCard, styles.notifCardInvite]}>
       <View style={styles.notifTopRow}>
-        <Avatar initials="M" size={42} backgroundColor={palette.green[100]} color={colors.primary} />
+        <Avatar initials={getInitials(invite.hostName)} size={42} backgroundColor={playerColor.background} color={playerColor.color} />
         <View style={styles.notifBody}>
           <Text style={styles.notifLead}>
-            <Text style={styles.notifLeadStrong}>Marcus</Text> invited you
+            <Text style={styles.notifLeadStrong}>{invite.hostName}</Text> invited you
           </Text>
-          <Text style={styles.notifHeadline}>Sat Fourball</Text>
+          <Text style={styles.notifHeadline}>{invite.matchName}</Text>
         </View>
         <View style={[styles.newPill, styles.newPillOrange]}>
           <Text style={[styles.newPillLabel, styles.newPillLabelOrange]}>New</Text>
@@ -285,11 +382,13 @@ function GameInviteCard({ onDecline, onAccept }: { onDecline: () => void; onAcce
       <View style={styles.notifMetaRow}>
         <View style={styles.notifMetaItem}>
           <MapPin size={13} color={colors.textDisabled} />
-          <Text style={styles.notifMetaText}>Sentosa · Serapong</Text>
+          <Text style={styles.notifMetaText}>{invite.courseName}</Text>
         </View>
         <View style={styles.notifMetaItem}>
-          <Calendar size={13} color={colors.textDisabled} />
-          <Text style={styles.notifMetaText}>Sat 5 Jul · 7:10 AM</Text>
+          <Flag size={13} color={colors.textDisabled} />
+          <Text style={styles.notifMetaText}>
+            {holesPart} · {invite.gameModeName}
+          </Text>
         </View>
       </View>
       <View style={styles.notifActions}>
@@ -306,24 +405,38 @@ function GameInviteCard({ onDecline, onAccept }: { onDecline: () => void; onAcce
   );
 }
 
-function FriendRequestCard({ onIgnore, onAccept }: { onIgnore: () => void; onAccept: () => void }) {
+function FriendRequestCard({
+  request,
+  colorIndex,
+  onIgnore,
+  onAccept,
+}: {
+  request: FriendRequest;
+  colorIndex: number;
+  onIgnore: () => void;
+  onAccept: () => void;
+}) {
+  const playerColor = getPlayerColors(colorIndex);
+
   return (
     <View style={[styles.notifCard, styles.notifCardFriend]}>
       <View style={styles.notifTopRow}>
-        <Avatar initials="A" size={42} backgroundColor="#DDEAF3" color="#3E6480" />
+        <Avatar initials={getInitials(request.name)} size={42} backgroundColor={playerColor.background} color={playerColor.color} />
         <View style={styles.notifBody}>
           <Text style={styles.notifLead}>
-            <Text style={styles.notifLeadStrong}>Aiken Lim</Text> wants to be your kaki
+            <Text style={styles.notifLeadStrong}>{request.name}</Text> wants to be your kaki
           </Text>
           <View style={styles.notifMetaRow}>
             <View style={styles.notifMetaItem}>
               <Users size={13} color={colors.textDisabled} />
-              <Text style={styles.notifMetaText}>2 mutual kaki</Text>
+              <Text style={styles.notifMetaText}>{request.handle}</Text>
             </View>
-            <View style={styles.notifMetaItem}>
-              <Target size={13} color={colors.textDisabled} />
-              <Text style={styles.notifMetaText}>HCP 12</Text>
-            </View>
+            {request.handicap !== null ? (
+              <View style={styles.notifMetaItem}>
+                <Target size={13} color={colors.textDisabled} />
+                <Text style={styles.notifMetaText}>HCP {request.handicap}</Text>
+              </View>
+            ) : null}
           </View>
         </View>
         <View style={[styles.newPill, styles.newPillGreen]}>
@@ -338,45 +451,6 @@ function FriendRequestCard({ onIgnore, onAccept }: { onIgnore: () => void; onAcc
         <Pressable style={styles.notifActionPrimary} onPress={onAccept}>
           <UserPlus size={16} color={palette.white} />
           <Text style={styles.notifActionAccentLabel}>Accept</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
-function ConfirmScoreCard({ onViewCard, onConfirm }: { onViewCard: () => void; onConfirm: () => void }) {
-  return (
-    <View style={[styles.notifCard, styles.notifCardConfirm]}>
-      <View style={styles.notifTopRow}>
-        <View style={styles.notifIconChip}>
-          <ClipboardCheck size={21} color={colors.scoreEagle} />
-        </View>
-        <View style={styles.notifBody}>
-          <Text style={styles.notifHeadline}>Confirm your score</Text>
-          <Text style={styles.notifSubtext}>Sat Fourball · your card is waiting</Text>
-        </View>
-        <View style={[styles.newPill, styles.newPillAmber]}>
-          <Text style={[styles.newPillLabel, styles.newPillLabelAmber]}>Action</Text>
-        </View>
-      </View>
-      <View style={styles.notifMetaRow}>
-        <View style={styles.notifMetaItem}>
-          <Bell size={13} color={colors.textDisabled} />
-          <Text style={styles.notifMetaText}>Reminded by Marcus</Text>
-        </View>
-        <View style={styles.notifMetaItem}>
-          <Check size={13} color={colors.textDisabled} />
-          <Text style={styles.notifMetaText}>3 of 4 confirmed</Text>
-        </View>
-      </View>
-      <View style={styles.notifActions}>
-        <Pressable style={styles.notifActionGhost} onPress={onViewCard}>
-          <Eye size={16} color={colors.textMuted} />
-          <Text style={styles.notifActionGhostLabel}>View card</Text>
-        </Pressable>
-        <Pressable style={styles.notifActionPrimary} onPress={onConfirm}>
-          <CheckCircle2 size={16} color={palette.white} />
-          <Text style={styles.notifActionAccentLabel}>Confirm</Text>
         </Pressable>
       </View>
     </View>
@@ -564,9 +638,6 @@ const styles = StyleSheet.create({
   notifCardFriend: {
     borderColor: palette.green[200],
   },
-  notifCardConfirm: {
-    borderColor: '#F0E0B0',
-  },
   notifTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -592,21 +663,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textPrimary,
     marginTop: 1,
-  },
-  notifSubtext: {
-    fontFamily: getFontFamily('body', '400'),
-    fontSize: 12,
-    color: colors.textDisabled,
-    marginTop: 1,
-  },
-  notifIconChip: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.md,
-    backgroundColor: '#FBEFD0',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
   },
   newPill: {
     borderWidth: 1,
@@ -635,13 +691,6 @@ const styles = StyleSheet.create({
   },
   newPillLabelGreen: {
     color: colors.statusSuccess,
-  },
-  newPillAmber: {
-    backgroundColor: '#FBEFD0',
-    borderColor: '#E5CE8E',
-  },
-  newPillLabelAmber: {
-    color: '#9A6B12',
   },
   notifMetaRow: {
     flexDirection: 'row',
