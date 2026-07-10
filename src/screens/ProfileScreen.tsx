@@ -1,6 +1,7 @@
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Camera, Lock, Pencil, RefreshCw, Settings, Trophy } from 'lucide-react-native';
-import { useState } from 'react';
+import { Lock, Pencil, RefreshCw, Settings, Trophy } from 'lucide-react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -14,22 +15,59 @@ import { FeaturedTrophyCard } from '../components/FeaturedTrophyCard';
 import { HandicapBadge } from '../components/HandicapBadge';
 import { IconButton } from '../components/IconButton';
 import { StatRow } from '../components/StatRow';
+import type { AttestationStatus } from '../data/attestations';
+import { fetchAttestationStatus } from '../data/attestations';
+import { fetchHandicapRecordCount, handicapCaption } from '../data/handicap';
 import { getInitials, stripHandlePrefix } from '../data/profile';
-import { FEATURED_BADGE, GOLD_TROPHIES, PROGRESS_PERCENT, TROPHIES_EARNED, TROPHIES_GOAL, TROPHIES_LOCKED, TROPHY_BADGES } from '../data/trophies';
+import { fetchRoundSummaries, profileRoundStats } from '../data/rounds';
+import { FEATURED_BADGE, buildTrophyBadges, trophyCounts } from '../data/trophies';
 import type { RootStackParamList } from '../navigation/types';
 import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
-const STATS = [
-  { value: 42, label: 'Rounds', color: colors.textPrimary },
-  { value: 78, label: 'Best', color: colors.scorePar },
-  { value: 5, label: 'Wins', color: colors.textPrimary },
-];
-
 export function ProfileScreen({ navigation }: Props) {
   const { profile, error, refresh, updateProfile } = useProfile();
+
+  // Handicap and trophy badges are recalculated server-side when a round
+  // finishes, but this screen's `profile` is a shared context value fetched
+  // once at sign-in — refetch on focus so a round finished elsewhere (or in
+  // a prior visit) shows up here without a manual reload.
+  useFocusEffect(
+    useCallback(() => {
+      refresh().catch(() => {});
+    }, [refresh]),
+  );
+
+  const [roundStats, setRoundStats] = useState<{ rounds: number; best: number | null; wins: number } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      if (!profile) return;
+      fetchRoundSummaries(profile.id, 'finished')
+        .then((summaries) => setRoundStats(profileRoundStats(summaries)))
+        .catch(() => {});
+    }, [profile?.id]),
+  );
+
+  const stats = [
+    { value: roundStats?.rounds ?? '–', label: 'Rounds', color: colors.textPrimary },
+    { value: roundStats?.best ?? '–', label: 'Best', color: colors.scorePar },
+    { value: roundStats?.wins ?? '–', label: 'Wins', color: colors.textPrimary },
+  ];
+
+  const [attested, setAttested] = useState<AttestationStatus>({ birdieStreak: false, parStreak: false });
+  useFocusEffect(
+    useCallback(() => {
+      if (!profile) return;
+      fetchAttestationStatus(profile.id)
+        .then(setAttested)
+        .catch(() => {});
+    }, [profile?.id]),
+  );
+
+  const trophyBadges = useMemo(() => buildTrophyBadges(profile, attested), [profile?.birdieStreakBest, profile?.parStreakBest, attested]);
+  const counts = useMemo(() => trophyCounts(trophyBadges), [trophyBadges]);
 
   const [editingIdentity, setEditingIdentity] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
@@ -41,6 +79,14 @@ export function ProfileScreen({ navigation }: Props) {
   const [bioDraft, setBioDraft] = useState('');
   const [savingBio, setSavingBio] = useState(false);
   const [bioError, setBioError] = useState<string | null>(null);
+
+  const [handicapRoundCount, setHandicapRoundCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (!profile) return;
+    fetchHandicapRecordCount(profile.id)
+      .then(setHandicapRoundCount)
+      .catch(() => {});
+  }, [profile?.id]);
 
   function startEditIdentity() {
     if (!profile) return;
@@ -109,9 +155,6 @@ export function ProfileScreen({ navigation }: Props) {
             <View style={styles.avatarRing}>
               <Avatar initials={getInitials(profile.displayName)} size={88} bordered style={styles.profileAvatar} />
             </View>
-            <View style={styles.cameraBadge}>
-              <Camera size={14} color={palette.white} />
-            </View>
           </View>
 
           {editingIdentity ? (
@@ -141,10 +184,12 @@ export function ProfileScreen({ navigation }: Props) {
 
           <HandicapBadge value={profile.handicap} label="Handicap" variant="orange" size="lg" style={styles.handicapBadge} />
 
-          <View style={styles.autoCountRow}>
-            <RefreshCw size={12} color={colors.textDisabled} />
-            <Text style={styles.autoCountLabel}>Auto-counted from best 8 of last 20 rounds</Text>
-          </View>
+          {handicapRoundCount !== null ? (
+            <View style={styles.autoCountRow}>
+              <RefreshCw size={12} color={colors.textDisabled} />
+              <Text style={styles.autoCountLabel}>{handicapCaption(handicapRoundCount)}</Text>
+            </View>
+          ) : null}
 
           {editingBio ? (
             <View style={styles.bioEditWrap}>
@@ -169,7 +214,7 @@ export function ProfileScreen({ navigation }: Props) {
           )}
 
           <View style={styles.statsRow}>
-            {STATS.map((stat) => (
+            {stats.map((stat) => (
               <Card key={stat.label} style={styles.statCard}>
                 <StatRow value={stat.value} label={stat.label} valueColor={stat.color} />
               </Card>
@@ -181,7 +226,7 @@ export function ProfileScreen({ navigation }: Props) {
               <Text style={styles.sectionLabel}>Trophy cabinet</Text>
               <View style={styles.goldChip}>
                 <Trophy size={12} color={colors.scoreEagle} />
-                <Text style={styles.goldChipLabel}>{GOLD_TROPHIES} gold</Text>
+                <Text style={styles.goldChipLabel}>{counts.gold} gold</Text>
               </View>
             </View>
             <Pressable onPress={() => navigation.navigate('TrophyCabinet')}>
@@ -191,24 +236,24 @@ export function ProfileScreen({ navigation }: Props) {
 
           <View style={styles.progressRow}>
             <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${PROGRESS_PERCENT}%` }]} />
+              <View style={[styles.progressFill, { width: `${counts.progressPercent}%` }]} />
             </View>
             <Text style={styles.progressLabel}>
-              {TROPHIES_EARNED} / {TROPHIES_GOAL}
+              {counts.earned} / {counts.total}
             </Text>
           </View>
 
           <FeaturedTrophyCard badge={FEATURED_BADGE} style={styles.featuredCard} />
 
           <View style={styles.cabinetGrid}>
-            {TROPHY_BADGES.map((badge) => (
+            {trophyBadges.map((badge) => (
               <BadgeCard key={badge.name} badge={badge} />
             ))}
           </View>
 
           <View style={styles.footerRow}>
             <Lock size={13} color={colors.textMuted} />
-            <Text style={styles.footerLabel}>{TROPHIES_LOCKED} more to chase</Text>
+            <Text style={styles.footerLabel}>{counts.locked} more to chase</Text>
           </View>
         </ScrollView>
 
@@ -309,19 +354,6 @@ const styles = StyleSheet.create({
   },
   profileAvatar: {
     borderWidth: 3,
-  },
-  cameraBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.primary,
-    borderWidth: 2,
-    borderColor: colors.surfaceCard,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   nameRow: {
     flexDirection: 'row',

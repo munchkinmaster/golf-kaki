@@ -1,5 +1,7 @@
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChevronLeft, Lock, Share2, Trophy } from 'lucide-react-native';
+import { useCallback, useMemo, useState } from 'react';
 import { Share, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -8,15 +10,42 @@ import { Avatar } from '../components/Avatar';
 import { BadgeCard } from '../components/BadgeCard';
 import { FeaturedTrophyCard } from '../components/FeaturedTrophyCard';
 import { IconButton } from '../components/IconButton';
-import { FEATURED_BADGE, GOLD_TROPHIES, PROGRESS_PERCENT, TROPHIES_EARNED, TROPHIES_GOAL, TROPHIES_LOCKED, TROPHY_BADGES } from '../data/trophies';
+import type { AttestationStatus } from '../data/attestations';
+import { fetchAttestationStatus } from '../data/attestations';
+import { getInitials } from '../data/profile';
+import { FEATURED_BADGE, buildTrophyBadges, trophyCounts } from '../data/trophies';
 import type { RootStackParamList } from '../navigation/types';
+import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TrophyCabinet'>;
 
 export function TrophyCabinetScreen({ navigation }: Props) {
+  const { profile, refresh } = useProfile();
+
+  // Same shared-context staleness as ProfileScreen — refetch on focus so a
+  // round finished elsewhere shows up here without a manual reload.
+  useFocusEffect(
+    useCallback(() => {
+      refresh().catch(() => {});
+    }, [refresh]),
+  );
+
+  const [attested, setAttested] = useState<AttestationStatus>({ birdieStreak: false, parStreak: false });
+  useFocusEffect(
+    useCallback(() => {
+      if (!profile) return;
+      fetchAttestationStatus(profile.id)
+        .then(setAttested)
+        .catch(() => {});
+    }, [profile?.id]),
+  );
+
+  const trophyBadges = useMemo(() => buildTrophyBadges(profile, attested), [profile?.birdieStreakBest, profile?.parStreakBest, attested]);
+  const counts = useMemo(() => trophyCounts(trophyBadges), [trophyBadges]);
+
   const onShare = () => {
-    Share.share({ message: `${TROPHIES_EARNED} of ${TROPHIES_GOAL} trophies earned on Golf Kaki — ${GOLD_TROPHIES} gold.` }).catch(() => {});
+    Share.share({ message: `${counts.earned} of ${counts.total} trophies earned on Golf Kaki — ${counts.gold} gold.` }).catch(() => {});
   };
 
   return (
@@ -34,22 +63,22 @@ export function TrophyCabinetScreen({ navigation }: Props) {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <View style={styles.profileRow}>
             <View style={styles.avatarRing}>
-              <Avatar initials="WL" size={52} bordered />
+              <Avatar initials={getInitials(profile?.displayName ?? '')} size={52} bordered />
             </View>
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>Wei Liang</Text>
+              <Text style={styles.profileName}>{profile?.displayName ?? ''}</Text>
               <Text style={styles.profileSub}>
-                {TROPHIES_EARNED} of {TROPHIES_GOAL} trophies earned
+                {counts.earned} of {counts.total} trophies earned
               </Text>
             </View>
             <View style={styles.goldChip}>
               <Trophy size={13} color={colors.scoreEagle} />
-              <Text style={styles.goldChipLabel}>{GOLD_TROPHIES} gold</Text>
+              <Text style={styles.goldChipLabel}>{counts.gold} gold</Text>
             </View>
           </View>
 
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${PROGRESS_PERCENT}%` }]} />
+            <View style={[styles.progressFill, { width: `${counts.progressPercent}%` }]} />
           </View>
 
           <FeaturedTrophyCard
@@ -60,14 +89,14 @@ export function TrophyCabinetScreen({ navigation }: Props) {
 
           <Text style={styles.sectionLabel}>The cabinet</Text>
           <View style={styles.cabinetGrid}>
-            {TROPHY_BADGES.map((badge) => (
+            {trophyBadges.map((badge) => (
               <BadgeCard key={badge.name} badge={badge} />
             ))}
           </View>
 
           <View style={styles.footerRow}>
             <Lock size={13} color={colors.textMuted} />
-            <Text style={styles.footerLabel}>{TROPHIES_LOCKED} more to chase</Text>
+            <Text style={styles.footerLabel}>{counts.locked} more to chase</Text>
           </View>
         </ScrollView>
       </SafeAreaView>

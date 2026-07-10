@@ -11,6 +11,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { MatchupEditorPlayer, PairSetting } from '../components/MatchupEditor';
 import { fetchLedgerStrokesForGroup, updateLedgerStrokes } from '../data/kaki';
+import { recalculateAndSaveHandicap } from '../data/handicap';
+import { recalculateAndSaveStreaks } from '../data/streaks';
 import { fetchMatchLobby, fetchMatchups, upsertMatchup } from '../data/matches';
 import type { MatchStatus, MatchupPair, StrokeMode } from '../data/matches';
 import { fetchCourseCatalog, getComboHoles } from '../data/courses';
@@ -264,6 +266,8 @@ export function useLiveRound(matchId: string) {
     if (!isHostViewer) return;
     await finishMatch(matchId);
     await syncLedger();
+    if (viewerId) await recalculateAndSaveHandicap(viewerId, matchId).catch(() => {});
+    if (viewerId) await recalculateAndSaveStreaks(viewerId).catch(() => {});
     setMatchStatus('finished');
   }
 

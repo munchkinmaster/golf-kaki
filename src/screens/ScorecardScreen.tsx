@@ -3,10 +3,12 @@ import {
   ChevronLeft,
   CircleCheckBig,
   Flag,
+  Flame,
   List,
   Minus,
   Plus,
   RefreshCw,
+  Repeat,
   Save,
   Trophy,
   Users,
@@ -17,9 +19,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { ScoreBadge } from '../components/ScoreBadge';
+import type { UnlockCelebration } from '../components/UnlockCelebrationModal';
+import { UnlockCelebrationModal } from '../components/UnlockCelebrationModal';
 import { computeThru, getFlags, pairwiseResult, sumRange } from '../data/round';
+import {
+  BIRDIE_STREAK_LEGENDARY,
+  BIRDIE_STREAK_MIN,
+  PAR_STREAK_EPIC,
+  PAR_STREAK_LEGENDARY,
+  PAR_STREAK_MIN,
+  crossedNewMilestone,
+  previewLiveStreaks,
+} from '../data/streaks';
 import { useLiveRound } from '../hooks/useLiveRound';
 import type { RootStackParamList } from '../navigation/types';
+import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Scorecard'>;
@@ -28,6 +42,31 @@ type Nine = 'front' | 'back';
 
 function firstName(name: string) {
   return name.split(' ')[0];
+}
+
+function birdieCelebration(best: number): UnlockCelebration {
+  const legendary = best >= BIRDIE_STREAK_LEGENDARY;
+  return {
+    icon: Flame,
+    headline: legendary ? 'Legendary streak!' : 'Birdie streak!',
+    description: legendary
+      ? `${best} birdies in a row. That's a clubhouse story right there, kaki.`
+      : `${best} birdies in a row. Keep it going.`,
+    shareMessage: `${best} birdies in a row on Golf Kaki! Track score · add fun.`,
+  };
+}
+
+function parCelebration(best: number): UnlockCelebration {
+  const legendary = best >= PAR_STREAK_LEGENDARY;
+  const epic = best >= PAR_STREAK_EPIC;
+  return {
+    icon: Repeat,
+    headline: legendary ? 'Legendary streak!' : epic ? 'Epic streak!' : 'Par streak!',
+    description: legendary
+      ? `${best} pars in a row. Ice in the veins.`
+      : `${best} pars in a row. Steady as she goes.`,
+    shareMessage: `${best} pars in a row on Golf Kaki! Track score · add fun.`,
+  };
 }
 
 type ResultTint = 'win' | 'lose' | 'halve' | null;
@@ -49,6 +88,24 @@ export function ScorecardScreen({ navigation, route }: Props) {
     adjustScore,
     refresh: refreshRound,
   } = useLiveRound(matchId);
+
+  // Live "just crossed a streak threshold" detection, scoped to the viewer's
+  // own card only (matches the self-only RLS on profiles.birdie/par_streak_best
+  // — a card entered on someone else's behalf can't recalc their stats either).
+  // Baselines seed once from the profile fetched at sign-in/last recalc and
+  // only ever move forward as holes are entered this session; comparing each
+  // new check against them is what detects a *new* milestone rather than
+  // re-celebrating a streak the player already has.
+  const { profile } = useProfile();
+  const birdieBaseline = useRef<number | null>(null);
+  const parBaseline = useRef<number | null>(null);
+  useEffect(() => {
+    if (profile && birdieBaseline.current === null) {
+      birdieBaseline.current = profile.birdieStreakBest ?? 0;
+      parBaseline.current = profile.parStreakBest ?? 0;
+    }
+  }, [profile]);
+  const [celebrationQueue, setCelebrationQueue] = useState<UnlockCelebration[]>([]);
 
   // `thru` is how many holes every roster player has fully scored — the live
   // hole still being entered is always `thru + 1`. `activeHole`/
@@ -121,12 +178,54 @@ export function ScorecardScreen({ navigation, route }: Props) {
     adjustScore(activePlayerKey, activeHole - 1, delta);
   }
 
+  // Fire-and-forget: checks whether the hole just committed for the viewer's
+  // own card (not one entered on their behalf) newly crosses a Birdie/Par
+  // Streak threshold, using the same computation as the authoritative
+  // post-round recalc (src/data/streaks.ts's previewLiveStreaks) plus this
+  // round's holes-so-far. A failed check just means no live celebration —
+  // the real value still gets recomputed and saved when the round finishes.
+  async function checkForUnlock() {
+    if (!viewerId || !editingOwnCard || !onLiveHole) return;
+    if (birdieBaseline.current === null || parBaseline.current === null) return;
+    const justSavedPar = activeHoleData?.par;
+    if (justSavedPar == null) return;
+
+    const priorDiffs: number[] = [];
+    for (let i = 0; i < activeHole - 1; i++) {
+      const g = gross[viewerId]?.[i];
+      const par = holes[i]?.par;
+      if (g != null && par != null) priorDiffs.push(g - par);
+    }
+    const inProgressDiffs = [...priorDiffs, activeScore - justSavedPar];
+
+    try {
+      const { birdieBest, parBest } = await previewLiveStreaks(viewerId, inProgressDiffs);
+      const newCelebrations: UnlockCelebration[] = [];
+      if (crossedNewMilestone(birdieBaseline.current, birdieBest, [BIRDIE_STREAK_MIN, BIRDIE_STREAK_LEGENDARY])) {
+        newCelebrations.push(birdieCelebration(birdieBest));
+      }
+      birdieBaseline.current = birdieBest;
+      if (crossedNewMilestone(parBaseline.current, parBest, [PAR_STREAK_MIN, PAR_STREAK_EPIC, PAR_STREAK_LEGENDARY])) {
+        newCelebrations.push(parCelebration(parBest));
+      }
+      parBaseline.current = parBest;
+      if (newCelebrations.length > 0) setCelebrationQueue((queue) => [...queue, ...newCelebrations]);
+    } catch {
+      // Best-effort — see comment above.
+    }
+  }
+
+  function dismissCelebration() {
+    setCelebrationQueue((queue) => queue.slice(1));
+  }
+
   function saveActiveScore() {
     // A player who never touches the +/- stepper (e.g. they made the
     // displayed default score) would otherwise leave this hole completely
     // unwritten — commit whatever's currently shown so `thru` can advance
     // once everyone's card actually has a row for this hole.
     if (activePlayerKey) adjustScore(activePlayerKey, activeHole - 1, 0);
+    checkForUnlock();
 
     if (onLiveHole && roundComplete) {
       navigation.navigate('Finish', { matchId, matchName, courseName, gameModeName });
@@ -369,6 +468,8 @@ export function ScorecardScreen({ navigation, route }: Props) {
           </Pressable>
         </View>
       </SafeAreaView>
+
+      <UnlockCelebrationModal celebration={celebrationQueue[0] ?? null} onDismiss={dismissCelebration} />
     </View>
   );
 }

@@ -4,8 +4,10 @@ import {
   Check,
   ChevronRight,
   Flag,
+  Flame,
   MapPin,
   Plus,
+  Repeat,
   Target,
   Trophy,
   UserPlus,
@@ -22,6 +24,8 @@ import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { HandicapBadge } from '../components/HandicapBadge';
+import type { AttestableBadge } from '../data/attestations';
+import { attestBadge, fetchAttestableBadges } from '../data/attestations';
 import type { FriendRequest } from '../data/kaki';
 import { acceptFriendRequest, fetchKakiOverview, removeKakiRelationship } from '../data/kaki';
 import type { MatchInvite } from '../data/matches';
@@ -51,15 +55,17 @@ export function HomeScreen({ navigation }: Props) {
   const { profile, error, refresh } = useProfile();
   const [matchInvites, setMatchInvites] = useState<MatchInvite[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
+  const [attestableBadges, setAttestableBadges] = useState<AttestableBadge[]>([]);
   const [liveRounds, setLiveRounds] = useState<RoundSummary[]>([]);
   const [pastRounds, setPastRounds] = useState<RoundSummary[]>([]);
 
-  const notificationCount = matchInvites.length + friendRequests.length;
+  const notificationCount = matchInvites.length + friendRequests.length + attestableBadges.length;
 
   const loadNotifications = useCallback(async (viewerId: string) => {
-    const [invites, overview] = await Promise.all([fetchMatchInvites(viewerId), fetchKakiOverview(viewerId)]);
+    const [invites, overview, attestable] = await Promise.all([fetchMatchInvites(viewerId), fetchKakiOverview(viewerId), fetchAttestableBadges(viewerId)]);
     setMatchInvites(invites);
     setFriendRequests(overview.requests);
+    setAttestableBadges(attestable);
   }, []);
 
   const loadRounds = useCallback(async (viewerId: string) => {
@@ -125,6 +131,11 @@ export function HomeScreen({ navigation }: Props) {
   async function handleIgnoreFriendRequest(request: FriendRequest) {
     setFriendRequests((prev) => prev.filter((r) => r.relationshipId !== request.relationshipId));
     removeKakiRelationship(request.relationshipId).catch(() => setFriendRequests((prev) => [...prev, request]));
+  }
+
+  async function handleAttestBadge(badge: AttestableBadge) {
+    setAttestableBadges((prev) => prev.filter((b) => !(b.playerId === badge.playerId && b.badgeType === badge.badgeType)));
+    attestBadge(badge.playerId, badge.badgeType, profile!.id).catch(() => setAttestableBadges((prev) => [...prev, badge]));
   }
 
   if (!profile) {
@@ -199,6 +210,14 @@ export function HomeScreen({ navigation }: Props) {
                   colorIndex={index}
                   onIgnore={() => handleIgnoreFriendRequest(request)}
                   onAccept={() => handleAcceptFriendRequest(request)}
+                />
+              ))}
+              {attestableBadges.map((badge, index) => (
+                <BadgeAttestationCard
+                  key={`${badge.playerId}:${badge.badgeType}`}
+                  badge={badge}
+                  colorIndex={index}
+                  onConfirm={() => handleAttestBadge(badge)}
                 />
               ))}
             </View>
@@ -451,6 +470,51 @@ function FriendRequestCard({
         <Pressable style={styles.notifActionPrimary} onPress={onAccept}>
           <UserPlus size={16} color={palette.white} />
           <Text style={styles.notifActionAccentLabel}>Accept</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+function badgeTypeLabel(badgeType: AttestableBadge['badgeType']): string {
+  return badgeType === 'birdie_streak' ? 'birdie streak' : 'par streak';
+}
+
+function BadgeAttestationCard({
+  badge,
+  colorIndex,
+  onConfirm,
+}: {
+  badge: AttestableBadge;
+  colorIndex: number;
+  onConfirm: () => void;
+}) {
+  const playerColor = getPlayerColors(colorIndex);
+  const Icon = badge.badgeType === 'birdie_streak' ? Flame : Repeat;
+
+  return (
+    <View style={[styles.notifCard, styles.notifCardFriend]}>
+      <View style={styles.notifTopRow}>
+        <Avatar initials={getInitials(badge.playerName)} size={42} backgroundColor={playerColor.background} color={playerColor.color} />
+        <View style={styles.notifBody}>
+          <Text style={styles.notifLead}>
+            <Text style={styles.notifLeadStrong}>{badge.playerName}</Text>'s {badgeTypeLabel(badge.badgeType)}
+          </Text>
+          <View style={styles.notifMetaRow}>
+            <View style={styles.notifMetaItem}>
+              <Icon size={13} color={colors.textDisabled} />
+              <Text style={styles.notifMetaText}>{badge.streakLength} in a row</Text>
+            </View>
+          </View>
+        </View>
+        <View style={[styles.newPill, styles.newPillGreen]}>
+          <Text style={[styles.newPillLabel, styles.newPillLabelGreen]}>New</Text>
+        </View>
+      </View>
+      <View style={styles.notifActions}>
+        <Pressable style={styles.notifActionPrimary} onPress={onConfirm}>
+          <Check size={16} color={palette.white} />
+          <Text style={styles.notifActionAccentLabel}>Confirm</Text>
         </Pressable>
       </View>
     </View>

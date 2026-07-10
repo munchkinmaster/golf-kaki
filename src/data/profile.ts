@@ -12,6 +12,10 @@ export type Profile = {
   bio: string | null;
   avatarPath: string | null;
   location: string | null;
+  /** Longest-ever run of consecutive birdie-or-better holes. Null until earned. */
+  birdieStreakBest: number | null;
+  /** Longest-ever run of consecutive exact-par holes. Null until earned. */
+  parStreakBest: number | null;
 };
 
 type ProfileRow = {
@@ -22,9 +26,12 @@ type ProfileRow = {
   bio: string | null;
   avatar_path: string | null;
   location: string | null;
+  birdie_streak_best: number | null;
+  par_streak_best: number | null;
 };
 
-const PROFILE_COLUMNS = 'id, display_name, handle, handicap, bio, avatar_path, location';
+const PROFILE_COLUMNS =
+  'id, display_name, handle, handicap, bio, avatar_path, location, birdie_streak_best, par_streak_best';
 
 function fromRow(row: ProfileRow): Profile {
   return {
@@ -35,6 +42,8 @@ function fromRow(row: ProfileRow): Profile {
     bio: row.bio,
     avatarPath: row.avatar_path,
     location: row.location,
+    birdieStreakBest: row.birdie_streak_best,
+    parStreakBest: row.par_streak_best,
   };
 }
 

@@ -128,6 +128,26 @@ async function summarizeMatch(match: MatchRow, roster: RoundPlayer[], viewerId: 
   };
 }
 
+/**
+ * Profile stat-strip numbers derived from a viewer's finished rounds: total
+ * played, their best (lowest) gross score, and win count. "Best" only looks
+ * at fully completed 18-hole rounds — same scope restriction as the
+ * Handicap Index (src/data/handicap.ts) — so a partial or 9-hole round
+ * can't misleadingly outscore a real 18-hole one. "Wins" has no such
+ * restriction — any finished round (9 or 18 holes) the viewer ended up
+ * positive money on counts, regardless of leaderboard rank.
+ */
+export function profileRoundStats(summaries: RoundSummary[]): { rounds: number; best: number | null; wins: number } {
+  const completedGross = summaries
+    .filter((r) => r.holesToPlay === 18 && r.thru === 18 && r.viewerGross !== null)
+    .map((r) => r.viewerGross as number);
+  return {
+    rounds: summaries.length,
+    best: completedGross.length > 0 ? Math.min(...completedGross) : null,
+    wins: summaries.filter((r) => r.viewerMoney !== null && r.viewerMoney > 0).length,
+  };
+}
+
 /** Every match the viewer has joined (not just invited to) with the given status, newest first. */
 export async function fetchRoundSummaries(viewerId: string, status: 'live' | 'finished'): Promise<RoundSummary[]> {
   return withRetry(() => fetchRoundSummariesOnce(viewerId, status));

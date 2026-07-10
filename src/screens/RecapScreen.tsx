@@ -8,6 +8,8 @@ import { StatusBar } from 'expo-status-bar';
 import { ScoreBadge } from '../components/ScoreBadge';
 import { getNextRoundDeals, grossTotal, money, moneyLabel, pairwiseTotal, record, runningUp, scoreClassCounts, sumRange, upLabel } from '../data/round';
 import type { StrokeMode } from '../data/round';
+import { recalculateAndSaveHandicap } from '../data/handicap';
+import { recalculateAndSaveStreaks } from '../data/streaks';
 import { useLiveRound } from '../hooks/useLiveRound';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
@@ -35,10 +37,14 @@ export function RecapScreen({ navigation, route }: Props) {
   useEffect(() => {
     if (matchStatus !== 'finished' || ledgerSynced.current) return;
     ledgerSynced.current = true;
-    syncLedger().catch(() => {
+    Promise.all([
+      syncLedger(),
+      viewerId ? recalculateAndSaveHandicap(viewerId, matchId) : Promise.resolve(),
+      viewerId ? recalculateAndSaveStreaks(viewerId) : Promise.resolve(),
+    ]).catch(() => {
       ledgerSynced.current = false;
     });
-  }, [matchStatus, syncLedger]);
+  }, [matchStatus, syncLedger, viewerId, matchId]);
 
   const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
 
