@@ -1,0 +1,34 @@
+@import './colors.css';
+@import './typography.css';
+@import './spacing.css';
+@import './radius.css';
+@import './base.css';
+
+* {
+  box-sizing: border-box;
+}
+
+input::placeholder {
+  color: var(--ink-400);
+  font-weight: 500;
+}
+
+button {
+  font: inherit;
+}
+
+.gk-course-row:hover {
+  background: var(--sand-50) !important;
+}
+.gk-course-row .gk-row-edit {
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+.gk-course-row:hover .gk-row-edit {
+  opacity: 1;
+}
+
+.gk-nine-delete:not(:disabled):hover {
+  background: var(--orange-100) !important;
+  color: var(--status-danger) !important;
+}

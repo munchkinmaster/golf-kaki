@@ -1,0 +1,50 @@
+-- Seed data for Tasik Puteri Golf & Country Club — the one real course this app
+-- was built and tested against. It existed directly in the dev project's database
+-- (added by hand via the SQL editor, never captured as a migration) until now.
+-- Several later migrations assume it already exists — the course_combo_ratings
+-- insert in handicap_index.sql, and the stroke-index correction in
+-- fix_putera_stroke_index.sql — so this has to run immediately after
+-- course_catalog.sql creates the tables. Values here are the corrected/final
+-- numbers, matching what fix_putera_stroke_index.sql later (harmlessly,
+-- redundantly) re-applies.
+
+insert into courses (id, name, area) values ('tasik-puteri', 'Tasik Puteri Golf & Country Club', 'Rawang');
+
+insert into course_nines (course_id, nine_id, name) values
+  ('tasik-puteri', 'puteri', 'Puteri'),
+  ('tasik-puteri', 'putera', 'Putera'),
+  ('tasik-puteri', 'tasik', 'Tasik');
+
+insert into course_holes (course_id, nine_id, hole_n, par, yardage_black, yardage_blue, yardage_white, yardage_red, si_by_partner) values
+  ('tasik-puteri', 'puteri', 1, 4, 362, 344, 324, 311, '{"tasik": 5, "putera": 5}'),
+  ('tasik-puteri', 'puteri', 2, 4, 392, 365, 342, 325, '{"tasik": 1, "putera": 1}'),
+  ('tasik-puteri', 'puteri', 3, 3, 150, 139, 122, 102, '{"tasik": 17, "putera": 17}'),
+  ('tasik-puteri', 'puteri', 4, 5, 450, 432, 416, 400, '{"tasik": 9, "putera": 9}'),
+  ('tasik-puteri', 'puteri', 5, 4, 359, 335, 312, 294, '{"tasik": 11, "putera": 11}'),
+  ('tasik-puteri', 'puteri', 6, 4, 388, 363, 330, 305, '{"tasik": 13, "putera": 13}'),
+  ('tasik-puteri', 'puteri', 7, 5, 465, 450, 422, 386, '{"tasik": 15, "putera": 15}'),
+  ('tasik-puteri', 'puteri', 8, 3, 192, 188, 155, 130, '{"tasik": 3, "putera": 3}'),
+  ('tasik-puteri', 'puteri', 9, 4, 329, 324, 315, 292, '{"tasik": 7, "putera": 7}'),
+  ('tasik-puteri', 'putera', 1, 4, 402, 383, 365, 351, '{"tasik": 4, "puteri": 4}'),
+  ('tasik-puteri', 'putera', 2, 4, 347, 344, 327, 312, '{"tasik": 6, "puteri": 6}'),
+  ('tasik-puteri', 'putera', 3, 4, 372, 343, 322, 305, '{"tasik": 10, "puteri": 10}'),
+  ('tasik-puteri', 'putera', 4, 5, 442, 413, 386, 366, '{"tasik": 16, "puteri": 16}'),
+  ('tasik-puteri', 'putera', 5, 3, 143, 125, 116, 92, '{"tasik": 14, "puteri": 14}'),
+  ('tasik-puteri', 'putera', 6, 4, 370, 347, 327, 307, '{"tasik": 18, "puteri": 18}'),
+  ('tasik-puteri', 'putera', 7, 5, 498, 488, 443, 416, '{"tasik": 2, "puteri": 2}'),
+  ('tasik-puteri', 'putera', 8, 3, 212, 191, 169, 152, '{"tasik": 12, "puteri": 12}'),
+  ('tasik-puteri', 'putera', 9, 4, 333, 318, 302, 288, '{"tasik": 8, "puteri": 8}'),
+  ('tasik-puteri', 'tasik', 1, 4, 424, 410, 370, 357, '{"putera": 11, "puteri": 12}'),
+  ('tasik-puteri', 'tasik', 2, 5, 512, 497, 486, 445, '{"putera": 5, "puteri": 6}'),
+  ('tasik-puteri', 'tasik', 3, 4, 444, 431, 400, 371, '{"putera": 9, "puteri": 10}'),
+  ('tasik-puteri', 'tasik', 4, 3, 218, 197, 186, 168, '{"putera": 1, "puteri": 2}'),
+  ('tasik-puteri', 'tasik', 5, 4, 397, 375, 361, 348, '{"putera": 13, "puteri": 14}'),
+  ('tasik-puteri', 'tasik', 6, 3, 181, 146, 134, 118, '{"putera": 15, "puteri": 16}'),
+  ('tasik-puteri', 'tasik', 7, 4, 388, 368, 351, 336, '{"putera": 7, "puteri": 8}'),
+  ('tasik-puteri', 'tasik', 8, 4, 427, 401, 383, 358, '{"putera": 3, "puteri": 4}'),
+  ('tasik-puteri', 'tasik', 9, 5, 498, 485, 476, 466, '{"putera": 17, "puteri": 18}');
+
+insert into course_combos (course_id, combo_id, label, front_nine_id, back_nine_id) values
+  ('tasik-puteri', 'puteri-putera', 'Puteri + Putera', 'puteri', 'putera'),
+  ('tasik-puteri', 'putera-tasik', 'Putera + Tasik', 'putera', 'tasik'),
+  ('tasik-puteri', 'tasik-puteri', 'Tasik + Puteri', 'tasik', 'puteri');

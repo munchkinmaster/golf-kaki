@@ -78,15 +78,18 @@ type CourseRow = {
   }[];
 };
 
-/** Fetches every course in the catalog, fully assembled with nines/holes/combos. */
+/** Fetches every published course in the catalog, fully assembled with nines/holes/combos. Draft courses are admin-only and never shown to players. */
 export async function fetchCourseCatalog(): Promise<Course[]> {
-  const { data, error } = await supabase.from('courses').select(
-    `id, name, area,
+  const { data, error } = await supabase
+    .from('courses')
+    .select(
+      `id, name, area,
      course_nines ( nine_id, name,
        course_holes ( hole_n, par, yardage_black, yardage_blue, yardage_white, yardage_red, si_by_partner )
      ),
      course_combos ( combo_id, label, front_nine_id, back_nine_id )`,
-  );
+    )
+    .eq('status', 'published');
 
   if (error) throw error;
 
