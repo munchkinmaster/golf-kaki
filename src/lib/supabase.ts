@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -19,7 +20,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    // On web, Google sign-in does a full-page redirect (see src/lib/googleAuth.ts) rather
+    // than the native in-app-browser flow, so the auth code comes back in this tab's own
+    // URL — let supabase-js pick it up itself instead of the manual exchange native does.
+    detectSessionInUrl: Platform.OS === 'web',
     flowType: 'pkce',
   },
 });

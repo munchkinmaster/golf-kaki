@@ -3,6 +3,7 @@ import { useFonts } from 'expo-font';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { AuthProvider } from './src/state/AuthContext';
 import { ProfileProvider } from './src/state/ProfileContext';
@@ -17,15 +18,17 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <ProfileProvider>
-        <SafeAreaProvider>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        </SafeAreaProvider>
-      </ProfileProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ProfileProvider>
+          <SafeAreaProvider>
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+          </SafeAreaProvider>
+        </ProfileProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

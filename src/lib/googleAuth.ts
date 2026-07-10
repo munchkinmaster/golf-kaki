@@ -3,6 +3,7 @@ import * as AuthSession from 'expo-auth-session';
 // for parsing an OAuth redirect URL (query string or hash fragment) into params.
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import * as WebBrowser from 'expo-web-browser';
+import { Platform } from 'react-native';
 
 import { supabase } from './supabase';
 
@@ -11,14 +12,25 @@ import { supabase } from './supabase';
 WebBrowser.maybeCompleteAuthSession();
 
 /**
- * Opens Google's consent screen via Supabase's OAuth endpoint, then exchanges the
- * PKCE code Supabase redirects back with for a session. Throws on failure. Returns
- * `false` (not an error) if the user backs out of the browser tab without completing
- * sign-in — the caller must check this before treating the flow as successful, since
- * a cancel resolves cleanly rather than throwing.
+ * Starts Google sign-in via Supabase's OAuth endpoint. Throws on failure. Returns
+ * `false` (not an error) if the user backs out without completing sign-in — the
+ * caller must check this before treating the flow as successful, since a cancel
+ * resolves cleanly rather than throwing.
  */
 export async function signInWithGoogle(): Promise<boolean> {
   const redirectTo = AuthSession.makeRedirectUri();
+
+  if (Platform.OS === 'web') {
+    // A full-page redirect rather than the native popup/in-app-browser flow below —
+    // expo-web-browser's web implementation opens the consent screen via window.open(),
+    // which mobile Safari silently blocks once it happens after an `await` (i.e. no
+    // longer counts as a direct result of the tap). A plain navigation isn't subject to
+    // that. supabase-js completes the flow itself on reload (detectSessionInUrl, see
+    // src/lib/supabase.ts), so this function's return value is moot once it navigates.
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+    if (error) throw error;
+    return true;
+  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
