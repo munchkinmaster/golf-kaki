@@ -148,9 +148,86 @@ Exact copy, paddings, and colors are in the file — open it in this project's p
 read measurements directly, or read the HTML source (inline styles = the spec).
 
 ## Supplementary surfaces
-- **`Golf Kaki Admin - Add Course.dc.html`** *(hi-fi, desktop/web)* — Internal tool to
-  add a golf course: two-column form (course details + hole-by-hole par/distance) with
-  a live summary panel. Green top bar. Build only if you need course-management tooling.
+
+### Admin — Courses (list) — `Golf Kaki Admin - Courses.dc.html` *(hi-fi, desktop/web)*
+Internal tool: the course catalog list admins land on before adding/editing a course.
+
+- **Layout:** desktop web, max-width 1180px centered column, 26px/28px page padding.
+  Fixed green (`--green-800`) top bar (62px) with Golf Kaki mark + wordmark, an
+  "Admin" pill badge, top nav (Members / **Courses** active, underlined orange /
+  Rounds), and a 34px circular user-initials avatar.
+- **Title row:** "Courses" (Quicksand 700 30px) + muted subhead with live counts
+  ("{{ published }} published · {{ draft }} draft"), and a pill **Add course** button
+  (orange `#FF914D`, white text, orange shadow glow) linking to the Add Course screen.
+- **Stat strip:** 4-column grid of stat cards (Total courses, Published, Drafts, Holes
+  mapped) — each a white card, 30px icon chip (Lucide: `layers`, `circle-check`,
+  `file-pen`, `flag`), label, and a large Space Grotesk number.
+- **Toolbar:** pill search input with `search` icon (filters by name/location) +
+  segmented filter tabs (All / Published / Drafts) each with a count badge, selected
+  tab is white on sand-200 track.
+- **Table:** white card, rounded 16px, column header row (Course / Holes / Par / Tees /
+  Status / Last edited / chevron) on sand-50. Rows: 40px green icon chip (`flag`) +
+  course name (Quicksand 700) + location sub-line (`map-pin` icon), holes/par in
+  numeric font, tee dots (colored circles per tee color), status pill (Published =
+  green, Draft = sand/grey, with a small dot), last-edited relative date, and a
+  chevron-right that fades in on row hover (`.gk-course-row:hover`). Rows are clickable
+  (intended destination: edit that course — currently opens nowhere, wire to the Add
+  Course screen pre-filled with the row's data).
+- **Empty state:** centered `search-x` icon, "No courses found" + hint, shown when
+  search/filter yields zero rows.
+- **Footer:** "Showing N of M courses" + "Synced just now" with a clock icon.
+- **Data model (mock, in-file):** 8 seeded courses, each `{ name, sub (club ·
+  location), holes, par, tees: [tee-key,…], status: 'published'|'draft', edited }`.
+  Tee keys map to a small palette (black/blue/white/red — color + ring hex). No live
+  API — replace `data()` with a real courses fetch.
+- **State:** `query` (search string), `filter` ('all'|'published'|'draft'). All
+  filtering/derivation happens client-side over the mock array.
+- **Routing:** "Add course" button and (should-be) row click → Add Course screen.
+
+### Admin — Add course — `Golf Kaki Admin - Add Course.dc.html` *(hi-fi, desktop/web)*
+Form to create (or, once wired, edit) a single course. Same top bar/nav as the list,
+plus a breadcrumb ("Courses › Add course").
+
+- **Layout:** two-column grid, `1fr 336px`, 26px gap. Left column is the scrollable
+  form; right column is `position: sticky` (summary + publish actions stay in view).
+- **Header:** title "Add a course" + helper copy, ghost **Cancel** button (top-right).
+- **Success banner:** conditional green banner ("Course published") shown after Save,
+  dismissible, summarizes name + tee count.
+- **Course details card:** Course name / Club-facility / Location text inputs (uses
+  the design-system `Input` component) + a segmented **18 holes / 9 holes** toggle.
+- **Tees card:** editable table of tees — colored dot (assigned from a 6-color
+  palette: Black/Blue/White/Red/Gold/Green), editable name, course rating (decimal),
+  slope (integer, validated 55–155), computed total distance, remove button. Clicking
+  a row makes it the "active" tee (highlighted, green left-bar) whose distances show
+  in the Holes table below. **Add tee** button (disabled once all 6 palette colors
+  used).
+- **Holes card:** per-hole Par (3/4/5 segmented buttons) and Stroke Index (numeric
+  input, validated unique 1..N, flags duplicates/out-of-range in red) — shared across
+  all tees. A tee-color pill switcher lets the admin pick which tee's **distances**
+  column is shown/edited (distance is per-tee, everything else is shared). Front
+  nine / Back nine grouped sections each with a Par/meters subtotal row; back nine
+  hidden when "9 holes" is selected. Bottom total row (green background) sums par +
+  distance across all holes.
+- **Right rail:** 
+  - Green **course preview** card (emblem watermark) mirroring name/location, 3 stat
+    tiles (Total par, Holes, Tees), and small tee chips with their rating.
+  - **"Before you publish" checklist** — 5 live-validated items (name added; SI 1–N
+    no repeats; ≥1 tee; rating & slope on every tee; distances set on every tee) —
+    each dot fills green + checkmark when satisfied, grey + dash otherwise.
+  - **Actions:** accent **Publish course** button (disabled logic via `canSave`,
+    though visually always enabled — recommend disabling the button itself in
+    implementation once checklist fails), secondary **Save as draft** button, and a
+    "Resolve the checklist to publish" hint show when incomplete.
+- **State:** all form fields hooked to component state (`name`, `club`, `location`,
+  `holesCount`, `holes[]` with `{par, si}`, `tees[]` with `{name, color, ring, rating,
+  slope, dist[]}`, `activeTee`, `saved`). Validation is derived, not stored. No
+  persistence — Publish just flips a local `saved` flag; wire to a real create/update
+  course API + navigate back to the list on success.
+- **Routing:** Cancel / breadcrumb → back to Courses list. Publish → (once wired)
+  create course, show success, return to list.
+
+Build only if/when you need course-management tooling for admins.
+
 - **`Golf Kaki Trophy Cabinet.dc.html`** *(hi-fi)* — Achievement system: a 3-tier badge
   scheme (tier legend + badge states), a profile "trophy cabinet" grid, and a full-screen
   "unlock moment" celebration (gold radial glow on green).
@@ -202,7 +279,8 @@ design_handoff_golf_kaki/
 ├── design-files/                 ← HTML design references (read, don't ship)
 │   ├── Golf Kaki Hi-Fi.dc.html              (PRIMARY — hi-fi flow, 11 screens)
 │   ├── Golf Kaki Wireframes.dc.html         (lo-fi structure of same flow)
-│   ├── Golf Kaki Admin - Add Course.dc.html (hi-fi, desktop admin)
+│   ├── Golf Kaki Admin - Courses.dc.html    (hi-fi, desktop admin — course list)
+│   ├── Golf Kaki Admin - Add Course.dc.html (hi-fi, desktop admin — add/edit form)
 │   ├── Golf Kaki Trophy Cabinet.dc.html     (hi-fi, achievements)
 │   └── Golf Kaki Brag Card & Ace Pin.dc.html(hi-fi, share/rewards)
 ├── design-system/                ← THE design tokens (wire into your theme first)

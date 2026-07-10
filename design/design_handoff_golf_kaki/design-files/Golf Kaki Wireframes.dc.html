@@ -22,6 +22,10 @@
     .gkscreen::-webkit-scrollbar{width:0;height:0}
     .gkscreen{scrollbar-width:none}
     .lbl{font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:.04em;color:#5E6B62;text-transform:uppercase;margin-bottom:10px}
+    .section-hd{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+    .section-hd .t{font-family:var(--font-display);font-weight:700;font-size:20px;color:#134914;letter-spacing:-.01em;white-space:nowrap}
+    .section-hd .c{font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8A7F66;background:#EDE6D6;border:1px solid #D8CFB9;padding:4px 10px;border-radius:999px;white-space:nowrap}
+    .section-hd .ln{flex:1;height:1px;background:#C7BFAD}
     @keyframes gkspin{to{transform:rotate(360deg)}}
   </style>
 </helmet>
@@ -32,9 +36,14 @@
     <div style="font-family:var(--font-display);font-weight:700;font-size:26px;color:#134914;letter-spacing:-.01em">Golf Kaki</div>
     <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.18em;color:#1E6E16;text-transform:uppercase">Track score · Add fun</div>
   </div>
-  <div style="font-family:var(--font-body);font-size:14px;color:#5E6B62;margin-bottom:36px">Styled wireframes · mobile · linear flow — Landing → Home → Profile → Select course → Create → Lobby → In-round → Past game</div>
+  <div style="font-family:var(--font-body);font-size:14px;color:#5E6B62;margin-bottom:36px">Styled wireframes · mobile · organised in sections — Core app flow, then Tournament (individual)</div>
 
-  <div style="display:flex;gap:40px;align-items:flex-start">
+  <div style="display:flex;flex-direction:column;gap:56px">
+
+  <!-- ===================== SECTION · CORE APP FLOW ===================== -->
+  <div>
+    <div class="section-hd"><span class="t">Core app flow</span><span class="c">Landing → In-round → Past game</span><span class="ln"></span></div>
+    <div style="display:flex;gap:40px;align-items:flex-start">
 
     <!-- ================= 01 LANDING ================= -->
     <div style="flex:none">
@@ -51,6 +60,7 @@
             <i data-lucide="flag" style="width:46px;height:46px;color:#FF914D"></i>
           </div>
           <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.22em;color:rgba(255,255,255,.55);text-transform:uppercase;margin-bottom:14px">Track score · Add fun</div>
+          <div style="font-family:var(--font-body);font-size:15px;color:rgba(255,255,255,.75);margin-bottom:6px">Welcome</div>
           <div style="font-family:var(--font-display);font-weight:700;font-size:42px;line-height:1.05;color:#fff;letter-spacing:-.01em">Golf Kaki</div>
           <div style="font-family:var(--font-body);font-size:15px;line-height:1.5;color:rgba(255,255,255,.7);margin-top:16px;max-width:250px">Keep score, hand out strokes, and settle the teh tarik — all in one weekend round.</div>
         </div>
@@ -87,6 +97,7 @@
           <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:22px">
             <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px;box-shadow:0 6px 18px rgba(255,145,77,.4)"><i data-lucide="plus" style="width:20px;height:20px"></i>Create a game</div>
             <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#fff;color:#134914;border:1.5px solid #E3D9C0;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px"><i data-lucide="users" style="width:20px;height:20px"></i>Join a game</div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:7px;height:38px;color:#5E6B62;font-family:var(--font-body);font-weight:600;font-size:13px;border:1.5px solid #EFE8D5;border-radius:999px"><i data-lucide="trophy" style="width:15px;height:15px"></i>Create a tournament</div>
           </div>
 
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
@@ -563,17 +574,17 @@
           <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:22px">
             <div style="background:#fff;border:1.5px solid #AED4A9;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
               <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#FFDCC2;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#C75F1E">W</div>
-              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Wei Liang <span style="font-size:10px;font-weight:700;color:#134914;background:#DFEEDC;padding:2px 7px;border-radius:6px;margin-left:4px">HOST</span></div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 7 · joined</div></div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Wei Liang <span style="font-size:10px;font-weight:700;color:#134914;background:#DFEEDC;padding:2px 7px;border-radius:6px;margin-left:4px">HOST</span></div><div style="display:flex;align-items:center;gap:8px;margin-top:3px"><span style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 7 · joined</span><span style="display:inline-flex;align-items:center;gap:5px;background:#F2F6F9;border:1px solid #D6E2EA;border-radius:999px;padding:2px 8px 2px 6px;font-family:var(--font-body);font-weight:600;font-size:10px;color:#33566E;cursor:pointer"><span style="width:9px;height:9px;border-radius:50%;background:#2E6BB0;box-shadow:0 0 0 1.5px #fff,0 0 0 2.5px #2E6BB0"></span>Blue<i data-lucide="chevron-down" style="width:11px;height:11px;color:#7C93A4"></i></span></div></div>
               <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
             </div>
             <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
               <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#DFEEDC;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#134914">M</div>
-              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Marcus</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 2 · joined</div></div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Marcus</div><div style="display:flex;align-items:center;gap:8px;margin-top:3px"><span style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 2 · joined</span><span style="display:inline-flex;align-items:center;gap:5px;background:#F4F4F5;border:1px solid #DDDDE0;border-radius:999px;padding:2px 8px 2px 6px;font-family:var(--font-body);font-weight:600;font-size:10px;color:#3A3A3E;cursor:pointer"><span style="width:9px;height:9px;border-radius:50%;background:#2A2A2E;box-shadow:0 0 0 1.5px #fff,0 0 0 2.5px #2A2A2E"></span>Black<i data-lucide="chevron-down" style="width:11px;height:11px;color:#8A8A90"></i></span></div></div>
               <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
             </div>
             <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
               <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#EFE8D5;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#5E6B62">D</div>
-              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Dinesh</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 16 · joined</div></div>
+              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Dinesh</div><div style="display:flex;align-items:center;gap:8px;margin-top:3px"><span style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 16 · joined</span><span style="display:inline-flex;align-items:center;gap:5px;background:#F5F5F3;border:1px solid #E0DED6;border-radius:999px;padding:2px 8px 2px 6px;font-family:var(--font-body);font-weight:600;font-size:10px;color:#5B5A52;cursor:pointer"><span style="width:9px;height:9px;border-radius:50%;background:#FBFBF7;box-shadow:0 0 0 1.5px #fff,0 0 0 2.5px #C9C6BB"></span>White<i data-lucide="chevron-down" style="width:11px;height:11px;color:#A6A498"></i></span></div></div>
               <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
             </div>
             <div style="border:1.5px dashed #D8CDB4;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px;background:rgba(255,255,255,.4)">
@@ -639,6 +650,90 @@
         </div>
         <div style="padding:12px 18px 22px;background:linear-gradient(to top,var(--surface-page) 70%,transparent)">
           <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px;box-shadow:0 6px 18px rgba(255,145,77,.4)"><i data-lucide="flag" style="width:19px;height:19px"></i>Start round</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 06b TEE PICKER ================= -->
+    <div style="flex:none">
+      <div class="lbl">06b · Match Lobby · Tee picker</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <!-- dimmed lobby underneath -->
+        <div style="position:absolute;inset:0;background:#134914;opacity:.06"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#fff;font-family:var(--font-numeric);font-size:13px;font-weight:600;background:#134914">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="background:#134914;color:#fff;padding:4px 18px 16px;opacity:.55">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:9px"><i data-lucide="chevron-left" style="width:20px;height:20px;color:rgba(255,255,255,.8)"></i><div><div style="font-family:var(--font-display);font-weight:700;font-size:17px">Sat Fourball</div><div style="font-family:var(--font-body);font-size:11px;color:rgba(255,255,255,.6)">Sentosa · 18 holes · Match play</div></div></div>
+          </div>
+        </div>
+        <!-- scrim -->
+        <div style="position:absolute;inset:0;background:rgba(18,40,28,.42)"></div>
+
+        <!-- BOTTOM SHEET -->
+        <div style="position:absolute;left:0;right:0;bottom:0;background:var(--surface-page);border-radius:26px 26px 0 0;box-shadow:0 -12px 40px rgba(14,58,40,.28);display:flex;flex-direction:column;max-height:82%">
+          <div style="display:flex;justify-content:center;padding:9px 0 3px"><div style="width:38px;height:4px;border-radius:999px;background:#D8CDB4"></div></div>
+          <div style="padding:6px 20px 14px;display:flex;align-items:flex-start;justify-content:space-between">
+            <div>
+              <div style="font-family:var(--font-display);font-weight:700;font-size:19px;color:#1C2B22">Select tee</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:3px;font-family:var(--font-body);font-size:12px;color:#8A958C"><span style="width:22px;height:22px;border-radius:50%;background:#FFDCC2;display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:10px;color:#C75F1E">W</span>Wei Liang · Sentosa Serapong</div>
+            </div>
+            <div style="width:30px;height:30px;border-radius:50%;background:#F2EFE6;display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="x" style="width:16px;height:16px;color:#5E6B62"></i></div>
+          </div>
+
+          <div style="overflow-y:auto;padding:0 16px 4px;display:flex;flex-direction:column;gap:9px">
+            <!-- header row -->
+            <div style="display:flex;align-items:center;padding:0 8px 0 46px;font-family:var(--font-body);font-weight:600;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#A89B7C">
+              <span style="flex:1">Tee</span>
+              <span style="width:70px;text-align:center">Rating / Slope</span>
+              <span style="width:60px;text-align:right">Length</span>
+              <span style="width:26px"></span>
+            </div>
+
+            <!-- Black -->
+            <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 12px;cursor:pointer">
+              <span style="width:22px;height:22px;border-radius:50%;flex:none;background:#2A2A2E;box-shadow:0 0 0 2px #fff,0 0 0 3px #2A2A2E"></span>
+              <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Black</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">Championship</div></div>
+              <span style="width:70px;text-align:center;font-family:var(--font-numeric);font-size:12px;color:#5E6B62">73.4 / 138</span>
+              <span style="width:60px;text-align:right;font-family:var(--font-numeric);font-weight:700;font-size:13px;color:#1C2B22">6,610m</span>
+              <span style="width:26px;display:flex;justify-content:flex-end"><span style="width:20px;height:20px;border-radius:50%;border:2px solid #D8CDB4"></span></span>
+            </div>
+
+            <!-- Blue (selected) -->
+            <div style="display:flex;align-items:center;gap:11px;background:#F1F6FA;border:1.5px solid #2E6BB0;border-radius:14px;padding:11px 12px;cursor:pointer">
+              <span style="width:22px;height:22px;border-radius:50%;flex:none;background:#2E6BB0;box-shadow:0 0 0 2px #fff,0 0 0 3px #2E6BB0"></span>
+              <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Blue</div><div style="font-family:var(--font-body);font-size:11px;color:#33566E">Men · recommended</div></div>
+              <span style="width:70px;text-align:center;font-family:var(--font-numeric);font-size:12px;color:#33566E">71.2 / 132</span>
+              <span style="width:60px;text-align:right;font-family:var(--font-numeric);font-weight:700;font-size:13px;color:#1C2B22">6,205m</span>
+              <span style="width:26px;display:flex;justify-content:flex-end"><span style="width:20px;height:20px;border-radius:50%;background:#2E6BB0;display:flex;align-items:center;justify-content:center"><i data-lucide="check" style="width:13px;height:13px;color:#fff"></i></span></span>
+            </div>
+
+            <!-- White -->
+            <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 12px;cursor:pointer">
+              <span style="width:22px;height:22px;border-radius:50%;flex:none;background:#FBFBF7;box-shadow:0 0 0 2px #fff,0 0 0 3px #C9C6BB"></span>
+              <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">White</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">Men · regular</div></div>
+              <span style="width:70px;text-align:center;font-family:var(--font-numeric);font-size:12px;color:#5E6B62">69.6 / 126</span>
+              <span style="width:60px;text-align:right;font-family:var(--font-numeric);font-weight:700;font-size:13px;color:#1C2B22">5,820m</span>
+              <span style="width:26px;display:flex;justify-content:flex-end"><span style="width:20px;height:20px;border-radius:50%;border:2px solid #D8CDB4"></span></span>
+            </div>
+
+            <!-- Red -->
+            <div style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 12px;cursor:pointer">
+              <span style="width:22px;height:22px;border-radius:50%;flex:none;background:#C6413B;box-shadow:0 0 0 2px #fff,0 0 0 3px #C6413B"></span>
+              <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Red</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">Forward</div></div>
+              <span style="width:70px;text-align:center;font-family:var(--font-numeric);font-size:12px;color:#5E6B62">67.8 / 118</span>
+              <span style="width:60px;text-align:right;font-family:var(--font-numeric);font-weight:700;font-size:13px;color:#1C2B22">5,240m</span>
+              <span style="width:26px;display:flex;justify-content:flex-end"><span style="width:20px;height:20px;border-radius:50%;border:2px solid #D8CDB4"></span></span>
+            </div>
+          </div>
+
+          <!-- footer -->
+          <div style="padding:12px 18px 20px;background:linear-gradient(to top,var(--surface-page) 78%,transparent)">
+            <div style="display:flex;align-items:flex-start;gap:7px;margin-bottom:11px;font-family:var(--font-body);font-size:11px;color:#7A6320;background:#FFF9EC;border:1px solid #F0E0B0;border-radius:10px;padding:9px 11px"><i data-lucide="info" style="width:14px;height:14px;color:#C98A23;flex:none;margin-top:1px"></i><span style="line-height:1.5">Course handicap recalculates from the tee's rating &amp; slope.</span></div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:9px;height:52px;background:#134914;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:16px"><i data-lucide="check" style="width:18px;height:18px"></i>Confirm Blue tee</div>
+          </div>
         </div>
       </div>
     </div>
@@ -881,25 +976,57 @@
             <div style="display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body);font-size:11px;color:#1E8A4C"><span style="width:6px;height:6px;border-radius:50%;background:#1E8A4C;display:inline-block"></span>All in</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:22px">
-            <div style="background:#fff;border:1.5px solid #AED4A9;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
-              <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#FFDCC2;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#C75F1E">W</div>
-              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Wei Liang <span style="font-size:10px;font-weight:700;color:#134914;background:#DFEEDC;padding:2px 7px;border-radius:6px;margin-left:4px">YOU</span></div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 7 · joined</div></div>
-              <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+            <div style="background:#fff;border:1.5px solid #AED4A9;border-radius:14px;overflow:hidden">
+              <div style="padding:11px 13px;display:flex;align-items:center;gap:11px">
+                <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#FFDCC2;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#C75F1E">W</div>
+                <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Wei Liang <span style="font-size:10px;font-weight:700;color:#134914;background:#DFEEDC;padding:2px 7px;border-radius:6px;margin-left:4px">YOU</span></div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 7 · joined</div></div>
+                <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+              </div>
+              <div onClick="{{ teeW.onClick }}" style="{{ teeW.rowStyle }}">
+                <span style="{{ teeW.dotStyle }}"></span>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:12.5px;color:#1C2B22">{{ teeW.name }} tee</div><div style="font-family:var(--font-numeric);font-size:10.5px;font-weight:600;color:#8A958C;margin-top:1px">{{ teeW.meta }}</div></div>
+                <sc-if value="{{ teeW.editable }}" hint-placeholder-val="{{ true }}"><span style="font-family:var(--font-body);font-weight:600;font-size:11px;color:#134914">Change</span><i data-lucide="chevron-right" style="width:15px;height:15px;color:#C9BFA6"></i></sc-if>
+                <sc-if value="{{ teeW.readOnly }}" hint-placeholder-val="{{ false }}"><i data-lucide="lock" style="width:13px;height:13px;color:#C9BFA6"></i></sc-if>
+              </div>
             </div>
-            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
-              <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#DFEEDC;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#134914">M</div>
-              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Marcus <span style="font-size:10px;font-weight:700;color:#C75F1E;background:#FFEEE0;padding:2px 7px;border-radius:6px;margin-left:4px">HOST</span></div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 2 · joined</div></div>
-              <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;overflow:hidden">
+              <div style="padding:11px 13px;display:flex;align-items:center;gap:11px">
+                <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#DFEEDC;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#134914">M</div>
+                <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Marcus <span style="font-size:10px;font-weight:700;color:#C75F1E;background:#FFEEE0;padding:2px 7px;border-radius:6px;margin-left:4px">HOST</span></div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 2 · joined</div></div>
+                <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+              </div>
+              <div onClick="{{ teeM.onClick }}" style="{{ teeM.rowStyle }}">
+                <span style="{{ teeM.dotStyle }}"></span>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:12.5px;color:#1C2B22">{{ teeM.name }} tee</div><div style="font-family:var(--font-numeric);font-size:10.5px;font-weight:600;color:#8A958C;margin-top:1px">{{ teeM.meta }}</div></div>
+                <sc-if value="{{ teeM.editable }}" hint-placeholder-val="{{ false }}"><span style="font-family:var(--font-body);font-weight:600;font-size:11px;color:#134914">Change</span><i data-lucide="chevron-right" style="width:15px;height:15px;color:#C9BFA6"></i></sc-if>
+                <sc-if value="{{ teeM.readOnly }}" hint-placeholder-val="{{ true }}"><i data-lucide="lock" style="width:13px;height:13px;color:#C9BFA6"></i></sc-if>
+              </div>
             </div>
-            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
-              <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#F3E0E8;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#9C4A6E">J</div>
-              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Jia Hui</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 11 · joined</div></div>
-              <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;overflow:hidden">
+              <div style="padding:11px 13px;display:flex;align-items:center;gap:11px">
+                <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#F3E0E8;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#9C4A6E">J</div>
+                <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Jia Hui</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 11 · joined</div></div>
+                <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+              </div>
+              <div onClick="{{ teeJ.onClick }}" style="{{ teeJ.rowStyle }}">
+                <span style="{{ teeJ.dotStyle }}"></span>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:12.5px;color:#1C2B22">{{ teeJ.name }} tee</div><div style="font-family:var(--font-numeric);font-size:10.5px;font-weight:600;color:#8A958C;margin-top:1px">{{ teeJ.meta }}</div></div>
+                <sc-if value="{{ teeJ.editable }}" hint-placeholder-val="{{ false }}"><span style="font-family:var(--font-body);font-weight:600;font-size:11px;color:#134914">Change</span><i data-lucide="chevron-right" style="width:15px;height:15px;color:#C9BFA6"></i></sc-if>
+                <sc-if value="{{ teeJ.readOnly }}" hint-placeholder-val="{{ true }}"><i data-lucide="lock" style="width:13px;height:13px;color:#C9BFA6"></i></sc-if>
+              </div>
             </div>
-            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
-              <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#EFE8D5;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#5E6B62">D</div>
-              <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Dinesh</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 16 · joined</div></div>
-              <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+            <div style="background:#fff;border:1px solid #EFE8D5;border-radius:14px;overflow:hidden">
+              <div style="padding:11px 13px;display:flex;align-items:center;gap:11px">
+                <div style="width:40px;height:40px;border-radius:50%;flex:none;background:#EFE8D5;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#5E6B62">D</div>
+                <div style="flex:1"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Dinesh</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 16 · joined</div></div>
+                <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#1E6E16"></i>
+              </div>
+              <div onClick="{{ teeD.onClick }}" style="{{ teeD.rowStyle }}">
+                <span style="{{ teeD.dotStyle }}"></span>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:12.5px;color:#1C2B22">{{ teeD.name }} tee</div><div style="font-family:var(--font-numeric);font-size:10.5px;font-weight:600;color:#8A958C;margin-top:1px">{{ teeD.meta }}</div></div>
+                <sc-if value="{{ teeD.editable }}" hint-placeholder-val="{{ false }}"><span style="font-family:var(--font-body);font-weight:600;font-size:11px;color:#134914">Change</span><i data-lucide="chevron-right" style="width:15px;height:15px;color:#C9BFA6"></i></sc-if>
+                <sc-if value="{{ teeD.readOnly }}" hint-placeholder-val="{{ true }}"><i data-lucide="lock" style="width:13px;height:13px;color:#C9BFA6"></i></sc-if>
+              </div>
             </div>
           </div>
 
@@ -979,6 +1106,26 @@
               <i data-lucide="plus" style="width:16px;height:16px;color:#E0742E"></i>
             </div>
           </div>
+        </div>
+
+        <!-- TEE PICKER SHEET -->
+        <div onClick="{{ teeSheetClose }}" style="{{ teeScrimStyle }}"></div>
+        <div style="{{ teeSheetStyle }}">
+          <div style="display:flex;justify-content:center;padding:10px 0 4px"><div style="width:38px;height:4px;border-radius:999px;background:#D8CEB8"></div></div>
+          <div style="padding:4px 20px 2px">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:17px;color:#1C2B22">Choose tee</div>
+            <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;margin-top:1px">{{ teeSheetSubtitle }}</div>
+          </div>
+          <div style="padding:10px 14px 6px;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ teeOptions }}" as="t" hint-placeholder-count="4">
+              <div onClick="{{ t.onSelect }}" style="{{ t.rowStyle }}">
+                <span style="{{ t.dotStyle }}"></span>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:13.5px;color:#1C2B22">{{ t.name }}</div><div style="font-family:var(--font-numeric);font-size:11px;font-weight:600;color:#8A958C;margin-top:1px">{{ t.meta }}</div></div>
+                <span style="{{ t.checkStyle }}"><i data-lucide="check" style="width:12px;height:12px;color:#fff"></i></span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding:4px 20px 20px;font-family:var(--font-body);font-size:11px;color:#A89B7C;line-height:1.5">Course &amp; slope rating come from the course record — they set each player's playing handicap.</div>
         </div>
 
         <div style="display:flex;border-top:1px solid #E3D9C0;background:#fff;padding:8px 0 14px">
@@ -1152,7 +1299,8 @@
               <div style="flex:1;text-align:center;border-left:1px solid #EFE8D5;border-right:1px solid #EFE8D5"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#1C2B22">45</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:2px">In</div></div>
               <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#134914">88</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:2px">Total</div></div>
             </div>
-            <div style="display:flex;gap:7px;margin-top:14px;border-top:1px solid #EFE8D5;padding-top:13px">
+            <div style="display:flex;gap:6px;margin-top:14px;border-top:1px solid #EFE8D5;padding-top:13px">
+              <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#C98A23">0</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:1px">Eagle+</div></div>
               <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#E0742E">2</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:1px">Birdies</div></div>
               <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#1E6E16">7</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:1px">Pars</div></div>
               <div style="flex:1;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#5A7184">6</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:1px">Bogeys</div></div>
@@ -1243,12 +1391,713 @@
       </div>
     </div>
 
+    </div>
+  </div>
+
+  <!-- ===================== SECTION · TOURNAMENT (INDIVIDUAL) ===================== -->
+  <div>
+    <div class="section-hd"><span class="t">Tournament (individual)</span><span class="c">Create · Join · Leaderboard · Entrant · Settings · Results</span><span class="ln"></span></div>
+    <div style="display:flex;gap:40px;align-items:flex-start">
+
+    <!-- ================= 12a CREATE TOURNAMENT · FORMAT ================= -->
+    <div style="flex:none">
+      <div class="lbl">12a · Create tournament · Format</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:6px 18px 10px">
+          <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center"><i data-lucide="chevron-left" style="width:20px;height:20px;color:#3A4A40"></i></div>
+          <div style="flex:1">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:20px;color:#1C2B22;line-height:1.1">Create a tournament</div>
+            <div style="margin-top:8px">
+              <div style="display:flex;gap:5px">
+                <div style="height:5px;flex:1;border-radius:999px;background:#134914"></div>
+                <div style="height:5px;flex:1;border-radius:999px;background:#E3D9C0"></div>
+                <div style="height:5px;flex:1;border-radius:999px;background:#E3D9C0"></div>
+              </div>
+              <div style="display:flex;gap:5px;margin-top:6px">
+                <span style="flex:1;font-family:var(--font-body);font-weight:600;font-size:10px;color:#134914;white-space:nowrap">1 · Format</span>
+                <span style="flex:1;font-family:var(--font-body);font-weight:600;font-size:10px;color:#A89B7C;white-space:nowrap">2 · Schedule</span>
+                <span style="flex:1;font-family:var(--font-body);font-weight:600;font-size:10px;color:#A89B7C;white-space:nowrap">3 · Entrants</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:8px 18px 18px;display:flex;flex-direction:column;gap:16px">
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-bottom:7px">Tournament name</div>
+            <div style="height:50px;background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;display:flex;align-items:center;padding:0 15px;font-family:var(--font-body);font-size:15px;color:#1C2B22">Kaki Cup 2026</div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-bottom:7px">Round structure</div>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1;height:46px;border-radius:11px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;font-family:var(--font-body);font-weight:600;font-size:14px;color:#8A958C">Single round</div>
+              <div style="flex:1;height:46px;border-radius:11px;background:#134914;border:1.5px solid #134914;display:flex;align-items:center;justify-content:center;font-family:var(--font-body);font-weight:600;font-size:14px;color:#fff">Multi-round</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-bottom:7px">Number of rounds</div>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1;height:46px;border-radius:11px;background:#134914;border:1.5px solid #134914;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#fff">2</div>
+              <div style="flex:1;height:46px;border-radius:11px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#8A958C">3</div>
+              <div style="flex:1;height:46px;border-radius:11px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#8A958C">4</div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:7px"><span style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40">Scoring format</span><i data-lucide="info" style="width:14px;height:14px;color:#134914"></i></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:#F0F6EE;border:1.5px solid #134914;border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:12px">
+                <div style="width:38px;height:38px;border-radius:10px;background:#134914;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="list-checks" style="width:18px;height:18px;color:#fff"></i></div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#134914">Stableford</div><div style="font-family:var(--font-body);font-size:11px;color:#5E6B62;margin-top:1px">Points per hole — best total wins</div></div>
+                <i data-lucide="check-circle-2" style="width:20px;height:20px;color:#134914;flex:none"></i>
+              </div>
+              <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:12px">
+                <div style="width:38px;height:38px;border-radius:10px;background:#F2EEE2;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="hash" style="width:18px;height:18px;color:#8A958C"></i></div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#1C2B22">Stroke play (medal)</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:1px">Lowest total strokes across all rounds</div></div>
+                <i data-lucide="circle" style="width:20px;height:20px;color:#D8D0BC;flex:none"></i>
+              </div>
+              <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:12px">
+                <div style="width:38px;height:38px;border-radius:10px;background:#F2EEE2;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="calculator" style="width:18px;height:18px;color:#8A958C"></i></div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#1C2B22">System 36 Stableford</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:1px">Handicap worked out from the round itself</div></div>
+                <i data-lucide="circle" style="width:20px;height:20px;color:#D8D0BC;flex:none"></i>
+              </div>
+              <div style="background:#fff;border:1.5px dashed #E3D9C0;border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:12px">
+                <div style="width:38px;height:38px;border-radius:10px;background:#F2EEE2;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="settings-2" style="width:18px;height:18px;color:#8A958C"></i></div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#1C2B22">Other</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:1px">Set your own scoring rules</div></div>
+                <i data-lucide="circle" style="width:20px;height:20px;color:#D8D0BC;flex:none"></i>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-bottom:7px">Play as</div>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1;height:46px;border-radius:11px;background:#134914;border:1.5px solid #134914;display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--font-body);font-weight:600;font-size:14px;color:#fff"><i data-lucide="user" style="width:16px;height:16px"></i>Individual</div>
+              <div style="flex:1;height:46px;border-radius:11px;background:#fff;border:1.5px solid #EFE8D5;display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--font-body);font-weight:600;font-size:13px;color:#B4BCB5"><i data-lucide="users" style="width:15px;height:15px"></i>Team<span style="font-size:9px;background:#EFE8D5;color:#8A958C;padding:2px 6px;border-radius:6px;font-weight:600">SOON</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:12px 18px 22px;background:linear-gradient(to top,var(--surface-page) 70%,transparent)">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px;box-shadow:0 6px 18px rgba(255,145,77,.4)">Continue<i data-lucide="arrow-right" style="width:19px;height:19px"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 12b CREATE TOURNAMENT · SCHEDULE ================= -->
+    <div style="flex:none">
+      <div class="lbl">12b · Create tournament · Schedule</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:6px 18px 10px">
+          <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center"><i data-lucide="chevron-left" style="width:20px;height:20px;color:#3A4A40"></i></div>
+          <div style="flex:1">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:20px;color:#1C2B22;line-height:1.1">Create a tournament</div>
+            <div style="margin-top:8px">
+              <div style="display:flex;gap:5px">
+                <div style="height:5px;flex:1;border-radius:999px;background:#134914"></div>
+                <div style="height:5px;flex:1;border-radius:999px;background:#134914"></div>
+                <div style="height:5px;flex:1;border-radius:999px;background:#E3D9C0"></div>
+              </div>
+              <div style="display:flex;gap:5px;margin-top:6px">
+                <span style="flex:1;font-family:var(--font-body);font-weight:600;font-size:10px;color:#7C8A7E;white-space:nowrap">1 · Format</span>
+                <span style="flex:1;font-family:var(--font-body);font-weight:600;font-size:10px;color:#134914;white-space:nowrap">2 · Schedule</span>
+                <span style="flex:1;font-family:var(--font-body);font-weight:600;font-size:10px;color:#A89B7C;white-space:nowrap">3 · Entrants</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:8px 18px 18px;display:flex;flex-direction:column;gap:12px">
+          <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;margin-bottom:2px">Kaki Cup 2026 · 2 rounds · Stableford · Individual</div>
+
+          <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:13px 14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+              <div style="display:inline-flex;align-items:center;gap:7px;font-family:var(--font-body);font-weight:700;font-size:13px;color:#134914;background:#F0F6EE;border:1px solid #CDE3C8;padding:4px 10px;border-radius:999px">Round 1</div>
+              <i data-lucide="pencil" style="width:15px;height:15px;color:#8A958C"></i>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:38px;height:38px;border-radius:10px;background:#134914;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="flag" style="width:17px;height:17px;color:#FF914D"></i></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Sentosa Golf Club</div>
+                <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;display:flex;align-items:center;gap:6px;margin-top:1px"><i data-lucide="calendar" style="width:12px;height:12px"></i>Sat 12 Jul · 7:30 AM</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:13px 14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+              <div style="display:inline-flex;align-items:center;gap:7px;font-family:var(--font-body);font-weight:700;font-size:13px;color:#134914;background:#F0F6EE;border:1px solid #CDE3C8;padding:4px 10px;border-radius:999px">Round 2</div>
+              <i data-lucide="pencil" style="width:15px;height:15px;color:#8A958C"></i>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:38px;height:38px;border-radius:10px;background:#134914;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="flag" style="width:17px;height:17px;color:#FF914D"></i></div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Laguna National G&amp;CC</div>
+                <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;display:flex;align-items:center;gap:6px;margin-top:1px"><i data-lucide="calendar" style="width:12px;height:12px"></i>Sat 26 Jul · 7:30 AM</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:12px;border:1.5px dashed #AED4A9;color:#134914;font-family:var(--font-body);font-weight:600;font-size:14px"><i data-lucide="plus" style="width:17px;height:17px"></i>Add round</div>
+
+          <div style="display:flex;align-items:center;gap:9px;margin-top:6px;padding:12px 14px;background:#FBEFD0;border:1px solid #E5CE8E;border-radius:12px">
+            <i data-lucide="info" style="width:15px;height:15px;color:#9A6B12;flex:none"></i>
+            <span style="font-family:var(--font-body);font-size:12px;color:#7A5A17;line-height:1.4">Standings carry across all rounds — the leaderboard updates after each one is confirmed.</span>
+          </div>
+        </div>
+        <div style="padding:12px 18px 22px;background:linear-gradient(to top,var(--surface-page) 70%,transparent)">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px;box-shadow:0 6px 18px rgba(255,145,77,.4)">Continue<i data-lucide="arrow-right" style="width:19px;height:19px"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 12c CREATE TOURNAMENT · ENTRANTS ================= -->
+    <div style="flex:none">
+      <div class="lbl">12c · Create tournament · Entrants</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:6px 18px 10px">
+          <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center"><i data-lucide="chevron-left" style="width:20px;height:20px;color:#3A4A40"></i></div>
+          <div style="flex:1">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:20px;color:#1C2B22;line-height:1.1">Create a tournament</div>
+            <div style="margin-top:8px">
+              <div style="display:flex;gap:5px">
+                <div style="height:5px;flex:1;border-radius:999px;background:#134914"></div>
+                <div style="height:5px;flex:1;border-radius:999px;background:#134914"></div>
+                <div style="height:5px;flex:1;border-radius:999px;background:#134914"></div>
+              </div>
+              <div style="display:flex;gap:5px;margin-top:6px">
+                <span style="flex:1;font-family:var(--font-body);font-weight:600;font-size:10px;color:#7C8A7E;white-space:nowrap">1 · Format</span>
+                <span style="flex:1;font-family:var(--font-body);font-weight:600;font-size:10px;color:#7C8A7E;white-space:nowrap">2 · Schedule</span>
+                <span style="flex:1;font-family:var(--font-body);font-weight:600;font-size:10px;color:#134914;white-space:nowrap">3 · Entrants</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:8px 18px 18px;display:flex;flex-direction:column;gap:16px">
+          <div style="flex:none;background:#134914;border-radius:14px;padding:14px 15px;display:flex;align-items:flex-start;gap:12px;position:relative;overflow:hidden">
+            <img src="assets/golf-kaki-mark.svg" alt="" style="position:absolute;right:-22px;top:-18px;width:96px;opacity:.10;filter:brightness(0) invert(1);pointer-events:none">
+            <div style="width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none;position:relative"><i data-lucide="trophy" style="width:19px;height:19px;color:#FF914D"></i></div>
+            <div style="flex:1;min-width:0;position:relative">
+              <div style="font-family:var(--font-body);font-weight:700;font-size:15px;color:#fff;line-height:1.25">Kaki Cup 2026</div>
+              <div style="font-family:var(--font-body);font-size:12px;color:rgba(255,255,255,.72);line-height:1.45;margin-top:3px">2 rounds · Stableford · Individual · 4 entrants</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-bottom:7px">Tournament code <span style="color:#8A958C;font-weight:400">· share to invite</span></div>
+            <div style="height:50px;background:#F0F6EE;border:1.5px dashed #AED4A9;border-radius:12px;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 15px">
+              <span style="font-family:var(--font-numeric);font-weight:700;font-size:20px;letter-spacing:.12em;color:#134914">GK-T92K</span>
+              <div style="display:flex;gap:6px">
+                <div style="width:38px;height:38px;border-radius:9px;background:#fff;border:1px solid #AED4A9;display:flex;align-items:center;justify-content:center"><i data-lucide="copy" style="width:16px;height:16px;color:#134914"></i></div>
+                <div style="width:38px;height:38px;border-radius:9px;background:#134914;display:flex;align-items:center;justify-content:center"><i data-lucide="share-2" style="width:16px;height:16px;color:#fff"></i></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding:11px 13px;background:#fff;border:1.5px solid #E3D9C0;border-radius:12px">
+              <div style="display:flex;align-items:center;gap:8px"><i data-lucide="link-2" style="width:15px;height:15px;color:#5E6B62"></i><span style="font-family:var(--font-body);font-size:13px;color:#3A4A40">Anyone with the code can join</span></div>
+              <div style="width:42px;height:25px;border-radius:999px;background:#134914;position:relative;flex:none"><div style="width:19px;height:19px;border-radius:50%;background:#fff;position:absolute;top:3px;right:3px;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div></div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+              <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40">Invite kakis</div>
+              <div style="font-family:var(--font-body);font-size:12px;color:#8A958C">3 invited</div>
+            </div>
+            <div style="height:44px;background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;display:flex;align-items:center;gap:9px;padding:0 13px;margin-bottom:8px">
+              <i data-lucide="search" style="width:16px;height:16px;color:#8A958C"></i>
+              <span style="font-family:var(--font-body);font-size:14px;color:#A89B7C">Search friends by name or @handle</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ inviteFriends }}" as="f" hint-placeholder-count="3">
+                <div style="background:#fff;border:1.5px solid {{ f.borderColor }};border-radius:12px;padding:8px 10px;display:flex;align-items:center;gap:10px">
+                  <div style="{{ f.avStyle }}">{{ f.initial }}</div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">{{ f.name }}</div>
+                    <div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP {{ f.h }}</div>
+                  </div>
+                  <div style="{{ f.btnStyle }}">{{ f.btnLabel }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+              <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#B4BCB5;display:flex;align-items:center;gap:7px">Team assignments<span style="font-size:9px;background:#EFE8D5;color:#8A958C;padding:2px 6px;border-radius:6px;font-weight:600">SOON</span></div>
+              <div style="display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body);font-weight:600;font-size:12px;color:#C7CFC8"><i data-lucide="shuffle" style="width:13px;height:13px"></i>Auto-assign</div>
+            </div>
+            <div style="background:#FBF8F0;border:1.5px dashed #E3D9C0;border-radius:14px;padding:14px;display:flex;align-items:center;gap:10px">
+              <div style="width:34px;height:34px;border-radius:9px;background:#F2EEE2;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="users" style="width:16px;height:16px;color:#B4BCB5"></i></div>
+              <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#8A958C">Teams &amp; pairs coming soon</div><div style="font-family:var(--font-body);font-size:11px;color:#A89B7C;margin-top:1px">Everyone plays their own ball — lowest total wins.</div></div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:12px 18px 22px;background:linear-gradient(to top,var(--surface-page) 70%,transparent)">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px;box-shadow:0 6px 18px rgba(255,145,77,.4)"><i data-lucide="trophy" style="width:19px;height:19px"></i>Create tournament</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 12d TOURNAMENT · INDIVIDUAL LEADERBOARD ================= -->
+    <div style="flex:none">
+      <div class="lbl">12d · Tournament · Leaderboard (individual)</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#fff;font-family:var(--font-numeric);font-size:13px;font-weight:600;background:#134914">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="background:#134914;color:#fff;padding:4px 18px 16px;position:relative;overflow:hidden">
+          <img src="assets/golf-kaki-mark.svg" alt="" style="position:absolute;right:-26px;top:-20px;width:104px;opacity:.10;filter:brightness(0) invert(1);pointer-events:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;position:relative">
+            <div style="display:flex;align-items:center;gap:9px"><i data-lucide="chevron-left" style="width:20px;height:20px;color:rgba(255,255,255,.8)"></i><div><div style="font-family:var(--font-display);font-weight:700;font-size:18px;line-height:1.1">Kaki Cup 2026</div><div style="font-family:var(--font-body);font-size:11px;color:rgba(255,255,255,.6);margin-top:1px">Stableford · Individual · 4 kakis</div></div></div>
+            <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center"><i data-lucide="refresh-cw" style="width:16px;height:16px;color:#fff"></i></div>
+          </div>
+          <div style="font-family:var(--font-body);font-size:11px;color:rgba(255,255,255,.55);margin-top:9px;display:flex;align-items:center;gap:5px;position:relative"><i data-lucide="circle-dot" style="width:11px;height:11px;color:#7FE0A6"></i>Live · Round 2 thru 14 · updated just now</div>
+        </div>
+        <div style="display:flex;gap:7px;padding:12px 18px 10px;background:var(--surface-page)">
+          <div style="height:34px;padding:0 16px;border-radius:999px;background:#134914;display:flex;align-items:center;justify-content:center;font-family:var(--font-body);font-weight:700;font-size:13px;color:#fff">Overall</div>
+          <div style="height:34px;padding:0 16px;border-radius:999px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;font-family:var(--font-body);font-weight:600;font-size:13px;color:#8A958C">Round 1</div>
+          <div style="height:34px;padding:0 16px;border-radius:999px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;font-family:var(--font-body);font-weight:600;font-size:13px;color:#8A958C">Round 2</div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:2px 18px 18px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;padding:0 4px 4px">
+            <span style="flex:1;font-family:var(--font-body);font-weight:600;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#A89B7C">Player</span>
+            <span style="width:38px;text-align:center;font-family:var(--font-body);font-weight:600;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#A89B7C">R1</span>
+            <span style="width:38px;text-align:center;font-family:var(--font-body);font-weight:600;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#A89B7C">R2</span>
+            <span style="width:44px;text-align:right;font-family:var(--font-body);font-weight:600;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#A89B7C">Total</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;background:#FBF3DE;border:1.5px solid #E7CE8B;border-radius:14px;padding:10px 12px">
+            <div style="width:26px;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="crown" style="width:20px;height:20px;color:#8A6A12"></i></div>
+            <div style="width:34px;height:34px;border-radius:50%;background:#DFEEDC;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#134914;flex:none">WL</div>
+            <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Wei Liang</div><div style="font-family:var(--font-body);font-size:10px;font-weight:700;letter-spacing:.1em;color:#8A6A12;text-transform:uppercase">Leader · HCP 8</div></div>
+            <span style="width:38px;text-align:center;font-family:var(--font-numeric);font-weight:600;font-size:14px;color:#5E6B62">38</span>
+            <span style="width:38px;text-align:center;font-family:var(--font-numeric);font-weight:600;font-size:14px;color:#5E6B62">40</span>
+            <span style="width:44px;text-align:right;font-family:var(--font-numeric);font-weight:700;font-size:18px;color:#134914">78</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;background:#F0F6EE;border:1.5px solid #AED4A9;border-radius:14px;padding:10px 12px">
+            <div style="width:26px;text-align:center;font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#5E6B62;flex:none">2</div>
+            <div style="width:34px;height:34px;border-radius:50%;background:#E8F0E6;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#1E6E16;flex:none">M</div>
+            <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Marcus <span style="font-size:10px;font-weight:700;color:#134914;background:#DCEAD8;border-radius:999px;padding:2px 7px;margin-left:2px">You</span></div><div style="font-family:var(--font-body);font-size:11px;color:#5E6B62">HCP 12 · 3 back</div></div>
+            <span style="width:38px;text-align:center;font-family:var(--font-numeric);font-weight:600;font-size:14px;color:#5E6B62">36</span>
+            <span style="width:38px;text-align:center;font-family:var(--font-numeric);font-weight:600;font-size:14px;color:#5E6B62">39</span>
+            <span style="width:44px;text-align:right;font-family:var(--font-numeric);font-weight:700;font-size:18px;color:#134914">75</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:10px 12px">
+            <div style="width:26px;text-align:center;font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#8A958C;flex:none">3</div>
+            <div style="width:34px;height:34px;border-radius:50%;background:#F3E0E8;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#9C4A6E;flex:none">J</div>
+            <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Jia Hui</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 18 · 9 back</div></div>
+            <span style="width:38px;text-align:center;font-family:var(--font-numeric);font-weight:600;font-size:14px;color:#5E6B62">35</span>
+            <span style="width:38px;text-align:center;font-family:var(--font-numeric);font-weight:600;font-size:14px;color:#5E6B62">34</span>
+            <span style="width:44px;text-align:right;font-family:var(--font-numeric);font-weight:700;font-size:18px;color:#1C2B22">69</span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:10px 12px">
+            <div style="width:26px;text-align:center;font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#8A958C;flex:none">4</div>
+            <div style="width:34px;height:34px;border-radius:50%;background:#EFE8D5;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#5E6B62;flex:none">D</div>
+            <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Dinesh</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 15 · 14 back</div></div>
+            <span style="width:38px;text-align:center;font-family:var(--font-numeric);font-weight:600;font-size:14px;color:#5E6B62">31</span>
+            <span style="width:38px;text-align:center;font-family:var(--font-numeric);font-weight:600;font-size:14px;color:#5E6B62">33</span>
+            <span style="width:44px;text-align:right;font-family:var(--font-numeric);font-weight:700;font-size:18px;color:#1C2B22">64</span>
+          </div>
+
+          <div style="margin-top:8px;display:flex;align-items:center;gap:9px;padding:11px 13px;background:#F0F6EE;border:1px solid #CDE3C8;border-radius:12px">
+            <i data-lucide="info" style="width:15px;height:15px;color:#134914;flex:none"></i>
+            <span style="font-family:var(--font-body);font-size:12px;color:#3A4A40;line-height:1.4">Stableford points — highest total wins. Round 1 final, Round 2 live.</span>
+          </div>
+        </div>
+        <div style="display:flex;border-top:1px solid #E3D9C0;background:#fff;padding:8px 0 14px">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="list" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Scorecard</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#134914"><i data-lucide="trophy" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:600">Leaderboard</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="users" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Lobby</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:#B4BCB5"><i data-lucide="circle-check-big" style="width:21px;height:21px"></i><span style="font-family:var(--font-body);font-size:10px;font-weight:500">Finish</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 12e TOURNAMENT · ENTRANT PROFILE ================= -->
+    <div style="flex:none">
+      <div class="lbl">12e · Tournament · Entrant profile</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#fff;font-family:var(--font-numeric);font-size:13px;font-weight:600;background:#134914">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="background:#134914;color:#fff;padding:4px 18px 20px;position:relative;overflow:hidden">
+          <img src="assets/golf-kaki-mark.svg" alt="" style="position:absolute;right:-30px;bottom:-34px;width:120px;opacity:.09;filter:brightness(0) invert(1);pointer-events:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;position:relative">
+            <div style="display:flex;align-items:center;gap:9px"><i data-lucide="chevron-left" style="width:20px;height:20px;color:rgba(255,255,255,.8)"></i><span style="font-family:var(--font-body);font-weight:600;font-size:13px;color:rgba(255,255,255,.85)">Kaki Cup 2026</span></div>
+            <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center"><i data-lucide="share-2" style="width:15px;height:15px;color:#fff"></i></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;margin-top:14px;position:relative">
+            <div style="width:66px;height:66px;border-radius:50%;background:#DFEEDC;border:3px solid rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:24px;color:#134914;flex:none">WL</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-family:var(--font-display);font-weight:700;font-size:22px;line-height:1.1">Wei Liang</div>
+              <div style="font-family:var(--font-body);font-size:12px;color:rgba(255,255,255,.6);margin-top:2px">@weiliang · Singapore</div>
+              <div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:rgba(255,255,255,.12);border-radius:999px;padding:4px 11px"><span style="font-family:var(--font-body);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.6)">HCP</span><span style="font-family:var(--font-numeric);font-weight:700;font-size:14px;color:#fff">7.0</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:16px 18px 18px;display:flex;flex-direction:column;gap:14px">
+          <!-- STANDING -->
+          <div style="background:#FBF3DE;border:1.5px solid #E7CE8B;border-radius:16px;padding:14px 15px;display:flex;align-items:center;gap:13px">
+            <div style="width:46px;height:46px;border-radius:12px;background:#8A6A12;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="crown" style="width:23px;height:23px;color:#FBF3DE"></i></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8A6A12">Current standing</div>
+              <div style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#1C2B22;margin-top:1px">1st of 4 · Leader</div>
+            </div>
+            <div style="text-align:right;flex:none"><div style="font-family:var(--font-numeric);font-weight:700;font-size:26px;color:#134914;line-height:1">78</div><div style="font-family:var(--font-body);font-size:10px;color:#8A6A12;font-weight:600">points</div></div>
+          </div>
+
+          <!-- ROUND BREAKDOWN -->
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin-bottom:8px">This tournament</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
+                <div style="width:36px;height:36px;border-radius:10px;background:#F0F6EE;border:1px solid #CDE3C8;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="flag" style="width:16px;height:16px;color:#134914"></i></div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Round 1 · Sentosa GC</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:1px">Gross 82 · Nett 75 · final</div></div>
+                <div style="text-align:right;flex:none"><div style="font-family:var(--font-numeric);font-weight:700;font-size:18px;color:#134914">38</div><div style="font-family:var(--font-body);font-size:9px;color:#8A958C">pts</div></div>
+              </div>
+              <div style="background:#fff;border:1.5px solid #AED4A9;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
+                <div style="width:36px;height:36px;border-radius:10px;background:#134914;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="flag" style="width:16px;height:16px;color:#FF914D"></i></div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Round 2 · Tanah Merah</div><div style="font-family:var(--font-body);font-size:11px;color:#134914;margin-top:1px;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#FF914D;display:inline-block"></span>Live · thru 14</div></div>
+                <div style="text-align:right;flex:none"><div style="font-family:var(--font-numeric);font-weight:700;font-size:18px;color:#134914">40</div><div style="font-family:var(--font-body);font-size:9px;color:#8A958C">pts</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- HEAD TO HEAD -->
+          <div style="background:#F7F2E6;border:1px solid #EFE8D5;border-radius:14px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:9px"><i data-lucide="swords" style="width:16px;height:16px;color:#5E6B62"></i><span style="font-family:var(--font-body);font-size:13px;color:#3A4A40">Your record vs Wei Liang</span></div>
+            <span style="font-family:var(--font-numeric);font-weight:700;font-size:14px;color:#1C2B22;background:#fff;border:1px solid #E3D9C0;border-radius:999px;padding:5px 12px">2 W · 4 L</span>
+          </div>
+
+          <!-- CAREER MINI STATS -->
+          <div style="display:flex;gap:9px">
+            <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:12px 6px;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:20px;color:#1C2B22">42</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:2px">Rounds</div></div>
+            <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:12px 6px;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:20px;color:#1E6E16">78</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:2px">Best</div></div>
+            <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:12px 6px;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:20px;color:#1C2B22">5</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C;margin-top:2px">Wins</div></div>
+          </div>
+        </div>
+        <div style="padding:12px 18px 20px;display:flex;gap:10px;background:linear-gradient(to top,var(--surface-page) 70%,transparent)">
+          <div style="width:52px;height:52px;border-radius:999px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="user-check" style="width:20px;height:20px;color:#134914"></i></div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:9px;height:52px;background:#134914;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:16px"><i data-lucide="user" style="width:18px;height:18px"></i>View full profile</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 12f JOIN TOURNAMENT · ENTER CODE ================= -->
+    <div style="flex:none">
+      <div class="lbl">12f · Join tournament · Enter code</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:6px 18px 10px">
+          <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center"><i data-lucide="chevron-left" style="width:20px;height:20px;color:#3A4A40"></i></div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:20px;color:#1C2B22;line-height:1.1">Join a tournament</div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:8px 18px 18px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 0 2px">
+            <div style="width:56px;height:56px;border-radius:16px;background:#F0F6EE;border:1px solid #CDE3C8;display:flex;align-items:center;justify-content:center"><i data-lucide="ticket" style="width:26px;height:26px;color:#134914"></i></div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:18px;color:#1C2B22;margin-top:12px">Enter tournament code</div>
+            <div style="font-family:var(--font-body);font-size:13px;color:#8A958C;margin-top:4px;line-height:1.45;padding:0 10px">Ask the organiser for the code, or open their invite link.</div>
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:52px;height:60px;border-radius:12px;background:#F0F6EE;border:1.5px solid #CDE3C8;display:flex;align-items:center;justify-content:center;font-family:var(--font-numeric);font-weight:700;font-size:22px;letter-spacing:.06em;color:#134914">GK</div>
+              <span style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#C7BFAD">–</span>
+              <div style="flex:1;height:60px;border-radius:12px;background:#fff;border:2px solid #134914;display:flex;align-items:center;padding:0 16px;font-family:var(--font-numeric);font-weight:700;font-size:24px;letter-spacing:.22em;color:#1C2B22">T92K<span style="width:2px;height:26px;background:#134914;margin-left:2px"></span></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-top:12px">
+              <div style="display:inline-flex;align-items:center;gap:7px;font-family:var(--font-body);font-weight:600;font-size:13px;color:#134914"><i data-lucide="clipboard" style="width:15px;height:15px"></i>Paste</div>
+              <span style="width:1px;height:16px;background:#D8D0BC"></span>
+              <div style="display:inline-flex;align-items:center;gap:7px;font-family:var(--font-body);font-weight:600;font-size:13px;color:#134914"><i data-lucide="scan-line" style="width:15px;height:15px"></i>Scan QR</div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin-bottom:8px">Invited by your kakis</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
+                <div style="width:38px;height:38px;border-radius:10px;background:#134914;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="trophy" style="width:18px;height:18px;color:#FF914D"></i></div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Kaki Cup 2026</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:1px">Wei Liang invited you · 2 rounds</div></div>
+                <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#134914;background:#F0F6EE;border:1px solid #AED4A9;border-radius:999px;padding:6px 13px">View</div>
+              </div>
+              <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
+                <div style="width:38px;height:38px;border-radius:10px;background:#F2EEE2;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="trophy" style="width:18px;height:18px;color:#8A958C"></i></div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Sunday Medal League</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:1px">Dinesh invited you · starts 20 Jul</div></div>
+                <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#134914;background:#F0F6EE;border:1px solid #AED4A9;border-radius:999px;padding:6px 13px">View</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:12px 18px 22px;background:linear-gradient(to top,var(--surface-page) 70%,transparent)">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px;box-shadow:0 6px 18px rgba(255,145,77,.4)">Find tournament<i data-lucide="arrow-right" style="width:19px;height:19px"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 12g JOIN TOURNAMENT · CONFIRM ================= -->
+    <div style="flex:none">
+      <div class="lbl">12g · Join tournament · Confirm</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#fff;font-family:var(--font-numeric);font-size:13px;font-weight:600;background:#134914">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="background:#134914;color:#fff;padding:6px 18px 20px;position:relative;overflow:hidden">
+          <img src="assets/golf-kaki-mark.svg" alt="" style="position:absolute;right:-28px;top:-22px;width:112px;opacity:.10;filter:brightness(0) invert(1);pointer-events:none">
+          <div style="display:flex;align-items:center;gap:9px;position:relative"><i data-lucide="chevron-left" style="width:20px;height:20px;color:rgba(255,255,255,.8)"></i><span style="font-family:var(--font-body);font-weight:600;font-size:13px;color:rgba(255,255,255,.85)">Join tournament</span></div>
+          <div style="display:flex;align-items:flex-start;gap:13px;margin-top:14px;position:relative">
+            <div style="width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="trophy" style="width:23px;height:23px;color:#FF914D"></i></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-family:var(--font-display);font-weight:700;font-size:21px;line-height:1.1">Kaki Cup 2026</div>
+              <div style="font-family:var(--font-body);font-size:12px;color:rgba(255,255,255,.65);margin-top:3px">Hosted by Wei Liang · code GK-T92K</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:14px;position:relative">
+            <div style="flex:1;background:rgba(255,255,255,.1);border-radius:11px;padding:9px 10px;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#fff">2</div><div style="font-family:var(--font-body);font-size:10px;color:rgba(255,255,255,.6);margin-top:1px">Rounds</div></div>
+            <div style="flex:1;background:rgba(255,255,255,.1);border-radius:11px;padding:9px 10px;text-align:center"><div style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#fff">4</div><div style="font-family:var(--font-body);font-size:10px;color:rgba(255,255,255,.6);margin-top:1px">Entrants</div></div>
+            <div style="flex:1;background:rgba(255,255,255,.1);border-radius:11px;padding:9px 10px;text-align:center"><div style="font-family:var(--font-body);font-weight:700;font-size:13px;color:#fff;margin-top:2px">Stableford</div><div style="font-family:var(--font-body);font-size:10px;color:rgba(255,255,255,.6);margin-top:2px">Individual</div></div>
+          </div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:16px 18px 18px;display:flex;flex-direction:column;gap:14px">
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin-bottom:8px">Schedule</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
+                <div style="width:36px;height:36px;border-radius:10px;background:#F0F6EE;border:1px solid #CDE3C8;display:flex;align-items:center;justify-content:center;flex:none;font-family:var(--font-numeric);font-weight:700;font-size:12px;color:#134914">R1</div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Sentosa Golf Club</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:1px">Sat 12 Jul · 7:30 AM</div></div>
+              </div>
+              <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:11px 13px;display:flex;align-items:center;gap:11px">
+                <div style="width:36px;height:36px;border-radius:10px;background:#F0F6EE;border:1px solid #CDE3C8;display:flex;align-items:center;justify-content:center;flex:none;font-family:var(--font-numeric);font-weight:700;font-size:12px;color:#134914">R2</div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">Tanah Merah CC</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:1px">Sun 13 Jul · 8:00 AM</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">Entrants · 3 joined</div>
+              <div style="font-family:var(--font-body);font-size:11px;color:#8A958C">1 spot left</div>
+            </div>
+            <div style="display:flex;align-items:center">
+              <div style="width:34px;height:34px;border-radius:50%;background:#DFEEDC;border:2px solid var(--surface-page);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#134914">WL</div>
+              <div style="width:34px;height:34px;border-radius:50%;background:#EFE8D5;border:2px solid var(--surface-page);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#5E6B62;margin-left:-8px">D</div>
+              <div style="width:34px;height:34px;border-radius:50%;background:#F3E0E8;border:2px solid var(--surface-page);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#9C4A6E;margin-left:-8px">J</div>
+              <div style="width:34px;height:34px;border-radius:50%;background:#F2EEE2;border:2px dashed #C7BFAD;display:flex;align-items:center;justify-content:center;margin-left:-8px"><i data-lucide="plus" style="width:15px;height:15px;color:#8A958C"></i></div>
+            </div>
+          </div>
+
+          <div style="background:#F0F6EE;border:1px solid #CDE3C8;border-radius:14px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:34px;height:34px;border-radius:50%;background:#E8F0E6;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#1E6E16">M</div>
+              <div><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22">You'll join as Marcus</div><div style="font-family:var(--font-body);font-size:11px;color:#5E6B62;margin-top:1px">HCP 12 · playing off white tees</div></div>
+            </div>
+            <i data-lucide="pencil" style="width:15px;height:15px;color:#8A958C"></i>
+          </div>
+        </div>
+        <div style="padding:12px 18px 22px;background:linear-gradient(to top,var(--surface-page) 70%,transparent)">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px;box-shadow:0 6px 18px rgba(255,145,77,.4)"><i data-lucide="check" style="width:20px;height:20px"></i>Join tournament</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 12h TOURNAMENT · SETTINGS (HOST) ================= -->
+    <div style="flex:none">
+      <div class="lbl">12h · Tournament · Settings (host)</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 10px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center"><i data-lucide="chevron-left" style="width:20px;height:20px;color:#3A4A40"></i></div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:20px;color:#1C2B22;line-height:1.1">Tournament settings</div>
+          </div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:8px 18px 18px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:11px;color:#134914;background:#F0F6EE;border:1px solid #AED4A9;padding:5px 11px;border-radius:999px;align-self:flex-start"><i data-lucide="shield" style="width:12px;height:12px"></i>You're the organiser</div>
+
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-bottom:7px">Tournament name</div>
+            <div style="height:50px;background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;font-family:var(--font-body);font-size:15px;color:#1C2B22">Kaki Cup 2026<i data-lucide="pencil" style="width:15px;height:15px;color:#8A958C"></i></div>
+          </div>
+
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-bottom:7px">Format &amp; schedule</div>
+            <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:12px 13px;display:flex;flex-direction:column;gap:9px">
+              <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-family:var(--font-body);font-size:13px;color:#5E6B62">Scoring format</span><span style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#1C2B22">Stableford</span></div>
+              <div style="height:1px;background:#EFE8D5"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-family:var(--font-body);font-size:13px;color:#5E6B62">Play as</span><span style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#1C2B22">Individual</span></div>
+              <div style="height:1px;background:#EFE8D5"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-family:var(--font-body);font-size:13px;color:#5E6B62">Rounds</span><span style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#1C2B22">2 · Sentosa GC, Tanah Merah</span></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:9px"><i data-lucide="lock" style="width:13px;height:13px;color:#8A958C"></i><span style="font-family:var(--font-body);font-size:11px;color:#8A958C">Format is locked once Round 1 starts</span></div>
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+              <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40">Entrants · 4</div>
+              <div style="display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body);font-weight:600;font-size:12px;color:#134914"><i data-lucide="user-plus" style="width:13px;height:13px"></i>Invite</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;padding:8px 10px;display:flex;align-items:center;gap:10px">
+                <div style="width:34px;height:34px;border-radius:50%;background:#DFEEDC;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#134914">WL</div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Wei Liang</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 7 · Organiser</div></div>
+              </div>
+              <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;padding:8px 10px;display:flex;align-items:center;gap:10px">
+                <div style="width:34px;height:34px;border-radius:50%;background:#E8F0E6;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#1E6E16">M</div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Marcus</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 12</div></div>
+                <i data-lucide="x" style="width:16px;height:16px;color:#B4BCB5"></i>
+              </div>
+              <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;padding:8px 10px;display:flex;align-items:center;gap:10px">
+                <div style="width:34px;height:34px;border-radius:50%;background:#F3E0E8;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#9C4A6E">J</div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Jia Hui</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 18</div></div>
+                <i data-lucide="x" style="width:16px;height:16px;color:#B4BCB5"></i>
+              </div>
+              <div style="background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;padding:8px 10px;display:flex;align-items:center;gap:10px">
+                <div style="width:34px;height:34px;border-radius:50%;background:#EFE8D5;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#5E6B62">D</div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:600;font-size:14px;color:#1C2B22">Dinesh</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C">HCP 15</div></div>
+                <i data-lucide="x" style="width:16px;height:16px;color:#B4BCB5"></i>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#3A4A40;margin-bottom:7px">Access</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid #E3D9C0;border-radius:12px;padding:11px 14px">
+              <div style="display:flex;align-items:center;gap:8px"><i data-lucide="link-2" style="width:15px;height:15px;color:#5E6B62"></i><span style="font-family:var(--font-body);font-size:13px;color:#3A4A40">Anyone with the code can join</span></div>
+              <div style="width:42px;height:25px;border-radius:999px;background:#134914;position:relative;flex:none"><div style="width:19px;height:19px;border-radius:50%;background:#fff;position:absolute;top:3px;right:3px;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div></div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:13px;color:#C0392B;margin-bottom:7px">Danger zone</div>
+            <div style="background:#FBEAEA;border:1.5px solid #F0C6C2;border-radius:14px;padding:13px 14px;display:flex;align-items:center;justify-content:space-between">
+              <div><div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#C0392B">Cancel tournament</div><div style="font-family:var(--font-body);font-size:11px;color:#B56A62;margin-top:1px">Removes it for all entrants</div></div>
+              <i data-lucide="trash-2" style="width:18px;height:18px;color:#C0392B"></i>
+            </div>
+          </div>
+        </div>
+        <div style="padding:12px 18px 22px;background:linear-gradient(to top,var(--surface-page) 70%,transparent)">
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;height:56px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:17px;box-shadow:0 6px 18px rgba(255,145,77,.4)">Save changes</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 12i TOURNAMENT · RESULTS / FINISH ================= -->
+    <div style="flex:none">
+      <div class="lbl">12i · Tournament · Results</div>
+      <div style="width:360px;height:760px;border-radius:36px;border:1px solid var(--border-default);box-shadow:0 14px 44px rgba(14,58,40,.20);overflow:hidden;position:relative;display:flex;flex-direction:column;background:var(--surface-page)">
+        <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#fff;font-family:var(--font-numeric);font-size:13px;font-weight:600;background:#134914">
+          <span>9:41</span>
+          <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+        </div>
+        <div style="background:#134914;color:#fff;padding:6px 18px 20px;position:relative;overflow:hidden">
+          <img src="assets/golf-kaki-mark.svg" alt="" style="position:absolute;right:-30px;top:-24px;width:120px;opacity:.10;filter:brightness(0) invert(1);pointer-events:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;position:relative">
+            <i data-lucide="x" style="width:20px;height:20px;color:rgba(255,255,255,.8)"></i>
+            <div style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-weight:600;font-size:11px;color:#fff;background:rgba(255,255,255,.12);padding:5px 11px;border-radius:999px"><i data-lucide="check" style="width:12px;height:12px"></i>Final</div>
+          </div>
+          <div style="text-align:center;margin-top:6px;position:relative">
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.6)">Kaki Cup 2026 · Final results</div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:15px;color:rgba(255,255,255,.85);margin-top:2px">2 rounds · Stableford · Individual</div>
+          </div>
+        </div>
+        <div class="gkscreen" style="flex:1;overflow-y:auto;padding:0 18px 18px;display:flex;flex-direction:column;gap:16px">
+          <!-- PODIUM -->
+          <div style="display:flex;align-items:flex-end;justify-content:center;gap:8px;padding:20px 4px 0">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1">
+              <div style="width:44px;height:44px;border-radius:50%;background:#E8F0E6;border:2.5px solid #C7D9C3;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:15px;color:#1E6E16">M</div>
+              <div style="font-family:var(--font-body);font-weight:600;font-size:12px;color:#1C2B22;text-align:center">Marcus</div>
+              <div style="font-family:var(--font-numeric);font-weight:700;font-size:13px;color:#5E6B62">75</div>
+              <div style="width:100%;height:56px;background:#DCE5DA;border-radius:10px 10px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:6px"><span style="font-family:var(--font-numeric);font-weight:700;font-size:16px;color:#5E6B62">2</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1">
+              <i data-lucide="crown" style="width:22px;height:22px;color:#E0A72E"></i>
+              <div style="width:56px;height:56px;border-radius:50%;background:#DFEEDC;border:3px solid #FBC96B;box-shadow:0 4px 14px rgba(224,167,46,.4);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:19px;color:#134914">WL</div>
+              <div style="font-family:var(--font-body);font-weight:700;font-size:14px;color:#1C2B22;text-align:center">Wei Liang</div>
+              <div style="font-family:var(--font-numeric);font-weight:700;font-size:15px;color:#134914">78</div>
+              <div style="width:100%;height:82px;background:#FBEFCF;border-radius:10px 10px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:8px"><span style="font-family:var(--font-numeric);font-weight:700;font-size:19px;color:#8A6A12">1</span></div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1">
+              <div style="width:40px;height:40px;border-radius:50%;background:#F3E0E8;border:2.5px solid #E4C3D2;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;color:#9C4A6E">J</div>
+              <div style="font-family:var(--font-body);font-weight:600;font-size:12px;color:#1C2B22;text-align:center">Jia Hui</div>
+              <div style="font-family:var(--font-numeric);font-weight:700;font-size:13px;color:#5E6B62">69</div>
+              <div style="width:100%;height:38px;background:#F3E2E9;border-radius:10px 10px 0 0;display:flex;align-items:flex-start;justify-content:center;padding-top:5px"><span style="font-family:var(--font-numeric);font-weight:700;font-size:14px;color:#9C4A6E">3</span></div>
+            </div>
+          </div>
+
+          <!-- FULL STANDINGS -->
+          <div>
+            <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase;margin-bottom:8px">Final standings</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:10px;background:#FBF3DE;border:1.5px solid #E7CE8B;border-radius:14px;padding:10px 12px">
+                <i data-lucide="crown" style="width:18px;height:18px;color:#8A6A12;flex:none"></i>
+                <div style="width:32px;height:32px;border-radius:50%;background:#DFEEDC;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:11px;color:#134914;flex:none">WL</div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:13px;color:#1C2B22">Wei Liang</div><div style="font-family:var(--font-body);font-size:10px;color:#8A6A12;font-weight:600">38 + 40</div></div>
+                <span style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#134914">78</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:10px 12px">
+                <span style="width:18px;text-align:center;font-family:var(--font-numeric);font-weight:700;font-size:14px;color:#5E6B62;flex:none">2</span>
+                <div style="width:32px;height:32px;border-radius:50%;background:#E8F0E6;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:11px;color:#1E6E16;flex:none">M</div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:13px;color:#1C2B22">Marcus <span style="font-size:10px;font-weight:700;color:#134914;background:#DCEAD8;border-radius:999px;padding:2px 7px;margin-left:2px">You</span></div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C">36 + 39</div></div>
+                <span style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#1C2B22">75</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:10px 12px">
+                <span style="width:18px;text-align:center;font-family:var(--font-numeric);font-weight:700;font-size:14px;color:#8A958C;flex:none">3</span>
+                <div style="width:32px;height:32px;border-radius:50%;background:#F3E0E8;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:11px;color:#9C4A6E;flex:none">J</div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:13px;color:#1C2B22">Jia Hui</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C">35 + 34</div></div>
+                <span style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#1C2B22">69</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #E3D9C0;border-radius:14px;padding:10px 12px">
+                <span style="width:18px;text-align:center;font-family:var(--font-numeric);font-weight:700;font-size:14px;color:#8A958C;flex:none">4</span>
+                <div style="width:32px;height:32px;border-radius:50%;background:#EFE8D5;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:11px;color:#5E6B62;flex:none">D</div>
+                <div style="flex:1;min-width:0"><div style="font-family:var(--font-body);font-weight:700;font-size:13px;color:#1C2B22">Dinesh</div><div style="font-family:var(--font-body);font-size:10px;color:#8A958C">31 + 33</div></div>
+                <span style="font-family:var(--font-numeric);font-weight:700;font-size:17px;color:#1C2B22">64</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:9px;padding:11px 13px;background:#FFF3E9;border:1px solid #FFDCC2;border-radius:12px">
+            <i data-lucide="coffee" style="width:16px;height:16px;color:#C75F1E;flex:none"></i>
+            <span style="font-family:var(--font-body);font-size:12px;color:#9A6B3E;line-height:1.4">Dinesh buys the teh tarik for the whole kaki crew.</span>
+          </div>
+        </div>
+        <div style="padding:12px 18px 22px;display:flex;gap:10px;background:linear-gradient(to top,var(--surface-page) 70%,transparent)">
+          <div style="width:52px;height:52px;border-radius:999px;background:#fff;border:1.5px solid #E3D9C0;display:flex;align-items:center;justify-content:center;flex:none"><i data-lucide="share-2" style="width:20px;height:20px;color:#134914"></i></div>
+          <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:9px;height:52px;background:#FF914D;color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:16px;box-shadow:0 6px 18px rgba(255,145,77,.4)">Done</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div>
   </div>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;currentHole&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:6,&quot;min&quot;:1,&quot;max&quot;:18,&quot;tsType&quot;:&quot;number&quot;},&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;B&quot;,&quot;options&quot;:[&quot;A&quot;,&quot;B&quot;,&quot;C&quot;],&quot;tsType&quot;:&quot;'A'|'B'|'C'&quot;}}">
 class Component extends DCLogic {
-  state = { entry: null, saved: false, nine: null, refreshing: false };
+  state = { entry: null, saved: false, nine: null, refreshing: false, teePickerFor: null, lobbyTees: { W: 'blue', M: 'black', J: 'red', D: 'white' } };
+
+  openTeePicker(who) { this.setState({ teePickerFor: who }); }
+  closeTeePicker() { this.setState({ teePickerFor: null }); }
+  chooseTee(key) {
+    const who = this.state.teePickerFor;
+    if (!who) return;
+    this.setState((s) => ({ lobbyTees: { ...s.lobbyTees, [who]: key }, teePickerFor: null }));
+  }
 
   setNine(n) { this.setState({ nine: n }); }
 
@@ -1269,6 +2118,38 @@ class Component extends DCLogic {
   money(v) { return v > 0 ? ('+$' + v) : (v < 0 ? ('-$' + Math.abs(v)) : '$0'); }
 
   renderVals() {
+    // ---- Lobby tee selection (Sentosa · Serapong course record) ----
+    const CT = [
+      { key: 'black', name: 'Black', color: '#1C2B22', ring: '#3A4A40', rating: '74.2', slope: 138, dist: 6412, ladies: false },
+      { key: 'blue',  name: 'Blue',  color: '#4E6E8E', ring: '#3C566F', rating: '72.4', slope: 131, dist: 6008, ladies: false },
+      { key: 'white', name: 'White', color: '#FFFFFF', ring: '#CFC3A4', rating: '70.1', slope: 125, dist: 5586, ladies: false },
+      { key: 'red',   name: 'Red',   color: '#B23B2E', ring: '#8F2E24', rating: '71.8', slope: 128, dist: 5182, ladies: true },
+    ];
+    const teeMap = {}; CT.forEach((t) => { teeMap[t.key] = t; });
+    const lt = this.state.lobbyTees;
+    const dotCss = (t, sz) => 'width:' + sz + 'px;height:' + sz + 'px;border-radius:50%;flex:none;background:' + t.color + ';border:2px solid ' + t.ring + ';';
+    const teeMeta = (t) => 'CR ' + t.rating + ' · Slope ' + t.slope;
+    const mkTee = (who, editable) => { const t = teeMap[lt[who]]; return { name: t.name, meta: teeMeta(t), dotStyle: dotCss(t, 18), editable: editable, readOnly: !editable, onClick: editable ? () => this.openTeePicker(who) : undefined, rowStyle: 'display:flex;align-items:center;gap:10px;padding:9px 13px;border-top:1px dashed #EFE8D5;background:#FCFAF3;' + (editable ? 'cursor:pointer;' : '') }; };
+    const teeW = mkTee('W', true), teeM = mkTee('M', false), teeJ = mkTee('J', false), teeD = mkTee('D', false);
+
+    const pickWho = this.state.teePickerFor;
+    const pickOpen = pickWho != null;
+    const whoName = { W: 'Wei Liang', M: 'Marcus', J: 'Jia Hui', D: 'Dinesh' };
+    const teeOptions = CT.map((t) => {
+      const sel = pickWho && lt[pickWho] === t.key;
+      return {
+        name: t.ladies ? (t.name + ' · Ladies') : t.name,
+        meta: teeMeta(t) + ' · ' + t.dist.toLocaleString('en-US') + ' m',
+        dotStyle: dotCss(t, 24),
+        onSelect: () => this.chooseTee(t.key),
+        rowStyle: 'display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:13px;cursor:pointer;background:' + (sel ? '#F0F6EE' : '#fff') + ';border:1.5px solid ' + (sel ? '#134914' : '#EFE8D5') + ';box-shadow:' + (sel ? '0 4px 12px rgba(19,73,20,.12)' : 'var(--shadow-xs)') + ';',
+        checkStyle: 'width:20px;height:20px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;' + (sel ? 'background:#134914;' : 'background:transparent;border:1.5px solid #D8CEB8;'),
+      };
+    });
+    const teeScrimStyle = 'position:absolute;inset:0;z-index:30;background:rgba(28,43,34,.42);transition:opacity .2s var(--ease-out);' + (pickOpen ? 'opacity:1;' : 'opacity:0;pointer-events:none;');
+    const teeSheetStyle = 'position:absolute;left:0;right:0;bottom:0;z-index:31;background:var(--surface-page);border-radius:24px 24px 0 0;box-shadow:0 -14px 40px rgba(14,58,40,.28);transition:transform .26s var(--ease-out);' + (pickOpen ? 'transform:translateY(0);' : 'transform:translateY(102%);');
+    const teeSheetSubtitle = pickOpen ? (whoName[pickWho] + ' · Sentosa · Serapong') : 'Sentosa · Serapong';
+
     const players = [
       { k: 'A', n: 'Marcus', h: 2 },
       { k: 'B', n: 'Wei Liang', h: 7 },
@@ -1753,6 +2634,8 @@ class Component extends DCLogic {
       refreshBtnStyle: 'width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;'
         + 'background:rgba(255,255,255,' + (refreshing ? '.2' : '.12') + ');transition:background .2s;',
       rows, headerCells, lb, expandHoles, matchTrack, matchTotalLabel, matchTotalStyle, recapRows, recapHeaderCols, recapSummary, inviteFriends, friends, lobbyPlayers, strokeSummary,
+      teeW, teeM, teeJ, teeD, teeOptions, teeScrimStyle, teeSheetStyle, teeSheetSubtitle,
+      teeSheetClose: () => this.closeTeePicker(),
       headerRowStyle, hHStyle, hParStyle, hSiStyle,
       summaryRows, frontStyle, backStyle, showFront, showBack, flagGiven, flagRecvd,
       wonCount: vrec.w, lostCount: vrec.l, halfCount: vrec.h,
