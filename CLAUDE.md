@@ -61,6 +61,21 @@ the same flow in lo-fi (structure only — hi-fi wins on styling).
 5. Supplementary features as needed: Trophy Cabinet, Brag Card / Ace Pin, Admin (course
    management — that one is a desktop/web surface, not the mobile app).
 
+## Database migrations
+- **Never hand-edit schema on a linked Supabase project** (no SQL editor / dashboard
+  changes to tables, columns, or policies). Every schema change goes through a migration
+  file + `supabase db push`. A hand edit silently desyncs the CLI's migration history from
+  the actual database — the next `db push` then tries to re-run SQL that already happened
+  and fails with duplicate-key/duplicate-table errors, exactly like
+  `20260628120001_seed_tasik_puteri.sql` and others did once discovered.
+- If a hand edit already happened (recovering from the above, or inherited from a prior
+  session), don't just re-run the migration — verify what's actually live first (query the
+  table/column/function directly), then either write the migration to match and
+  `supabase migration repair --status applied <version>` it, or `supabase db pull` to
+  generate the migration from live state.
+- **Check before pushing.** Run `supabase migration list` (or `db push --dry-run`) to see
+  local-vs-remote status before `db push` — don't push blind.
+
 ## Working agreement
 - Small, reviewable PRs — one screen or one primitive at a time.
 - When a design detail is ambiguous, check the `.dc.html` source (inline styles = the
