@@ -1,5 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
+  Bird,
   ChevronLeft,
   CircleCheckBig,
   Flag,
@@ -10,6 +11,7 @@ import {
   RefreshCw,
   Repeat,
   Save,
+  Target,
   Trophy,
   Users,
 } from 'lucide-react-native';
@@ -66,6 +68,24 @@ function parCelebration(best: number): UnlockCelebration {
       ? `${best} pars in a row. Ice in the veins.`
       : `${best} pars in a row. Steady as she goes.`,
     shareMessage: `${best} pars in a row on Golf Kaki! Track score · add fun.`,
+  };
+}
+
+function holeInOneCelebration(): UnlockCelebration {
+  return {
+    icon: Target,
+    headline: 'Hole in one!',
+    description: 'Straight from the tee to the cup — the shot every golfer dreams about.',
+    shareMessage: 'HOLE IN ONE on Golf Kaki! Track score · add fun.',
+  };
+}
+
+function eagleCelebration(holeN: number): UnlockCelebration {
+  return {
+    icon: Bird,
+    headline: 'Eagle!',
+    description: `Two under (or better) on hole ${holeN}. That's a card worth keeping.`,
+    shareMessage: `Eagle on hole ${holeN} on Golf Kaki! Track score · add fun.`,
   };
 }
 
@@ -186,33 +206,44 @@ export function ScorecardScreen({ navigation, route }: Props) {
   // the real value still gets recomputed and saved when the round finishes.
   async function checkForUnlock() {
     if (!viewerId || !editingOwnCard || !onLiveHole) return;
-    if (birdieBaseline.current === null || parBaseline.current === null) return;
     const justSavedPar = activeHoleData?.par;
     if (justSavedPar == null) return;
 
-    const priorDiffs: number[] = [];
-    for (let i = 0; i < activeHole - 1; i++) {
-      const g = gross[viewerId]?.[i];
-      const par = holes[i]?.par;
-      if (g != null && par != null) priorDiffs.push(g - par);
-    }
-    const inProgressDiffs = [...priorDiffs, activeScore - justSavedPar];
+    // Hole-in-One/Eagle are one-off per-hole facts (unlike the streaks below)
+    // — no baseline needed, just this hole's own score vs. its par. The
+    // authoritative record still gets written at round-finish via
+    // recalculateAndSaveMomentBadges (src/data/badgeMoments.ts); this is
+    // best-effort live flavor only.
+    const holeDiff = activeScore - justSavedPar;
+    const newCelebrations: UnlockCelebration[] = [];
+    if (activeScore === 1) newCelebrations.push(holeInOneCelebration());
+    else if (holeDiff <= -2) newCelebrations.push(eagleCelebration(activeHole));
 
-    try {
-      const { birdieBest, parBest } = await previewLiveStreaks(viewerId, inProgressDiffs);
-      const newCelebrations: UnlockCelebration[] = [];
-      if (crossedNewMilestone(birdieBaseline.current, birdieBest, [BIRDIE_STREAK_MIN, BIRDIE_STREAK_LEGENDARY])) {
-        newCelebrations.push(birdieCelebration(birdieBest));
+    if (birdieBaseline.current !== null && parBaseline.current !== null) {
+      const priorDiffs: number[] = [];
+      for (let i = 0; i < activeHole - 1; i++) {
+        const g = gross[viewerId]?.[i];
+        const par = holes[i]?.par;
+        if (g != null && par != null) priorDiffs.push(g - par);
       }
-      birdieBaseline.current = birdieBest;
-      if (crossedNewMilestone(parBaseline.current, parBest, [PAR_STREAK_MIN, PAR_STREAK_EPIC, PAR_STREAK_LEGENDARY])) {
-        newCelebrations.push(parCelebration(parBest));
+      const inProgressDiffs = [...priorDiffs, holeDiff];
+
+      try {
+        const { birdieBest, parBest } = await previewLiveStreaks(viewerId, inProgressDiffs);
+        if (crossedNewMilestone(birdieBaseline.current, birdieBest, [BIRDIE_STREAK_MIN, BIRDIE_STREAK_LEGENDARY])) {
+          newCelebrations.push(birdieCelebration(birdieBest));
+        }
+        birdieBaseline.current = birdieBest;
+        if (crossedNewMilestone(parBaseline.current, parBest, [PAR_STREAK_MIN, PAR_STREAK_EPIC, PAR_STREAK_LEGENDARY])) {
+          newCelebrations.push(parCelebration(parBest));
+        }
+        parBaseline.current = parBest;
+      } catch {
+        // Best-effort — see comment above.
       }
-      parBaseline.current = parBest;
-      if (newCelebrations.length > 0) setCelebrationQueue((queue) => [...queue, ...newCelebrations]);
-    } catch {
-      // Best-effort — see comment above.
     }
+
+    if (newCelebrations.length > 0) setCelebrationQueue((queue) => [...queue, ...newCelebrations]);
   }
 
   function dismissCelebration() {

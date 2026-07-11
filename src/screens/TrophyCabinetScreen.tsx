@@ -1,19 +1,22 @@
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ChevronLeft, Lock, Share2, Trophy } from 'lucide-react-native';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Share, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { Avatar } from '../components/Avatar';
 import { BadgeCard } from '../components/BadgeCard';
+import { EmptyTrophyCard } from '../components/EmptyTrophyCard';
 import { FeaturedTrophyCard } from '../components/FeaturedTrophyCard';
 import { IconButton } from '../components/IconButton';
-import type { AttestationStatus } from '../data/attestations';
-import { fetchAttestationStatus } from '../data/attestations';
+import type { AttestationStatus, Attester } from '../data/attestations';
+import { fetchAttestationStatus, fetchAttesters } from '../data/attestations';
+import type { MomentBadges } from '../data/badgeMoments';
+import { fetchLatestMoments } from '../data/badgeMoments';
 import { getInitials } from '../data/profile';
-import { FEATURED_BADGE, buildTrophyBadges, trophyCounts } from '../data/trophies';
+import { buildTrophyBadges, pickFeaturedBadge, trophyCounts } from '../data/trophies';
 import type { RootStackParamList } from '../navigation/types';
 import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, palette, radius, screenGutter, spacing } from '../theme/tokens';
@@ -31,7 +34,7 @@ export function TrophyCabinetScreen({ navigation }: Props) {
     }, [refresh]),
   );
 
-  const [attested, setAttested] = useState<AttestationStatus>({ birdieStreak: false, parStreak: false });
+  const [attested, setAttested] = useState<AttestationStatus>({ birdieStreak: false, parStreak: false, holeInOne: false, eagle: false });
   useFocusEffect(
     useCallback(() => {
       if (!profile) return;
@@ -41,8 +44,33 @@ export function TrophyCabinetScreen({ navigation }: Props) {
     }, [profile?.id]),
   );
 
-  const trophyBadges = useMemo(() => buildTrophyBadges(profile, attested), [profile?.birdieStreakBest, profile?.parStreakBest, attested]);
+  const [moments, setMoments] = useState<MomentBadges>({ hole_in_one: null, eagle: null });
+  useFocusEffect(
+    useCallback(() => {
+      if (!profile) return;
+      fetchLatestMoments(profile.id)
+        .then(setMoments)
+        .catch(() => {});
+    }, [profile?.id]),
+  );
+
+  const trophyBadges = useMemo(
+    () => buildTrophyBadges(profile, attested, moments),
+    [profile?.birdieStreakBest, profile?.parStreakBest, attested, moments],
+  );
   const counts = useMemo(() => trophyCounts(trophyBadges), [trophyBadges]);
+  const featuredBadge = useMemo(() => pickFeaturedBadge(trophyBadges, moments), [trophyBadges, moments]);
+
+  const [featuredAttesters, setFeaturedAttesters] = useState<Attester[]>([]);
+  useEffect(() => {
+    if (!profile || !featuredBadge) {
+      setFeaturedAttesters([]);
+      return;
+    }
+    fetchAttesters(profile.id, featuredBadge.attestationType)
+      .then(setFeaturedAttesters)
+      .catch(() => {});
+  }, [profile?.id, featuredBadge?.attestationType]);
 
   const onShare = () => {
     Share.share({ message: `${counts.earned} of ${counts.total} trophies earned on Golf Kaki — ${counts.gold} gold.` }).catch(() => {});
@@ -81,11 +109,20 @@ export function TrophyCabinetScreen({ navigation }: Props) {
             <View style={[styles.progressFill, { width: `${counts.progressPercent}%` }]} />
           </View>
 
-          <FeaturedTrophyCard
-            badge={FEATURED_BADGE}
-            style={styles.featuredCard}
-            onPress={() => navigation.navigate('BragCard')}
-          />
+          {featuredBadge ? (
+            <FeaturedTrophyCard
+              badge={featuredBadge}
+              attesters={featuredAttesters}
+              style={styles.featuredCard}
+              // BragCardScreen only renders a Hole-in-One moment today (see
+              // src/data/trophies.ts's BRAG_CARD) — only route there when
+              // that's genuinely what's featured, so this never opens a card
+              // that doesn't match the badge just tapped.
+              onPress={featuredBadge.attestationType === 'hole_in_one' ? () => navigation.navigate('BragCard') : undefined}
+            />
+          ) : (
+            <EmptyTrophyCard onStartRound={() => navigation.navigate('SelectCourse')} style={styles.featuredCard} />
+          )}
 
           <Text style={styles.sectionLabel}>The cabinet</Text>
           <View style={styles.cabinetGrid}>

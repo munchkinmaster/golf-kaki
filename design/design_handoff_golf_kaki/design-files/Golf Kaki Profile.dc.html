@@ -39,7 +39,9 @@
   </div>
   <div style="font-family:var(--font-body);font-size:14px;color:var(--text-muted);margin-bottom:30px;max-width:760px">Profile · just you. Photo, name, @handle and handicap up top, then the <strong style="color:#134914">trophy cabinet</strong>. Friends now live under the Kaki tab. The gear opens Settings.</div>
 
-  <div class="lbl">Profile · Identity + Trophy cabinet</div>
+  <div style="display:flex;gap:44px;align-items:flex-start">
+  <div>
+  <div class="lbl">Profile · Established player</div>
   <div class="phone">
 
     <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600;flex:none">
@@ -71,6 +73,14 @@
             <span style="font-family:var(--font-body);font-size:12px;color:#8A958C;flex:none">Handle</span>
             <input value="{{ handleVal }}" onInput="{{ onHandleInput }}" style="flex:1;border:none;outline:none;background:transparent;font-family:var(--font-body);font-size:15px;color:#1C2B22">
           </div>
+          <div>
+            <div style="font-family:var(--font-body);font-size:12px;color:#8A958C;margin:2px 2px 6px">Gender <span style="color:#B4BCB5;font-weight:500">· used for tee ratings &amp; handicap</span></div>
+            <div style="display:flex;gap:6px">
+              <sc-for list="{{ genderOptions }}" as="g" hint-placeholder-count="3">
+                <div onClick="{{ g.onClick }}" style="{{ g.style }}">{{ g.label }}</div>
+              </sc-for>
+            </div>
+          </div>
           <div style="display:flex;gap:8px;margin-top:2px">
             <div onClick="{{ onSave }}" style="flex:1;height:40px;border-radius:999px;background:#134914;color:#fff;font-family:var(--font-body);font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer">Save</div>
             <div onClick="{{ onCancel }}" style="flex:1;height:40px;border-radius:999px;background:#fff;border:1.5px solid #E3D9C0;color:#5E6B62;font-family:var(--font-body);font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer">Cancel</div>
@@ -82,7 +92,7 @@
           <div style="font-family:var(--font-display);font-weight:700;font-size:23px;color:#1C2B22">{{ displayName }}</div>
           <div onClick="{{ onEdit }}" style="width:28px;height:28px;border-radius:50%;background:#F0F6EE;border:1px solid #AED4A9;display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="pencil" style="width:13px;height:13px;color:#134914"></i></div>
         </div>
-        <div style="font-family:var(--font-body);font-size:13px;color:#8A958C;margin-top:2px">{{ displayHandle }} · Singapore</div>
+        <div style="font-family:var(--font-body);font-size:13px;color:#8A958C;margin-top:2px">{{ subLine }}</div>
       </sc-if>
 
       <div style="display:inline-flex;align-items:center;gap:8px;background:#FFEEE0;border:1px solid #FFDCC2;color:#E0742E;font-family:var(--font-body);font-weight:600;font-size:14px;padding:8px 16px;border-radius:999px;margin-top:14px;box-shadow:var(--shadow-xs)"><span style="color:#CFA98A;font-weight:500;letter-spacing:.05em;text-transform:uppercase;font-size:11px">Handicap</span><span style="font-family:var(--font-numeric);font-size:17px;font-weight:700">7.0</span></div>
@@ -198,6 +208,119 @@
     </div>
 
   </div>
+  </div>
+
+  <!-- ===== NEW USER STATE ===== -->
+  <div>
+  <div class="lbl">Profile · New Kaki (nothing earned yet)</div>
+  <div class="phone">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 22px;color:#3A4A40;font-family:var(--font-numeric);font-size:13px;font-weight:600;flex:none">
+      <span>9:41</span>
+      <span style="display:flex;gap:7px;align-items:center"><i data-lucide="signal" style="width:15px;height:15px"></i><i data-lucide="wifi" style="width:15px;height:15px"></i><i data-lucide="battery-full" style="width:18px;height:18px"></i></span>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 2px;flex:none">
+      <div style="width:40px;height:40px"></div>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:16px;color:#1C2B22">Profile</div>
+      <div style="width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #E3D9C0;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-xs);cursor:pointer"><i data-lucide="settings" style="width:18px;height:18px;color:#3A4A40"></i></div>
+    </div>
+
+    <div class="gkscreen" style="flex:1;overflow-y:auto;padding:8px 18px 100px;display:flex;flex-direction:column;align-items:center">
+
+      <!-- ===== IDENTITY (fresh) ===== -->
+      <div style="position:relative;width:92px;height:92px;flex:none;margin-top:6px">
+        <div style="width:92px;height:92px;border-radius:50%;background:var(--sand-100);border:3px solid #fff;box-shadow:0 8px 22px rgba(14,58,40,.14);display:flex;align-items:center;justify-content:center"><i data-lucide="user" style="width:40px;height:40px;color:#B8C0B4;stroke-width:1.6px"></i></div>
+        <div style="position:absolute;bottom:0;right:0;width:30px;height:30px;border-radius:50%;background:#134914;border:2px solid #fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(14,58,40,.28)"><i data-lucide="camera" style="width:14px;height:14px;color:#fff"></i></div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:7px;margin-top:12px">
+        <div style="font-family:var(--font-display);font-weight:700;font-size:23px;color:#1C2B22">Wei Liang</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:#F0F6EE;border:1px solid #AED4A9;display:flex;align-items:center;justify-content:center;cursor:pointer"><i data-lucide="pencil" style="width:13px;height:13px;color:#134914"></i></div>
+      </div>
+      <div style="font-family:var(--font-body);font-size:13px;color:#8A958C;margin-top:2px">@weiliang · Singapore</div>
+
+      <div style="display:inline-flex;align-items:center;gap:8px;background:var(--sand-100);border:1px dashed var(--border-default);color:#7E8A80;font-family:var(--font-body);font-weight:600;font-size:14px;padding:8px 16px;border-radius:999px;margin-top:14px"><span style="color:#A9B2A8;font-weight:500;letter-spacing:.05em;text-transform:uppercase;font-size:11px">Handicap</span><span style="font-family:var(--font-numeric);font-size:17px;font-weight:700">—</span></div>
+      <div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:7px;display:flex;align-items:center;gap:5px"><i data-lucide="info" style="width:12px;height:12px"></i>Play 3 rounds to establish your handicap</div>
+
+      <div style="margin-top:16px"><span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body);font-size:13px;font-weight:600;color:#134914;border-bottom:1px solid rgba(19,73,20,.35);padding-bottom:1px;cursor:pointer"><i data-lucide="pencil" style="width:13px;height:13px"></i>Add a bio</span></div>
+
+      <div style="display:flex;gap:10px;width:100%;margin-top:20px;flex:none">
+        <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:13px 6px;text-align:center;box-shadow:var(--shadow-xs)"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#C3CBC2">0</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:2px">Rounds</div></div>
+        <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:13px 6px;text-align:center;box-shadow:var(--shadow-xs)"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#C3CBC2">—</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:2px">Best</div></div>
+        <div style="flex:1;background:#fff;border:1px solid #EFE8D5;border-radius:14px;padding:13px 6px;text-align:center;box-shadow:var(--shadow-xs)"><div style="font-family:var(--font-numeric);font-weight:700;font-size:22px;color:#C3CBC2">0</div><div style="font-family:var(--font-body);font-size:11px;color:#8A958C;margin-top:2px">Wins</div></div>
+      </div>
+
+      <!-- ===== TROPHY CABINET (empty) ===== -->
+      <div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin:28px 2px 12px">
+        <div style="display:flex;align-items:center;gap:9px">
+          <div style="font-family:var(--font-body);font-weight:600;font-size:11px;letter-spacing:.1em;color:#5E6B62;text-transform:uppercase">Trophy cabinet</div>
+          <div style="display:inline-flex;align-items:center;gap:5px;font-family:var(--font-body);font-weight:600;font-size:11px;color:#8A958C;background:var(--sand-100);border:1px solid var(--border-default);padding:3px 9px;border-radius:999px"><i data-lucide="trophy" style="width:12px;height:12px;color:#B8C0B4"></i><span style="font-family:var(--font-numeric)">0</span> gold</div>
+        </div>
+      </div>
+
+      <div style="width:100%;display:flex;align-items:center;gap:11px;margin-bottom:18px">
+        <div style="flex:1;height:8px;border-radius:999px;background:var(--sand-200);overflow:hidden"><div style="width:0%;height:100%;border-radius:999px;background:var(--green-700)"></div></div>
+        <div style="font-family:var(--font-numeric);font-weight:700;font-size:12px;color:var(--ink-500);white-space:nowrap">0 / 8</div>
+      </div>
+
+      <!-- first-badge nudge (replaces featured) -->
+      <div style="width:100%;flex:none;background:var(--green-800);border-radius:18px;padding:19px 17px;color:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow-md);margin-bottom:22px;text-align:center">
+        <img src="assets/golf-kaki-mark.svg" alt="" style="position:absolute;right:-30px;top:-26px;width:140px;opacity:.10;filter:brightness(0) invert(1);pointer-events:none">
+        <div style="position:relative">
+          <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.12);border:1.5px dashed rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><i data-lucide="trophy" style="width:26px;height:26px;color:var(--orange-300)"></i></div>
+          <div style="font-family:var(--font-display);font-weight:700;font-size:18px">No trophies yet</div>
+          <div style="font-family:var(--font-body);font-size:12.5px;color:rgba(255,255,255,.72);margin-top:5px;line-height:1.5;max-width:230px;margin-left:auto;margin-right:auto">Finish a round with your kaki to unlock your first badge. Every eagle, streak and milestone lands here.</div>
+          <div style="display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 22px;background:var(--orange-500);color:#fff;border-radius:999px;font-family:var(--font-body);font-weight:600;font-size:14px;margin-top:15px;cursor:pointer"><i data-lucide="circle-plus" style="width:17px;height:17px"></i>Start a round</div>
+        </div>
+      </div>
+
+      <!-- cabinet grid (all locked) -->
+      <div style="width:100%;flex:none;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <sc-for list="{{ lockedCabinet }}" as="b" hint-placeholder-count="9">
+          <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;padding:15px 8px 13px;border-radius:16px;background:var(--sand-50);border:1px solid var(--border-subtle);opacity:.72">
+            <div style="width:56px;height:56px;border-radius:50%;background:var(--sand-100);border:2px dashed var(--border-default);display:flex;align-items:center;justify-content:center;position:relative;flex:none"><i data-lucide="lock" style="width:22px;height:22px;color:var(--ink-400)"></i></div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:12.5px;line-height:1.15;color:var(--ink-500)">{{ b.name }}</div>
+            <div style="font-family:var(--font-body);font-size:10.5px;font-weight:500;color:var(--text-muted)">Locked</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:20px;font-family:var(--font-body);font-size:12px;color:var(--text-muted)">
+        <i data-lucide="lock" style="width:13px;height:13px"></i>8 to chase
+      </div>
+    </div>
+
+    <!-- ===== NAV (Profile active) ===== -->
+    <div style="position:absolute;left:0;right:0;bottom:0;height:84px;z-index:20">
+      <div style="position:absolute;left:0;right:0;bottom:0;height:84px;background:#fff;border-top:1px solid #EFE8D5;box-shadow:0 -6px 22px rgba(14,58,40,.07);display:flex;align-items:center;justify-content:space-around;padding:0 4px 18px">
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="house" style="width:23px;height:23px;color:#9AA59C;stroke-width:2px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:500;color:#9AA59C">Home</span>
+        </div>
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="flag" style="width:23px;height:23px;color:#9AA59C;stroke-width:2px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:500;color:#9AA59C">Rounds</span>
+        </div>
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="circle-plus" style="width:25px;height:25px;color:#F47C2E;stroke-width:2.4px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:700;color:#F47C2E">Start</span>
+        </div>
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="users" style="width:23px;height:23px;color:#9AA59C;stroke-width:2px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:500;color:#9AA59C">Kaki</span>
+        </div>
+        <div class="navtab" style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex:1">
+          <i data-lucide="user" style="width:23px;height:23px;color:#134914;stroke-width:2.4px"></i>
+          <span style="font-family:var(--font-body);font-size:10px;font-weight:700;color:#134914">Profile</span>
+        </div>
+      </div>
+      <div style="position:absolute;left:50%;bottom:7px;transform:translateX(-50%);width:124px;height:4px;border-radius:999px;background:#1C2B22;opacity:.16"></div>
+    </div>
+
+  </div>
+  </div>
+  </div>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:460,&quot;height&quot;:940}}">
@@ -205,10 +328,12 @@ class Component extends DCLogic {
   state = {
     name: 'Wei Liang',
     handle: '@weiliang',
+    gender: 'Male',
     bio: 'Weekend hacker, fairway optimist. Will play anyone for a teh tarik.',
     editing: false,
     nameVal: 'Wei Liang',
     handleVal: '@weiliang',
+    genderVal: 'Male',
     editingBio: false,
     bioVal: 'Weekend hacker, fairway optimist. Will play anyone for a teh tarik.',
   };
@@ -223,6 +348,28 @@ class Component extends DCLogic {
   renderVals() {
     const GOLD = 'var(--score-eagle)', ORANGE = 'var(--orange-500)', GREEN = 'var(--green-700)';
     const editing = this.state.editing;
+
+    const genderChoices = ['Male', 'Female', 'Prefer not to say'];
+    const genderOptions = genderChoices.map(label => {
+      const sel = this.state.genderVal === label;
+      return {
+        label,
+        onClick: () => this.setState({ genderVal: label }),
+        style: {
+          flex: label === 'Prefer not to say' ? '1.6' : '1',
+          height: '38px', borderRadius: '999px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
+          fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '12.5px', lineHeight: 1.1, padding: '0 6px',
+          background: sel ? 'var(--green-800)' : '#fff',
+          color: sel ? '#fff' : 'var(--ink-500)',
+          border: '1.5px solid ' + (sel ? 'var(--green-800)' : 'var(--border-default)'),
+          boxShadow: sel ? 'var(--shadow-xs)' : 'none',
+        },
+      };
+    });
+
+    const genderShort = this.state.gender === 'Prefer not to say' ? '' : this.state.gender;
+    const subLine = this.state.handle + (genderShort ? ' · ' + genderShort : '') + ' · Singapore';
     const editingBio = this.state.editingBio;
 
     const medal = (c1, c2, size) => ({
@@ -287,19 +434,26 @@ class Component extends DCLogic {
       };
     });
 
+    const lockedCabinet = [
+      { name: 'Hole-in-One' }, { name: 'Eagle' }, { name: 'Birdie Streak' },
+      { name: 'Broke 80' }, { name: 'Albatross' }, { name: 'Bogey-Free Nine' },
+      { name: 'Par Streak' }, { name: 'Broke 90' }, { name: 'Sandie' },
+    ];
+
     return {
-      cabinet, medalLegendary,
+      cabinet, medalLegendary, lockedCabinet,
       editing, notEditing: !editing,
       editingBio, notEditingBio: !editingBio,
+      genderOptions, subLine,
       displayName: this.state.name,
       displayHandle: this.state.handle,
       displayBio: this.state.bio,
       nameVal: this.state.nameVal,
       handleVal: this.state.handleVal,
       bioVal: this.state.bioVal,
-      onEdit: () => this.setState({ editing: true, nameVal: this.state.name, handleVal: this.state.handle }),
+      onEdit: () => this.setState({ editing: true, nameVal: this.state.name, handleVal: this.state.handle, genderVal: this.state.gender }),
       onCancel: () => this.setState({ editing: false }),
-      onSave: () => this.setState({ name: this.state.nameVal, handle: this.state.handleVal, editing: false }),
+      onSave: () => this.setState({ name: this.state.nameVal, handle: this.state.handleVal, gender: this.state.genderVal, editing: false }),
       onNameInput: (e) => this.setState({ nameVal: e.target.value }),
       onHandleInput: (e) => this.setState({ handleVal: e.target.value }),
       onEditBio: () => this.setState({ editingBio: true, bioVal: this.state.bio }),

@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ScoreBadge } from '../components/ScoreBadge';
 import { getNextRoundDeals, grossTotal, money, moneyLabel, pairwiseTotal, record, runningUp, scoreClassCounts, sumRange, upLabel } from '../data/round';
 import type { StrokeMode } from '../data/round';
+import { recalculateAndSaveMomentBadges } from '../data/badgeMoments';
 import { recalculateAndSaveHandicap } from '../data/handicap';
 import { recalculateAndSaveStreaks } from '../data/streaks';
 import { useLiveRound } from '../hooks/useLiveRound';
@@ -41,6 +42,7 @@ export function RecapScreen({ navigation, route }: Props) {
       syncLedger(),
       viewerId ? recalculateAndSaveHandicap(viewerId, matchId) : Promise.resolve(),
       viewerId ? recalculateAndSaveStreaks(viewerId) : Promise.resolve(),
+      viewerId ? recalculateAndSaveMomentBadges(viewerId, matchId) : Promise.resolve(),
     ]).catch(() => {
       ledgerSynced.current = false;
     });

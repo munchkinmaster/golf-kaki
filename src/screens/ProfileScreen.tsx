@@ -11,16 +11,19 @@ import { BadgeCard } from '../components/BadgeCard';
 import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { EmptyTrophyCard } from '../components/EmptyTrophyCard';
 import { FeaturedTrophyCard } from '../components/FeaturedTrophyCard';
 import { HandicapBadge } from '../components/HandicapBadge';
 import { IconButton } from '../components/IconButton';
 import { StatRow } from '../components/StatRow';
-import type { AttestationStatus } from '../data/attestations';
-import { fetchAttestationStatus } from '../data/attestations';
+import type { AttestationStatus, Attester } from '../data/attestations';
+import { fetchAttestationStatus, fetchAttesters } from '../data/attestations';
+import type { MomentBadges } from '../data/badgeMoments';
+import { fetchLatestMoments } from '../data/badgeMoments';
 import { fetchHandicapRecordCount, handicapCaption } from '../data/handicap';
 import { getInitials, stripHandlePrefix } from '../data/profile';
 import { fetchRoundSummaries, profileRoundStats } from '../data/rounds';
-import { FEATURED_BADGE, buildTrophyBadges, trophyCounts } from '../data/trophies';
+import { buildTrophyBadges, pickFeaturedBadge, trophyCounts } from '../data/trophies';
 import type { RootStackParamList } from '../navigation/types';
 import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, palette, radius, screenGutter, spacing } from '../theme/tokens';
@@ -56,7 +59,7 @@ export function ProfileScreen({ navigation }: Props) {
     { value: roundStats?.wins ?? '–', label: 'Wins', color: colors.textPrimary },
   ];
 
-  const [attested, setAttested] = useState<AttestationStatus>({ birdieStreak: false, parStreak: false });
+  const [attested, setAttested] = useState<AttestationStatus>({ birdieStreak: false, parStreak: false, holeInOne: false, eagle: false });
   useFocusEffect(
     useCallback(() => {
       if (!profile) return;
@@ -66,8 +69,33 @@ export function ProfileScreen({ navigation }: Props) {
     }, [profile?.id]),
   );
 
-  const trophyBadges = useMemo(() => buildTrophyBadges(profile, attested), [profile?.birdieStreakBest, profile?.parStreakBest, attested]);
+  const [moments, setMoments] = useState<MomentBadges>({ hole_in_one: null, eagle: null });
+  useFocusEffect(
+    useCallback(() => {
+      if (!profile) return;
+      fetchLatestMoments(profile.id)
+        .then(setMoments)
+        .catch(() => {});
+    }, [profile?.id]),
+  );
+
+  const trophyBadges = useMemo(
+    () => buildTrophyBadges(profile, attested, moments),
+    [profile?.birdieStreakBest, profile?.parStreakBest, attested, moments],
+  );
   const counts = useMemo(() => trophyCounts(trophyBadges), [trophyBadges]);
+  const featuredBadge = useMemo(() => pickFeaturedBadge(trophyBadges, moments), [trophyBadges, moments]);
+
+  const [featuredAttesters, setFeaturedAttesters] = useState<Attester[]>([]);
+  useEffect(() => {
+    if (!profile || !featuredBadge) {
+      setFeaturedAttesters([]);
+      return;
+    }
+    fetchAttesters(profile.id, featuredBadge.attestationType)
+      .then(setFeaturedAttesters)
+      .catch(() => {});
+  }, [profile?.id, featuredBadge?.attestationType]);
 
   const [editingIdentity, setEditingIdentity] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
@@ -243,7 +271,11 @@ export function ProfileScreen({ navigation }: Props) {
             </Text>
           </View>
 
-          <FeaturedTrophyCard badge={FEATURED_BADGE} style={styles.featuredCard} />
+          {featuredBadge ? (
+            <FeaturedTrophyCard badge={featuredBadge} attesters={featuredAttesters} style={styles.featuredCard} />
+          ) : (
+            <EmptyTrophyCard onStartRound={() => navigation.navigate('SelectCourse')} style={styles.featuredCard} />
+          )}
 
           <View style={styles.cabinetGrid}>
             {trophyBadges.map((badge) => (

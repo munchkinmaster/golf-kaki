@@ -1,6 +1,8 @@
 import { Bird, Flame, Gauge, Repeat, ShieldCheck, Target, TrendingDown } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 
+import type { MomentBadges } from './badgeMoments';
+import { momentMeta, momentState } from './badgeMoments';
 import type { Profile } from './profile';
 import type { PlayerKey } from './round';
 import { BIRDIE_STREAK_MIN, PAR_STREAK_MIN, birdieStreakTier, parStreakTier, streakMeta, streakState } from './streaks';
@@ -32,17 +34,8 @@ export const TIER_RANK: Record<BadgeTier, number> = {
 
 export type AcePinAward = { tier: BadgeTier; icon: LucideIcon };
 
-export const FEATURED_BADGE = {
-  name: 'Hole-in-One',
-  icon: Target,
-  location: 'Tanah Merah · 7th · 2 weeks ago',
-  attestedBy: 'Marcus & Jun Long',
-};
-
 /** Badges without their own detection logic yet — same for every viewer until each is wired to real data. */
 const STATIC_BADGES: TrophyBadge[] = [
-  { name: 'Hole-in-One', meta: 'Tanah Merah', icon: Target, tier: 'legendary', state: 'earned' },
-  { name: 'Eagle', meta: 'Sentosa', icon: Bird, tier: 'epic', state: 'earned' },
   { name: 'Broke 80', meta: 'Awaiting kaki', icon: Gauge, tier: 'epic', state: 'pending' },
   { name: 'Albatross', meta: 'Locked', icon: Target, tier: 'legendary', state: 'locked' },
   { name: 'Bogey-Free Nine', meta: 'Locked', icon: ShieldCheck, tier: 'legendary', state: 'locked' },
@@ -50,7 +43,27 @@ const STATIC_BADGES: TrophyBadge[] = [
 ];
 
 /** Has any kaki attested each of the viewer's real badges yet — see src/data/attestations.ts. */
-export type StreakAttestation = { birdieStreak: boolean; parStreak: boolean };
+export type StreakAttestation = { birdieStreak: boolean; parStreak: boolean; holeInOne: boolean; eagle: boolean };
+
+/** Hole-in-One / Eagle, built from a player's real badge_moments (see src/data/badgeMoments.ts) plus peer attestation status. */
+function buildMomentBadges(moments: MomentBadges, attested: StreakAttestation): [TrophyBadge, TrophyBadge] {
+  return [
+    {
+      name: 'Hole-in-One',
+      meta: momentMeta(moments.hole_in_one, attested.holeInOne),
+      icon: Target,
+      tier: 'legendary',
+      state: momentState(moments.hole_in_one, attested.holeInOne),
+    },
+    {
+      name: 'Eagle',
+      meta: momentMeta(moments.eagle, attested.eagle),
+      icon: Bird,
+      tier: 'epic',
+      state: momentState(moments.eagle, attested.eagle),
+    },
+  ];
+}
 
 /** Birdie Streak / Par Streak, built from a player's real `birdieStreakBest`/`parStreakBest` (see src/data/streaks.ts) plus peer attestation status. */
 function buildStreakBadges(profile: Pick<Profile, 'birdieStreakBest' | 'parStreakBest'> | null, attested: StreakAttestation): [TrophyBadge, TrophyBadge] {
@@ -75,10 +88,57 @@ function buildStreakBadges(profile: Pick<Profile, 'birdieStreakBest' | 'parStrea
 }
 
 /** The full cabinet, in display order. `profile` null renders every real badge as locked (not yet loaded). */
-export function buildTrophyBadges(profile: Pick<Profile, 'birdieStreakBest' | 'parStreakBest'> | null, attested: StreakAttestation): TrophyBadge[] {
-  const [holeInOne, eagle, broke80, albatross, bogeyFreeNine, broke90] = STATIC_BADGES;
+export function buildTrophyBadges(
+  profile: Pick<Profile, 'birdieStreakBest' | 'parStreakBest'> | null,
+  attested: StreakAttestation,
+  moments: MomentBadges,
+): TrophyBadge[] {
+  const [broke80, albatross, bogeyFreeNine, broke90] = STATIC_BADGES;
+  const [holeInOne, eagle] = buildMomentBadges(moments, attested);
   const [birdieStreak, parStreak] = buildStreakBadges(profile, attested);
-  return [holeInOne!, eagle!, birdieStreak, broke80!, albatross!, bogeyFreeNine!, parStreak, broke90!];
+  return [holeInOne, eagle, birdieStreak, broke80!, albatross!, bogeyFreeNine!, parStreak, broke90!];
+}
+
+export type FeaturedBadgeAttestationType = 'hole_in_one' | 'eagle' | 'birdie_streak' | 'par_streak';
+
+export type FeaturedBadge = {
+  name: string;
+  icon: LucideIcon;
+  tier: BadgeTier;
+  metaText: string;
+  /** Which badge_attestations row backs this — the screen fetches real attester names for it (see src/data/attestations.ts's fetchAttesters). */
+  attestationType: FeaturedBadgeAttestationType;
+};
+
+const FEATURED_ATTESTATION_TYPE: Partial<Record<string, FeaturedBadgeAttestationType>> = {
+  'Hole-in-One': 'hole_in_one',
+  Eagle: 'eagle',
+  'Birdie Streak': 'birdie_streak',
+  'Par Streak': 'par_streak',
+};
+
+function formatShortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' });
+}
+
+/**
+ * The viewer's single best-tier earned badge, formatted for the Featured
+ * Trophy Card — real course/hole/date for Hole-in-One/Eagle, real streak
+ * length otherwise. Null if nothing's earned yet (Profile/Trophy Cabinet
+ * fall back to the empty-cabinet nudge in that case) or if the best-earned
+ * badge is one of the still-static ones (Broke 80/90 etc. never actually
+ * reach 'earned' today, so this is just a defensive fallback).
+ */
+export function pickFeaturedBadge(trophyBadges: TrophyBadge[], moments: MomentBadges): FeaturedBadge | null {
+  const best = [...trophyBadges].filter((b) => b.state === 'earned').sort((a, b) => TIER_RANK[a.tier] - TIER_RANK[b.tier])[0];
+  if (!best) return null;
+  const attestationType = FEATURED_ATTESTATION_TYPE[best.name];
+  if (!attestationType) return null;
+
+  const moment = attestationType === 'hole_in_one' ? moments.hole_in_one : attestationType === 'eagle' ? moments.eagle : null;
+  const metaText = moment ? `${moment.courseName} · hole ${moment.holeNumber} · ${formatShortDate(moment.achievedAt)}` : best.meta;
+
+  return { name: best.name, icon: best.icon, tier: best.tier, metaText, attestationType };
 }
 
 export function trophyCounts(badges: TrophyBadge[]) {

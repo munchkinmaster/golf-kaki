@@ -1,6 +1,7 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import {
+  Bird,
   Check,
   ChevronRight,
   Flag,
@@ -477,8 +478,24 @@ function FriendRequestCard({
 }
 
 function badgeTypeLabel(badgeType: AttestableBadge['badgeType']): string {
-  return badgeType === 'birdie_streak' ? 'birdie streak' : 'par streak';
+  switch (badgeType) {
+    case 'birdie_streak':
+      return 'birdie streak';
+    case 'par_streak':
+      return 'par streak';
+    case 'hole_in_one':
+      return 'hole-in-one';
+    case 'eagle':
+      return 'eagle';
+  }
 }
+
+const BADGE_TYPE_ICON: Record<AttestableBadge['badgeType'], typeof Flame> = {
+  birdie_streak: Flame,
+  par_streak: Repeat,
+  hole_in_one: Target,
+  eagle: Bird,
+};
 
 function BadgeAttestationCard({
   badge,
@@ -490,7 +507,7 @@ function BadgeAttestationCard({
   onConfirm: () => void;
 }) {
   const playerColor = getPlayerColors(colorIndex);
-  const Icon = badge.badgeType === 'birdie_streak' ? Flame : Repeat;
+  const Icon = BADGE_TYPE_ICON[badge.badgeType];
 
   return (
     <View style={[styles.notifCard, styles.notifCardFriend]}>
@@ -503,7 +520,7 @@ function BadgeAttestationCard({
           <View style={styles.notifMetaRow}>
             <View style={styles.notifMetaItem}>
               <Icon size={13} color={colors.textDisabled} />
-              <Text style={styles.notifMetaText}>{badge.streakLength} in a row</Text>
+              <Text style={styles.notifMetaText}>{badge.detail}</Text>
             </View>
           </View>
         </View>

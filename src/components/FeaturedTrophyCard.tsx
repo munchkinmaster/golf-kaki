@@ -1,4 +1,4 @@
-import { BadgeCheck, MapPin } from 'lucide-react-native';
+import { BadgeCheck } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -6,50 +6,64 @@ import type { StyleProp, ViewStyle } from 'react-native';
 
 import { Avatar } from './Avatar';
 import { Card } from './Card';
+import type { Attester } from '../data/attestations';
+import type { BadgeTier } from '../data/trophies';
 import { colors, getFontFamily, getPlayerColors, palette, spacing } from '../theme/tokens';
 
 const FEATURED_MEDAL_SIZE = 60;
 
+const TIER_LABEL: Record<BadgeTier, string> = {
+  legendary: 'Legendary',
+  epic: 'Epic',
+  great: 'Great',
+};
+
+function formatAttestedBy(attesters: Attester[]): string {
+  if (attesters.length === 0) return 'Confirmed';
+  if (attesters.length === 1) return `Attested by ${attesters[0]!.name}`;
+  if (attesters.length === 2) return `Attested by ${attesters[0]!.name} & ${attesters[1]!.name}`;
+  return `Attested by ${attesters[0]!.name} & ${attesters.length - 1} more`;
+}
+
 type FeaturedTrophyCardProps = {
-  badge: { name: string; icon: LucideIcon; location: string; attestedBy: string };
+  badge: { name: string; icon: LucideIcon; tier: BadgeTier; metaText: string };
+  /** Real kaki who vouched for this badge (src/data/attestations.ts's fetchAttesters) — empty means only the grandfathered self-attestation exists, not that nobody's confirmed it. */
+  attesters: Attester[];
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
 };
 
-export function FeaturedTrophyCard({ badge, style, onPress }: FeaturedTrophyCardProps) {
-  const { name, icon: Icon, location, attestedBy } = badge;
+export function FeaturedTrophyCard({ badge, attesters, style, onPress }: FeaturedTrophyCardProps) {
+  const { name, icon: Icon, tier, metaText } = badge;
 
   const card = (
     <Card variant="inverse" watermark padding={17} style={style}>
       <View style={styles.topRow}>
         <FeaturedMedal icon={Icon} />
         <View style={styles.info}>
-          <Text style={styles.overline}>Legendary · latest</Text>
+          <Text style={styles.overline}>{TIER_LABEL[tier]}</Text>
           <Text style={styles.title}>{name}</Text>
           <View style={styles.metaRow}>
-            <MapPin size={12} color="rgba(255,255,255,0.7)" />
-            <Text style={styles.metaText}>{location}</Text>
+            <Text style={styles.metaText}>{metaText}</Text>
           </View>
         </View>
       </View>
       <View style={styles.divider}>
-        <View style={styles.attesterStack}>
-          <Avatar
-            initials="MK"
-            size={22}
-            backgroundColor={getPlayerColors(0).background}
-            color={getPlayerColors(0).color}
-            style={styles.attesterAvatar}
-          />
-          <Avatar
-            initials="JL"
-            size={22}
-            backgroundColor={getPlayerColors(1).background}
-            color={getPlayerColors(1).color}
-            style={[styles.attesterAvatar, styles.attesterAvatarOverlap]}
-          />
-        </View>
-        <Text style={styles.attestedByText}>Attested by {attestedBy}</Text>
+        {attesters.length > 0 ? (
+          <View style={styles.attesterStack}>
+            {attesters.slice(0, 2).map((attester, i) => (
+              <Avatar
+                key={attester.name}
+                initials={attester.initials}
+                size={22}
+                backgroundColor={getPlayerColors(i).background}
+                color={getPlayerColors(i).color}
+                style={[styles.attesterAvatar, i > 0 && styles.attesterAvatarOverlap]}
+              />
+            ))}
+          </View>
+        ) : null}
+        <Text style={styles.attestedByText}>{formatAttestedBy(attesters)}</Text>
         <BadgeCheck size={15} color={palette.orange[300]} style={styles.attestedCheck} />
       </View>
     </Card>

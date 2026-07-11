@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { MatchupEditorPlayer, PairSetting } from '../components/MatchupEditor';
+import { recalculateAndSaveMomentBadges } from '../data/badgeMoments';
 import { fetchLedgerStrokesForGroup, updateLedgerStrokes } from '../data/kaki';
 import { recalculateAndSaveHandicap } from '../data/handicap';
 import { recalculateAndSaveStreaks } from '../data/streaks';
@@ -268,6 +269,7 @@ export function useLiveRound(matchId: string) {
     await syncLedger();
     if (viewerId) await recalculateAndSaveHandicap(viewerId, matchId).catch(() => {});
     if (viewerId) await recalculateAndSaveStreaks(viewerId).catch(() => {});
+    if (viewerId) await recalculateAndSaveMomentBadges(viewerId, matchId).catch(() => {});
     setMatchStatus('finished');
   }
 
