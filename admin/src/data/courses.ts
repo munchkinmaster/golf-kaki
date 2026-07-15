@@ -219,20 +219,42 @@ function slugify(name: string): string {
   return slug || 'course';
 }
 
-/** Replaces every nine/hole/combo/rating row for a course. Deletes go combos-then-nines — course_combos'
- *  FKs into course_nines aren't ON DELETE CASCADE, so nines must outlive combos until they're gone. */
+/**
+ * Upserts every nine/hole/combo/rating row for a course, deleting only the ones the admin
+ * actually removed. `matches` has a `(course_id, combo_id)` foreign key with no cascade, so
+ * a blanket delete-then-reinsert of course_combos (the old approach) fails the moment any
+ * combo has real match history — e.g. just reordering Tasik Puteri's combos hit this, since
+ * a reorder only needs `position` to change, not the rows to be recreated. Removed combos
+ * still go before removed nines: course_combos' FKs into course_nines aren't cascading.
+ */
 async function replaceCourseChildren(courseId: string, input: CourseWriteInput, { deleteExisting }: { deleteExisting: boolean }) {
   if (deleteExisting) {
-    const { error: combosDelErr } = await supabase.from('course_combos').delete().eq('course_id', courseId);
-    if (combosDelErr) throw combosDelErr;
-    const { error: ninesDelErr } = await supabase.from('course_nines').delete().eq('course_id', courseId);
-    if (ninesDelErr) throw ninesDelErr;
+    const keepComboIds = new Set(input.combos.map((c) => c.id));
+    const { data: existingCombos, error: existingCombosErr } = await supabase.from('course_combos').select('combo_id').eq('course_id', courseId);
+    if (existingCombosErr) throw existingCombosErr;
+    const removedComboIds = (existingCombos ?? []).map((c) => c.combo_id).filter((id) => !keepComboIds.has(id));
+    if (removedComboIds.length > 0) {
+      const { error } = await supabase.from('course_combos').delete().eq('course_id', courseId).in('combo_id', removedComboIds);
+      if (error) throw error;
+    }
+
+    const keepNineIds = new Set(input.nines.map((n) => n.id));
+    const { data: existingNines, error: existingNinesErr } = await supabase.from('course_nines').select('nine_id').eq('course_id', courseId);
+    if (existingNinesErr) throw existingNinesErr;
+    const removedNineIds = (existingNines ?? []).map((n) => n.nine_id).filter((id) => !keepNineIds.has(id));
+    if (removedNineIds.length > 0) {
+      const { error } = await supabase.from('course_nines').delete().eq('course_id', courseId).in('nine_id', removedNineIds);
+      if (error) throw error;
+    }
   }
 
-  const { error: ninesInsErr } = await supabase
+  const { error: ninesUpsertErr } = await supabase
     .from('course_nines')
-    .insert(input.nines.map((n) => ({ course_id: courseId, nine_id: n.id, name: n.name })));
-  if (ninesInsErr) throw ninesInsErr;
+    .upsert(
+      input.nines.map((n) => ({ course_id: courseId, nine_id: n.id, name: n.name })),
+      { onConflict: 'course_id,nine_id' },
+    );
+  if (ninesUpsertErr) throw ninesUpsertErr;
 
   const holeRows = input.nines.flatMap((n) =>
     n.holes.map((h) => ({
@@ -247,14 +269,21 @@ async function replaceCourseChildren(courseId: string, input: CourseWriteInput, 
       si_by_partner: h.siByPartner,
     })),
   );
-  const { error: holesInsErr } = await supabase.from('course_holes').insert(holeRows);
-  if (holesInsErr) throw holesInsErr;
+  const { error: holesUpsertErr } = await supabase.from('course_holes').upsert(holeRows, { onConflict: 'course_id,nine_id,hole_n' });
+  if (holesUpsertErr) throw holesUpsertErr;
 
-  const { error: combosInsErr } = await supabase
+  const { error: combosUpsertErr } = await supabase
     .from('course_combos')
-    .insert(input.combos.map((c, position) => ({ course_id: courseId, combo_id: c.id, label: c.label, front_nine_id: c.front, back_nine_id: c.back, position })));
-  if (combosInsErr) throw combosInsErr;
+    .upsert(
+      input.combos.map((c, position) => ({ course_id: courseId, combo_id: c.id, label: c.label, front_nine_id: c.front, back_nine_id: c.back, position })),
+      { onConflict: 'course_id,combo_id' },
+    );
+  if (combosUpsertErr) throw combosUpsertErr;
 
+  // Nothing references course_combo_ratings by foreign key, so a plain delete-then-insert
+  // (scoped to this course) is safe and simplest — no need for upsert bookkeeping here.
+  const { error: ratingsDelErr } = await supabase.from('course_combo_ratings').delete().eq('course_id', courseId);
+  if (ratingsDelErr) throw ratingsDelErr;
   const ratingRows = Object.entries(input.ratingsByCombo).flatMap(([comboId, ratings]) =>
     ratings.map((r) => ({ course_id: courseId, combo_id: comboId, tee_color: r.teeColor, course_rating: r.courseRating, slope_rating: r.slopeRating })),
   );
