@@ -1,4 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as Location from 'expo-location';
 import {
   ArrowRight,
   ChevronDown,
@@ -8,6 +9,7 @@ import {
   Flag,
   Info,
   MapPin,
+  Navigation,
   Search,
   X,
 } from 'lucide-react-native';
@@ -20,6 +22,7 @@ import { Button } from '../components/Button';
 import { IconButton } from '../components/IconButton';
 import type { Course as CatalogCourse, NineCombo } from '../data/courses';
 import { fetchCourseCatalog, getComboHoles } from '../data/courses';
+import { distanceKm, formatDistanceKm } from '../lib/geo';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, getFontFamily, motion, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
@@ -27,11 +30,15 @@ type Props = NativeStackScreenProps<RootStackParamList, 'SelectCourse'>;
 
 type HolesToPlay = 9 | 18;
 
+const NEARBY_COUNT = 5;
+
 type Course = {
   id: string;
   name: string;
   area: string;
   totalHoles: number;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 type StartHole = {
@@ -59,10 +66,46 @@ export function SelectCourseScreen({ navigation }: Props) {
       .finally(() => setCatalogLoading(false));
   }, []);
 
+  // Nearby sorting is a nice-to-have, not a requirement — permission denial, no GPS fix, or
+  // a course missing lat/lng (optional on the course-admin geo fields) all fall back to the
+  // existing full, position-ordered list rather than blocking the screen.
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted' || cancelled) return;
+      const pos = await Location.getCurrentPositionAsync({});
+      if (!cancelled) setUserLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+    })().catch(() => {
+      // permission denied or location unavailable — leave userLocation null, handled by the fallback above
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const allCourses = useMemo<Course[]>(
-    () => catalog.map((c) => ({ id: c.id, name: c.name, area: c.area, totalHoles: c.nines.length * 9 })),
+    () =>
+      catalog.map((c) => ({
+        id: c.id,
+        name: c.name,
+        area: c.area,
+        totalHoles: c.nines.length * 9,
+        latitude: c.latitude,
+        longitude: c.longitude,
+      })),
     [catalog],
   );
+
+  const nearbyCourses = useMemo(() => {
+    if (!userLocation) return null;
+    const withDistance = allCourses
+      .filter((c): c is Course & { latitude: number; longitude: number } => c.latitude !== null && c.longitude !== null)
+      .map((c) => ({ ...c, distanceKm: distanceKm(userLocation, c) }));
+    if (withDistance.length === 0) return null;
+    return withDistance.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, NEARBY_COUNT);
+  }, [allCourses, userLocation]);
 
   // Nothing's selected until the catalog loads — default to the first club.
   useEffect(() => {
@@ -129,6 +172,22 @@ export function SelectCourseScreen({ navigation }: Props) {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           {catalogLoading ? (
             <Text style={styles.noResultsText}>Loading clubs…</Text>
+          ) : q === '' && nearbyCourses ? (
+            <View>
+              <View style={styles.nearbyHeaderRow}>
+                <Navigation size={12} color={palette.green[600]} />
+                <Text style={styles.nearbyHeaderText}>Near you</Text>
+              </View>
+              {nearbyCourses.map((course) => (
+                <CourseRow
+                  key={course.id}
+                  course={course}
+                  distance={formatDistanceKm(course.distanceKm)}
+                  selected={selectedCourseId === course.id}
+                  onPress={() => setSelectedCourseId(course.id)}
+                />
+              ))}
+            </View>
           ) : filteredCourses.length > 0 ? (
             <View>
               {filteredCourses.map((course) => (
@@ -242,7 +301,17 @@ export function SelectCourseScreen({ navigation }: Props) {
   );
 }
 
-function CourseRow({ course, selected, onPress }: { course: Course; selected: boolean; onPress: () => void }) {
+function CourseRow({
+  course,
+  distance,
+  selected,
+  onPress,
+}: {
+  course: Course;
+  distance?: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       style={[styles.courseRow, selected ? styles.courseRowSelected : styles.courseRowUnselected]}
@@ -255,6 +324,12 @@ function CourseRow({ course, selected, onPress }: { course: Course; selected: bo
         <Text style={[styles.courseName, selected && styles.courseNameSelected]}>{course.name}</Text>
         <View style={styles.courseMetaRow}>
           <Text style={styles.courseMetaText}>{course.area}</Text>
+          {distance ? (
+            <>
+              <Text style={styles.courseMetaDot}>·</Text>
+              <Text style={styles.courseMetaNumeric}>{distance}</Text>
+            </>
+          ) : null}
           <Text style={styles.courseMetaDot}>·</Text>
           <Text style={styles.courseMetaNumeric}>{course.totalHoles} holes</Text>
         </View>
@@ -519,6 +594,20 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: screenGutter,
     paddingBottom: spacing[6],
+  },
+  nearbyHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1] + 2,
+    marginBottom: spacing[2] + 1,
+  },
+  nearbyHeaderText: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 11,
+    letterSpacing: 1.1,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
   },
   courseRow: {
     flexDirection: 'row',

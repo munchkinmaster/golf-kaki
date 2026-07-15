@@ -49,6 +49,9 @@ export type Course = {
   id: string;
   name: string;
   area: string;
+  /** Null until an admin sets it on the course-admin geo fields — nearby-course sorting skips these. */
+  latitude: number | null;
+  longitude: number | null;
   nines: Nine[];
   combos: NineCombo[];
 };
@@ -57,6 +60,8 @@ type CourseRow = {
   id: string;
   name: string;
   area: string;
+  latitude: number | string | null;
+  longitude: number | string | null;
   position: number;
   course_nines: {
     nine_id: string;
@@ -96,7 +101,7 @@ export async function fetchCourseCatalog(): Promise<Course[]> {
   const { data, error } = await supabase
     .from('courses')
     .select(
-      `id, name, area, position,
+      `id, name, area, latitude, longitude, position,
      course_nines ( nine_id, name,
        course_holes ( hole_n, par, yardage_black, yardage_blue, yardage_white, yardage_red, si_by_partner )
      ),
@@ -112,6 +117,8 @@ export async function fetchCourseCatalog(): Promise<Course[]> {
     id: row.id,
     name: row.name,
     area: row.area,
+    latitude: row.latitude === null ? null : Number(row.latitude),
+    longitude: row.longitude === null ? null : Number(row.longitude),
     nines: row.course_nines.map((nine) => ({
       id: nine.nine_id,
       name: nine.name,

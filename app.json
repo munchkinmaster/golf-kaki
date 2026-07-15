@@ -24,7 +24,13 @@
     },
     "plugins": [
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Golf Kaki uses your location to show nearby golf courses."
+        }
+      ]
     ]
   }
 }
