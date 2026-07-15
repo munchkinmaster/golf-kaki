@@ -61,6 +61,8 @@ export type Course = {
   latitude: number | null;
   longitude: number | null;
   status: CourseStatus;
+  /** Where this course sorts in the app's course picker — see updateCoursePositions. */
+  position: number;
   nines: Nine[];
   combos: NineCombo[];
   /** comboId -> ratings on file for that combo, keyed by tee color */
@@ -74,6 +76,7 @@ type CourseRow = {
   latitude: number | string | null;
   longitude: number | string | null;
   status: CourseStatus;
+  position: number;
   course_nines: {
     nine_id: string;
     name: string;
@@ -126,12 +129,13 @@ export async function fetchCourseCatalog(): Promise<Course[]> {
     supabase
       .from('courses')
       .select(
-        `id, name, area, latitude, longitude, status,
+        `id, name, area, latitude, longitude, status, position,
        course_nines ( nine_id, name,
          course_holes ( hole_n, par, yardage_black, yardage_blue, yardage_white, yardage_red, si_by_partner )
        ),
        course_combos ( combo_id, label, front_nine_id, back_nine_id, position )`,
       )
+      .order('position')
       .order('position', { referencedTable: 'course_combos' }),
     supabase.from('course_combo_ratings').select('course_id, combo_id, tee_color, course_rating, slope_rating'),
   ]);
@@ -180,6 +184,7 @@ export async function fetchCourseCatalog(): Promise<Course[]> {
       latitude: row.latitude === null ? null : Number(row.latitude),
       longitude: row.longitude === null ? null : Number(row.longitude),
       status: row.status,
+      position: row.position,
       nines: orderNines(nines, combos),
       combos,
       ratingsByCombo,
@@ -297,6 +302,11 @@ async function replaceCourseChildren(courseId: string, input: CourseWriteInput, 
 export async function createCourse(input: CourseWriteInput): Promise<string> {
   const courseId = slugify(input.name);
 
+  // New courses go to the end of the picker order, not position 0 (the column default) —
+  // otherwise every newly added course would jump to the front of the app's course picker.
+  const { data: maxPositionRow } = await supabase.from('courses').select('position').order('position', { ascending: false }).limit(1).maybeSingle();
+  const nextPosition = (maxPositionRow?.position ?? -1) + 1;
+
   const { error: courseInsErr } = await supabase.from('courses').insert({
     id: courseId,
     name: input.name,
@@ -304,6 +314,7 @@ export async function createCourse(input: CourseWriteInput): Promise<string> {
     latitude: input.latitude,
     longitude: input.longitude,
     status: input.status,
+    position: nextPosition,
   });
   if (courseInsErr) {
     if (courseInsErr.code === '23505') {
@@ -325,4 +336,11 @@ export async function updateCourse(courseId: string, input: CourseWriteInput): P
 
   await replaceCourseChildren(courseId, input, { deleteExisting: true });
   return courseId;
+}
+
+/** Persists a full drag-reordered course list — index in `orderedIds` becomes each course's `position`. */
+export async function updateCoursePositions(orderedIds: string[]): Promise<void> {
+  const results = await Promise.all(orderedIds.map((id, position) => supabase.from('courses').update({ position }).eq('id', id)));
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
 }

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CircleCheck, ChevronRight, Clock, FilePen, Flag, Layers, MapPin, Plus, Search, SearchX, Upload } from 'lucide-react';
+import { CircleCheck, ChevronRight, Clock, FilePen, Flag, GripVertical, Layers, MapPin, Plus, Search, SearchX, Upload } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
 import { StatCard } from '../components/StatCard';
 import { StatusPill } from '../components/StatusPill';
 import { TeeDot } from '../components/TeeDot';
 import { Button } from '../components/Button';
-import { fetchCourseCatalog, totalPar, TEE_COLORS, type Course } from '../data/courses';
+import { fetchCourseCatalog, updateCoursePositions, totalPar, TEE_COLORS, type Course } from '../data/courses';
 
 type Filter = 'all' | 'published' | 'draft';
 
@@ -16,6 +16,8 @@ export function CoursesListPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [reorderError, setReorderError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCourseCatalog()
@@ -30,6 +32,26 @@ export function CoursesListPage() {
       .filter((c) => filter === 'all' || c.status === filter)
       .filter((c) => !q || c.name.toLowerCase().includes(q) || c.area.toLowerCase().includes(q));
   }, [courses, query, filter]);
+
+  // Reordering only makes sense against the full, unfiltered list — position is a global
+  // ordering, and dragging within a search/filtered subset wouldn't map cleanly onto it.
+  const canReorder = filter === 'all' && query.trim() === '';
+
+  async function moveCourse(targetId: string) {
+    if (!courses || !draggedId || draggedId === targetId) return;
+    const from = courses.findIndex((c) => c.id === draggedId);
+    const to = courses.findIndex((c) => c.id === targetId);
+    if (from === -1 || to === -1) return;
+    const reordered = courses.slice();
+    const [moved] = reordered.splice(from, 1);
+    reordered.splice(to, 0, moved!);
+    setCourses(reordered);
+    try {
+      await updateCoursePositions(reordered.map((c) => c.id));
+    } catch (e) {
+      setReorderError((e as Error).message);
+    }
+  }
 
   const totalHoles = courses?.reduce((n, c) => n + c.nines.length * 9, 0) ?? 0;
   const publishedCount = courses?.filter((c) => c.status === 'published').length ?? 0;
@@ -145,6 +167,22 @@ export function CoursesListPage() {
           </div>
         </div>
 
+        {reorderError && (
+          <div
+            style={{
+              marginBottom: 14,
+              padding: '12px 16px',
+              borderRadius: 12,
+              background: 'var(--orange-100)',
+              color: 'var(--status-danger)',
+              fontFamily: 'var(--font-body)',
+              fontSize: 13.5,
+            }}
+          >
+            Couldn't save the new order: {reorderError}
+          </div>
+        )}
+
         <div style={{ background: 'var(--surface-card)', border: '1px solid var(--border-subtle)', borderRadius: 16, boxShadow: 'var(--shadow-xs)', overflow: 'hidden' }}>
           <div style={rowGridStyle('var(--sand-50)', '1px solid var(--border-default)')}>
             {['Course', 'Holes', 'Par', 'Tees', 'Status', 'Last edited', ''].map((h) => (
@@ -153,6 +191,12 @@ export function CoursesListPage() {
               </div>
             ))}
           </div>
+
+          {!error && !canReorder && courses && courses.length > 1 && (
+            <div style={{ padding: '10px 22px', fontFamily: 'var(--font-body)', fontSize: 12.5, color: 'var(--text-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
+              Clear search and switch to "All" to drag-reorder the course picker's order.
+            </div>
+          )}
 
           {error && <div style={{ padding: 22, color: 'var(--status-danger)', fontFamily: 'var(--font-body)' }}>Couldn't load courses: {error}</div>}
 
@@ -164,9 +208,31 @@ export function CoursesListPage() {
                   key={c.id}
                   className="gk-course-row"
                   onClick={() => navigate(`/courses/${c.id}`)}
-                  style={{ ...rowGridStyle('#fff', '1px solid var(--border-subtle)'), cursor: 'pointer', transition: 'background .15s' }}
+                  onDragOver={(e) => canReorder && e.preventDefault()}
+                  onDrop={() => canReorder && moveCourse(c.id)}
+                  style={{
+                    ...rowGridStyle('#fff', '1px solid var(--border-subtle)'),
+                    cursor: 'pointer',
+                    transition: 'background .15s',
+                    opacity: draggedId === c.id ? 0.5 : 1,
+                  }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 13, minWidth: 0 }}>
+                    {canReorder && (
+                      <div
+                        draggable
+                        onDragStart={(e) => {
+                          e.stopPropagation();
+                          setDraggedId(c.id);
+                        }}
+                        onDragEnd={() => setDraggedId(null)}
+                        onClick={(e) => e.stopPropagation()}
+                        title="Drag to reorder — this sets the order kakis see in the app's course picker"
+                        style={{ display: 'flex', alignItems: 'center', cursor: 'grab', color: 'var(--ink-400)', flex: 'none' }}
+                      >
+                        <GripVertical size={16} strokeWidth={2} />
+                      </div>
+                    )}
                     <span
                       style={{
                         width: 40,

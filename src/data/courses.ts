@@ -57,6 +57,7 @@ type CourseRow = {
   id: string;
   name: string;
   area: string;
+  position: number;
   course_nines: {
     nine_id: string;
     name: string;
@@ -84,23 +85,25 @@ type CourseRow = {
  * nines/holes/combos. Draft courses are admin-only and never shown to
  * players.
  *
- * Combos are explicitly ordered by `position` (see
- * supabase/migrations/20260714130000_course_combo_position.sql) — Postgrest
- * doesn't guarantee row order for an embedded relation otherwise (confirmed:
- * defaults to alphabetical by combo_id), which matters here because
- * SelectCourseScreen defaults to `combos[0]` as the pre-selected combo.
+ * Both the course list and its combos are explicitly ordered by `position`
+ * (see supabase/migrations/20260714130000_course_combo_position.sql and
+ * 20260716120000_course_position.sql) — Postgrest doesn't guarantee row
+ * order otherwise (confirmed: defaults to alphabetical by id/combo_id),
+ * which matters here since this drives the app's course picker order and
+ * SelectCourseScreen's `combos[0]` default.
  */
 export async function fetchCourseCatalog(): Promise<Course[]> {
   const { data, error } = await supabase
     .from('courses')
     .select(
-      `id, name, area,
+      `id, name, area, position,
      course_nines ( nine_id, name,
        course_holes ( hole_n, par, yardage_black, yardage_blue, yardage_white, yardage_red, si_by_partner )
      ),
      course_combos ( combo_id, label, front_nine_id, back_nine_id, position )`,
     )
     .eq('status', 'published')
+    .order('position')
     .order('position', { referencedTable: 'course_combos' });
 
   if (error) throw error;
