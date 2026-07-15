@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { CoursesListPage } from './pages/CoursesListPage';
 import { AddCoursePage } from './pages/AddCoursePage';
+import { BulkImportPage } from './pages/BulkImportPage';
 import { LoginPage } from './pages/LoginPage';
 import { RequireAuth } from './components/RequireAuth';
 
@@ -22,6 +23,14 @@ export function App() {
         element={
           <RequireAuth>
             <AddCoursePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/courses/import"
+        element={
+          <RequireAuth>
+            <BulkImportPage />
           </RequireAuth>
         }
       />

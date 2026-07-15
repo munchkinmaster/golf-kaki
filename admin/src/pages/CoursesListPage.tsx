@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CircleCheck, ChevronRight, Clock, FilePen, Flag, Layers, MapPin, Plus, Search, SearchX } from 'lucide-react';
+import { CircleCheck, ChevronRight, Clock, FilePen, Flag, Layers, MapPin, Plus, Search, SearchX, Upload } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
 import { StatCard } from '../components/StatCard';
 import { StatusPill } from '../components/StatusPill';
@@ -61,10 +61,16 @@ export function CoursesListPage() {
               Manage the courses kakis can pick when they start a game. {publishedCount} published · {draftCount} draft.
             </div>
           </div>
-          <Button variant="accent" onClick={() => navigate('/courses/new')}>
-            <Plus size={18} />
-            Add course
-          </Button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Button variant="secondary" onClick={() => navigate('/courses/import')}>
+              <Upload size={16} />
+              Bulk import
+            </Button>
+            <Button variant="accent" onClick={() => navigate('/courses/new')}>
+              <Plus size={18} />
+              Add course
+            </Button>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 22 }}>
