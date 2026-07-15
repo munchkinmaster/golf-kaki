@@ -31,6 +31,13 @@ export function AddCoursePage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Keep combos in sync whenever nines change (add/remove/rename a nine reshapes the pairwise combo list).
+  // deriveCombos always regenerates every pairwise combo from scratch, so an explicitly
+  // removed combo (e.g. a 36-hole club that only wants 2 of the 6 possible pairings) has to
+  // be tracked separately here and filtered back out, or it'd reappear next time a nine is
+  // renamed/reordered.
+  const [removedComboKeys, setRemovedComboKeys] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     if (!id) return;
     fetchCourseCatalog()
@@ -49,18 +56,26 @@ export function AddCoursePage() {
         // Guard against combos left over from an earlier nine that no longer exists (e.g. an
         // interrupted save) — deriveCombos will regenerate a clean set once nines settle.
         const nineIds = new Set(draft.nines.map((n) => n.id));
-        setCombos(draft.combos.filter((c) => nineIds.has(c.front) && nineIds.has(c.back)));
+        const loadedCombos = draft.combos.filter((c) => nineIds.has(c.front) && nineIds.has(c.back));
+        setCombos(loadedCombos);
+
+        // A saved course only has the combos the admin kept — any pair the DB doesn't have
+        // was deliberately deleted (see ComboEditor's delete button), not merely "not derived
+        // yet". Mark those as removed up front so the nineIdentity effect below doesn't
+        // resurrect them the moment it runs (it regenerates every pairwise combo from scratch).
+        const loadedKeys = new Set(loadedCombos.map((c) => c.key));
+        const allPossibleKeys = new Set<string>();
+        for (let i = 0; i < draft.nines.length; i++) {
+          for (let j = i + 1; j < draft.nines.length; j++) {
+            allPossibleKeys.add(`${draft.nines[i]!.id}-${draft.nines[j]!.id}`);
+          }
+        }
+        setRemovedComboKeys(new Set([...allPossibleKeys].filter((k) => !loadedKeys.has(k))));
       })
       .catch((e: Error) => setLoadError(e.message))
       .finally(() => setLoading(false));
   }, [id]);
 
-  // Keep combos in sync whenever nines change (add/remove/rename a nine reshapes the pairwise combo list).
-  // deriveCombos always regenerates every pairwise combo from scratch, so an explicitly
-  // removed combo (e.g. a 36-hole club that only wants 2 of the 6 possible pairings) has to
-  // be tracked separately here and filtered back out, or it'd reappear next time a nine is
-  // renamed/reordered.
-  const [removedComboKeys, setRemovedComboKeys] = useState<Set<string>>(new Set());
   const nineIdentity = nines.map((n) => `${n.id}:${n.name}`).join(',');
   useEffect(() => {
     setCombos((prev) => deriveCombos(nines, prev).filter((c) => !removedComboKeys.has(c.key)));
