@@ -237,7 +237,7 @@ export function NineEditor({
 }
 
 function rowGrid(background: string, borderBottom: string, padding: string): React.CSSProperties {
-  return { display: 'grid', gridTemplateColumns: '56px 168px 1fr', alignItems: 'center', gap: 14, padding, background, borderBottom };
+  return { display: 'grid', gridTemplateColumns: '56px 210px 1fr', alignItems: 'center', gap: 14, padding, background, borderBottom };
 }
 
 const headStyle: React.CSSProperties = { fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--ink-400)' };

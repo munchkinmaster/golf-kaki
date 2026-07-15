@@ -184,9 +184,13 @@ export function validateDraft(name: string, nines: NineDraft[], combos: ComboDra
   const nameOk = name.trim().length > 0;
   const enoughNines = nines.length >= 2;
 
-  const ninesFilledOk = nines.every((n) =>
-    n.holes.every((h) => TEE_COLORS.every((tee) => h.yardage[tee] !== '' && Number(h.yardage[tee]) > 0)),
-  );
+  // Not every course offers all 4 tees (e.g. no black tee) — only require yardage for
+  // tees the course actually has data for, same "at least one, not all four" idea as
+  // combosRatingOk below.
+  const usedTees = TEE_COLORS.filter((tee) => nines.some((n) => n.holes.some((h) => h.yardage[tee] !== '')));
+  const ninesFilledOk =
+    usedTees.length > 0 &&
+    nines.every((n) => n.holes.every((h) => usedTees.every((tee) => h.yardage[tee] !== '' && Number(h.yardage[tee]) > 0)));
 
   const combosSiOk =
     combos.length > 0 &&
