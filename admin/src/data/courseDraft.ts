@@ -51,15 +51,20 @@ export function deriveCombos(nines: NineDraft[], existing: ComboDraft[]): ComboD
       const back = nines[j]!;
       const key = `${front.id}-${back.id}`;
       const prior = existing.find((c) => (c.front === front.id && c.back === back.id) || (c.front === back.id && c.back === front.id));
+      // Always recompute the label from current nine names — a prior combo's label goes
+      // stale if its nines get renamed after the combo was first derived (nine id stays
+      // the same, so the `prior` lookup above still matches).
       combos.push(
-        prior ?? {
-          key,
-          front: front.id,
-          back: back.id,
-          label: `${front.name} + ${back.name}`,
-          si: Array.from({ length: 18 }, () => ''),
-          ratings: emptyRatings(),
-        },
+        prior
+          ? { ...prior, label: `${front.name} + ${back.name}` }
+          : {
+              key,
+              front: front.id,
+              back: back.id,
+              label: `${front.name} + ${back.name}`,
+              si: Array.from({ length: 18 }, () => ''),
+              ratings: emptyRatings(),
+            },
       );
     }
   }
