@@ -75,10 +75,21 @@ type CourseRow = {
     label: string;
     front_nine_id: string;
     back_nine_id: string;
+    position: number;
   }[];
 };
 
-/** Fetches every published course in the catalog, fully assembled with nines/holes/combos. Draft courses are admin-only and never shown to players. */
+/**
+ * Fetches every published course in the catalog, fully assembled with
+ * nines/holes/combos. Draft courses are admin-only and never shown to
+ * players.
+ *
+ * Combos are explicitly ordered by `position` (see
+ * supabase/migrations/20260714130000_course_combo_position.sql) — Postgrest
+ * doesn't guarantee row order for an embedded relation otherwise (confirmed:
+ * defaults to alphabetical by combo_id), which matters here because
+ * SelectCourseScreen defaults to `combos[0]` as the pre-selected combo.
+ */
 export async function fetchCourseCatalog(): Promise<Course[]> {
   const { data, error } = await supabase
     .from('courses')
@@ -87,9 +98,10 @@ export async function fetchCourseCatalog(): Promise<Course[]> {
      course_nines ( nine_id, name,
        course_holes ( hole_n, par, yardage_black, yardage_blue, yardage_white, yardage_red, si_by_partner )
      ),
-     course_combos ( combo_id, label, front_nine_id, back_nine_id )`,
+     course_combos ( combo_id, label, front_nine_id, back_nine_id, position )`,
     )
-    .eq('status', 'published');
+    .eq('status', 'published')
+    .order('position', { referencedTable: 'course_combos' });
 
   if (error) throw error;
 

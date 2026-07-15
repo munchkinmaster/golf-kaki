@@ -92,6 +92,7 @@ type CourseRow = {
     label: string;
     front_nine_id: string;
     back_nine_id: string;
+    position: number;
   }[];
 };
 
@@ -103,16 +104,35 @@ type RatingRow = {
   slope_rating: number;
 };
 
+/**
+ * Nine display order isn't guaranteed by the fetch — Postgrest doesn't
+ * order embedded relations, and nesting course_holes under course_nines
+ * changes the query plan enough to flip their order (confirmed: happens on
+ * the real Tasik Puteri data too, not just newly-created courses). The
+ * combos are the only place "front"/"back" is an actual stored fact, so use
+ * the first combo's pairing to sort — front, then back, then any further
+ * nines (a 3rd+ nine club) in whatever order they arrived.
+ */
+function orderNines(nines: Nine[], combos: NineCombo[]): Nine[] {
+  const firstCombo = combos[0];
+  if (!firstCombo) return nines;
+  const priority = new Map([[firstCombo.front, 0], [firstCombo.back, 1]]);
+  return [...nines].sort((a, b) => (priority.get(a.id) ?? 2) - (priority.get(b.id) ?? 2));
+}
+
 /** Fetches every course in the catalog, fully assembled with nines/holes/combos/ratings. */
 export async function fetchCourseCatalog(): Promise<Course[]> {
   const [{ data: courseData, error: courseError }, { data: ratingData, error: ratingError }] = await Promise.all([
-    supabase.from('courses').select(
-      `id, name, area, latitude, longitude, status,
+    supabase
+      .from('courses')
+      .select(
+        `id, name, area, latitude, longitude, status,
        course_nines ( nine_id, name,
          course_holes ( hole_n, par, yardage_black, yardage_blue, yardage_white, yardage_red, si_by_partner )
        ),
-       course_combos ( combo_id, label, front_nine_id, back_nine_id )`,
-    ),
+       course_combos ( combo_id, label, front_nine_id, back_nine_id, position )`,
+      )
+      .order('position', { referencedTable: 'course_combos' }),
     supabase.from('course_combo_ratings').select('course_id, combo_id, tee_color, course_rating, slope_rating'),
   ]);
 
@@ -134,6 +154,25 @@ export async function fetchCourseCatalog(): Promise<Course[]> {
       ratingsByCombo[r.combo_id] = list;
     }
 
+    const combos = row.course_combos.map((c) => ({
+      id: c.combo_id,
+      label: c.label,
+      front: c.front_nine_id,
+      back: c.back_nine_id,
+    }));
+    const nines = row.course_nines.map((nine) => ({
+      id: nine.nine_id,
+      name: nine.name,
+      holes: [...nine.course_holes]
+        .sort((a, b) => a.hole_n - b.hole_n)
+        .map((h) => ({
+          n: h.hole_n,
+          par: h.par,
+          yardageM: { black: h.yardage_black, blue: h.yardage_blue, white: h.yardage_white, red: h.yardage_red },
+          siByPartner: h.si_by_partner,
+        })),
+    }));
+
     return {
       id: row.id,
       name: row.name,
@@ -141,24 +180,8 @@ export async function fetchCourseCatalog(): Promise<Course[]> {
       latitude: row.latitude === null ? null : Number(row.latitude),
       longitude: row.longitude === null ? null : Number(row.longitude),
       status: row.status,
-      nines: row.course_nines.map((nine) => ({
-        id: nine.nine_id,
-        name: nine.name,
-        holes: [...nine.course_holes]
-          .sort((a, b) => a.hole_n - b.hole_n)
-          .map((h) => ({
-            n: h.hole_n,
-            par: h.par,
-            yardageM: { black: h.yardage_black, blue: h.yardage_blue, white: h.yardage_white, red: h.yardage_red },
-            siByPartner: h.si_by_partner,
-          })),
-      })),
-      combos: row.course_combos.map((c) => ({
-        id: c.combo_id,
-        label: c.label,
-        front: c.front_nine_id,
-        back: c.back_nine_id,
-      })),
+      nines: orderNines(nines, combos),
+      combos,
       ratingsByCombo,
     };
   });
@@ -229,7 +252,7 @@ async function replaceCourseChildren(courseId: string, input: CourseWriteInput, 
 
   const { error: combosInsErr } = await supabase
     .from('course_combos')
-    .insert(input.combos.map((c) => ({ course_id: courseId, combo_id: c.id, label: c.label, front_nine_id: c.front, back_nine_id: c.back })));
+    .insert(input.combos.map((c, position) => ({ course_id: courseId, combo_id: c.id, label: c.label, front_nine_id: c.front, back_nine_id: c.back, position })));
   if (combosInsErr) throw combosInsErr;
 
   const ratingRows = Object.entries(input.ratingsByCombo).flatMap(([comboId, ratings]) =>
