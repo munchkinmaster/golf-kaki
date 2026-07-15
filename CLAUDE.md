@@ -76,6 +76,28 @@ the same flow in lo-fi (structure only — hi-fi wins on styling).
 - **Check before pushing.** Run `supabase migration list` (or `db push --dry-run`) to see
   local-vs-remote status before `db push` — don't push blind.
 
+### Two Supabase projects: dev and prod
+- `golf-kaki` (dev/staging) — ref `ejseysolykysrcgguxzs`. This is the default linked
+  project in this folder (`supabase/.temp/project-ref`) — routine `db push` work targets
+  this one.
+- `golf-kaki-prod` (live site) — ref `hlemebozdhqlyhtfqddg`. Backs the deployed Vercel
+  admin app and (check current `EXPO_PUBLIC_SUPABASE_URL` in Vercel env vars for) the
+  live mobile app. **Migrations pushed to dev do NOT reach prod automatically** — there
+  is no CI/CD wiring between the two. Each migration has to be pushed to prod separately,
+  deliberately.
+- The CLI has no `--project-ref` flag for `db push`/`migration list` — only `--linked`
+  (whatever this folder is currently linked to). To work against prod: `supabase link
+  --project-ref hlemebozdhqlyhtfqddg` **run from this project folder** (not another
+  directory — linking elsewhere has no local `supabase/migrations` to diff against and
+  writes its link state somewhere useless), do the prod work, then `supabase link
+  --project-ref ejseysolykysrcgguxzs` to switch back to dev before continuing normal work.
+- Prod was discovered (2026-07-15) to have the same hand-edit/history-desync problem as
+  above, at full-project scale: its schema matched ~21 migrations' worth of dev history,
+  but its migration history table had zero recorded versions. Before assuming prod is
+  in sync with dev, verify column-by-column (e.g. via the read-only PostgREST OpenAPI
+  endpoint, `GET /rest/v1/` with the service_role key — safe, no writes) rather than
+  trusting `migration list` alone against a project that's never been checked before.
+
 ## Working agreement
 - Small, reviewable PRs — one screen or one primitive at a time.
 - When a design detail is ambiguous, check the `.dc.html` source (inline styles = the
