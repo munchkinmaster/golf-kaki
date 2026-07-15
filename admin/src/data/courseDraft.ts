@@ -53,19 +53,23 @@ export function deriveCombos(nines: NineDraft[], existing: ComboDraft[]): ComboD
       const prior = existing.find((c) => (c.front === front.id && c.back === back.id) || (c.front === back.id && c.back === front.id));
       // Always recompute the label from current nine names — a prior combo's label goes
       // stale if its nines get renamed after the combo was first derived (nine id stays
-      // the same, so the `prior` lookup above still matches).
-      combos.push(
-        prior
-          ? { ...prior, label: `${front.name} + ${back.name}` }
-          : {
-              key,
-              front: front.id,
-              back: back.id,
-              label: `${front.name} + ${back.name}`,
-              si: Array.from({ length: 18 }, () => ''),
-              ratings: emptyRatings(),
-            },
-      );
+      // the same, so the `prior` lookup above still matches). Resolve display order from
+      // the prior's actual front/back (not this loop's i<j order) so a manual "swap order"
+      // (ComboEditor) survives a later rename instead of reverting to array order.
+      if (prior) {
+        const priorFront = prior.front === front.id ? front : back;
+        const priorBack = prior.back === back.id ? back : front;
+        combos.push({ ...prior, label: `${priorFront.name} + ${priorBack.name}` });
+      } else {
+        combos.push({
+          key,
+          front: front.id,
+          back: back.id,
+          label: `${front.name} + ${back.name}`,
+          si: Array.from({ length: 18 }, () => ''),
+          ratings: emptyRatings(),
+        });
+      }
     }
   }
   return combos;

@@ -1,3 +1,4 @@
+import { ArrowLeftRight } from 'lucide-react';
 import { TEE_COLORS, TEE_SWATCH } from '../data/courses';
 import type { ComboDraft, NineDraft } from '../data/courseDraft';
 import { TeeDot } from './TeeDot';
@@ -31,6 +32,15 @@ export function ComboEditor({
     onChange({ ...combo, ratings: { ...combo.ratings, [tee]: { ...combo.ratings[tee], [key]: cleaned } } });
   };
 
+  // Which nine plays holes 1-9 vs 10-18 is auto-derived from nine order when a combo is
+  // first created (see deriveCombos) and won't always match how a club actually pairs its
+  // nines — swap lets an admin fix just this one combo without reordering every nine.
+  const swapOrder = () => {
+    const si = [...combo.si.slice(9, 18), ...combo.si.slice(0, 9)];
+    const label = combo.label === `${front.name} + ${back.name}` ? `${back.name} + ${front.name}` : combo.label;
+    onChange({ ...combo, front: combo.back, back: combo.front, si, label });
+  };
+
   const rows = [
     ...front.holes.map((h, i) => ({ label: i + 1, par: h.par, siIdx: i })),
     ...back.holes.map((h, i) => ({ label: i + 10, par: h.par, siIdx: i + 9 })),
@@ -40,11 +50,37 @@ export function ComboEditor({
   return (
     <div style={{ background: 'var(--surface-card)', border: '1px solid var(--border-subtle)', borderRadius: 16, boxShadow: 'var(--shadow-xs)', overflow: 'hidden' }}>
       <div style={{ padding: '20px 20px 16px' }}>
-        <input
-          value={combo.label}
-          onChange={(e) => onChange({ ...combo, label: e.target.value })}
-          style={{ border: 'none', outline: 'none', background: 'transparent', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'var(--ink-900)', width: '100%' }}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input
+            value={combo.label}
+            onChange={(e) => onChange({ ...combo, label: e.target.value })}
+            style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: 'var(--ink-900)' }}
+          />
+          <button
+            type="button"
+            onClick={swapOrder}
+            title="Swap which nine plays holes 1-9 vs 10-18"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              height: 32,
+              padding: '0 12px',
+              border: '1.5px solid var(--border-default)',
+              borderRadius: 999,
+              background: '#fff',
+              color: 'var(--ink-700)',
+              fontFamily: 'var(--font-body)',
+              fontWeight: 600,
+              fontSize: 12.5,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <ArrowLeftRight size={14} strokeWidth={2} />
+            Swap order
+          </button>
+        </div>
         <div style={{ fontFamily: 'var(--font-body)', fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>
           {front.name} (holes 1–9) then {back.name} (holes 10–18) · stroke index 1–18, no repeats
         </div>
