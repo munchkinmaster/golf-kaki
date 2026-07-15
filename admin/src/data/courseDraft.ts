@@ -8,7 +8,7 @@
 import { TEE_COLORS, type Course, type CourseStatus, type CourseWriteInput, type TeeColor } from './courses';
 
 export type HoleDraft = {
-  par: 3 | 4 | 5;
+  par: 3 | 4 | 5 | 6;
   yardage: Record<TeeColor, string>;
 };
 
@@ -71,7 +71,7 @@ export function courseToDraft(course: Course): { name: string; area: string; lat
     id: n.id,
     name: n.name,
     holes: n.holes.map((h) => ({
-      par: h.par as 3 | 4 | 5,
+      par: h.par as 3 | 4 | 5 | 6,
       yardage: {
         black: h.yardageM.black === null ? '' : String(h.yardageM.black),
         blue: h.yardageM.blue === null ? '' : String(h.yardageM.blue),

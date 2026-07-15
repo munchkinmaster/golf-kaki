@@ -190,8 +190,8 @@ function buildCourseGroup(courseName: string, rows: Record<FieldKey, string>[]):
 
   for (const [n, row] of holeByN) {
     const par = toNum(row.par);
-    if (par === null || ![3, 4, 5].includes(par)) {
-      issues.push({ message: `Hole ${n}: Par must be 3, 4, or 5 (got "${row.par}").`, blocking: true });
+    if (par === null || ![3, 4, 5, 6].includes(par)) {
+      issues.push({ message: `Hole ${n}: Par must be 3, 4, 5, or 6 (got "${row.par}").`, blocking: true });
       continue;
     }
     const si = toNum(row.strokeIndex);

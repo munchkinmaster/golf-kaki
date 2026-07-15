@@ -4,7 +4,7 @@ import { TEE_COLORS, TEE_SWATCH, type TeeColor } from '../data/courses';
 import { newNine, type NineDraft } from '../data/courseDraft';
 import { TeeDot } from './TeeDot';
 
-const parOptions: (3 | 4 | 5)[] = [3, 4, 5];
+const parOptions: (3 | 4 | 5 | 6)[] = [3, 4, 5, 6];
 
 export function NineEditor({
   nines,
