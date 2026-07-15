@@ -1,4 +1,4 @@
-import { ArrowLeftRight, GripVertical } from 'lucide-react';
+import { ArrowLeftRight, GripVertical, Trash2 } from 'lucide-react';
 import { TEE_COLORS, TEE_SWATCH } from '../data/courses';
 import type { ComboDraft, NineDraft } from '../data/courseDraft';
 import { TeeDot } from './TeeDot';
@@ -8,12 +8,15 @@ export function ComboEditor({
   front,
   back,
   onChange,
+  onDelete,
   dragHandleProps,
 }: {
   combo: ComboDraft;
   front: NineDraft;
   back: NineDraft;
   onChange: (combo: ComboDraft) => void;
+  /** Omit to hide the delete button (e.g. when it's the only combo left). */
+  onDelete?: () => void;
   /** Spread onto the drag handle icon — omit to hide it (e.g. when there's only one combo to reorder). */
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }) {
@@ -92,6 +95,28 @@ export function ComboEditor({
             <ArrowLeftRight size={14} strokeWidth={2} />
             Swap order
           </button>
+          {onDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              title="Remove this combo"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                flex: 'none',
+                border: 'none',
+                borderRadius: '50%',
+                background: 'transparent',
+                cursor: 'pointer',
+                color: 'var(--ink-400)',
+              }}
+            >
+              <Trash2 size={14} style={{ pointerEvents: 'none' }} />
+            </button>
+          )}
         </div>
         <div style={{ fontFamily: 'var(--font-body)', fontSize: 12.5, color: 'var(--text-muted)', marginTop: 3 }}>
           {front.name} (holes 1–9) then {back.name} (holes 10–18) · stroke index 1–18, no repeats

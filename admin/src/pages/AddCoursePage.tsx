@@ -56,13 +56,24 @@ export function AddCoursePage() {
   }, [id]);
 
   // Keep combos in sync whenever nines change (add/remove/rename a nine reshapes the pairwise combo list).
+  // deriveCombos always regenerates every pairwise combo from scratch, so an explicitly
+  // removed combo (e.g. a 36-hole club that only wants 2 of the 6 possible pairings) has to
+  // be tracked separately here and filtered back out, or it'd reappear next time a nine is
+  // renamed/reordered.
+  const [removedComboKeys, setRemovedComboKeys] = useState<Set<string>>(new Set());
   const nineIdentity = nines.map((n) => `${n.id}:${n.name}`).join(',');
   useEffect(() => {
-    setCombos((prev) => deriveCombos(nines, prev));
+    setCombos((prev) => deriveCombos(nines, prev).filter((c) => !removedComboKeys.has(c.key)));
     // nineIdentity (ids + names) intentionally stands in for `nines` here — combos only
     // need to be re-derived when nines are added/removed/renamed, not on every hole edit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nineIdentity]);
+  }, [nineIdentity, removedComboKeys]);
+
+  function removeCombo(key: string, label: string) {
+    if (!window.confirm(`Remove the "${label}" combo? This deletes its stroke index and rating data.`)) return;
+    setRemovedComboKeys((prev) => new Set(prev).add(key));
+    setCombos((prev) => prev.filter((c) => c.key !== key));
+  }
 
   const checks = useMemo(() => validateDraft(name, nines, combos), [name, nines, combos]);
 
@@ -229,6 +240,7 @@ export function AddCoursePage() {
                     front={front}
                     back={back}
                     onChange={(next) => setCombos((prev) => prev.map((c) => (c.key === combo.key ? next : c)))}
+                    onDelete={combos.length > 1 ? () => removeCombo(combo.key, combo.label) : undefined}
                     dragHandleProps={
                       combos.length > 1
                         ? {
