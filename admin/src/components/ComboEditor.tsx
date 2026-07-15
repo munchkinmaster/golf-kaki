@@ -1,4 +1,4 @@
-import { ArrowLeftRight } from 'lucide-react';
+import { ArrowLeftRight, GripVertical } from 'lucide-react';
 import { TEE_COLORS, TEE_SWATCH } from '../data/courses';
 import type { ComboDraft, NineDraft } from '../data/courseDraft';
 import { TeeDot } from './TeeDot';
@@ -8,11 +8,14 @@ export function ComboEditor({
   front,
   back,
   onChange,
+  dragHandleProps,
 }: {
   combo: ComboDraft;
   front: NineDraft;
   back: NineDraft;
   onChange: (combo: ComboDraft) => void;
+  /** Spread onto the drag handle icon — omit to hide it (e.g. when there's only one combo to reorder). */
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }) {
   const siCounts = new Map<number, number>();
   combo.si.forEach((v) => {
@@ -51,6 +54,15 @@ export function ComboEditor({
     <div style={{ background: 'var(--surface-card)', border: '1px solid var(--border-subtle)', borderRadius: 16, boxShadow: 'var(--shadow-xs)', overflow: 'hidden' }}>
       <div style={{ padding: '20px 20px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {dragHandleProps && (
+            <div
+              {...dragHandleProps}
+              title="Drag to reorder — this sets the order kakis see in the app's course picker"
+              style={{ display: 'flex', alignItems: 'center', cursor: 'grab', color: 'var(--ink-400)', flexShrink: 0 }}
+            >
+              <GripVertical size={18} strokeWidth={2} />
+            </div>
+          )}
           <input
             value={combo.label}
             onChange={(e) => onChange({ ...combo, label: e.target.value })}

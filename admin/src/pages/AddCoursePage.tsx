@@ -22,6 +22,7 @@ export function AddCoursePage() {
   const [longitude, setLongitude] = useState('');
   const [nines, setNines] = useState<NineDraft[]>(() => [newNine('Front nine'), newNine('Back nine')]);
   const [combos, setCombos] = useState<ComboDraft[]>([]);
+  const [draggedComboKey, setDraggedComboKey] = useState<string | null>(null);
   const [activeNine, setActiveNine] = useState(0);
   const [loading, setLoading] = useState(isEdit);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -64,6 +65,21 @@ export function AddCoursePage() {
   }, [nineIdentity]);
 
   const checks = useMemo(() => validateDraft(name, nines, combos), [name, nines, combos]);
+
+  // Combo array order is what the app's course picker shows first (course_combos.position
+  // is written from this array's index on save) — dragging a card reorders this list.
+  function moveCombo(targetKey: string) {
+    if (!draggedComboKey || draggedComboKey === targetKey) return;
+    setCombos((prev) => {
+      const from = prev.findIndex((c) => c.key === draggedComboKey);
+      const to = prev.findIndex((c) => c.key === targetKey);
+      if (from === -1 || to === -1) return prev;
+      const next = prev.slice();
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved!);
+      return next;
+    });
+  }
 
   const firstCombo = combos[0];
   const firstComboFront = firstCombo ? nines.find((n) => n.id === firstCombo.front) : undefined;
@@ -202,7 +218,28 @@ export function AddCoursePage() {
               const back = nines.find((n) => n.id === combo.back);
               if (!front || !back) return null;
               return (
-                <ComboEditor key={combo.key} combo={combo} front={front} back={back} onChange={(next) => setCombos((prev) => prev.map((c) => (c.key === combo.key ? next : c)))} />
+                <div
+                  key={combo.key}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={() => moveCombo(combo.key)}
+                  style={{ opacity: draggedComboKey === combo.key ? 0.5 : 1 }}
+                >
+                  <ComboEditor
+                    combo={combo}
+                    front={front}
+                    back={back}
+                    onChange={(next) => setCombos((prev) => prev.map((c) => (c.key === combo.key ? next : c)))}
+                    dragHandleProps={
+                      combos.length > 1
+                        ? {
+                            draggable: true,
+                            onDragStart: () => setDraggedComboKey(combo.key),
+                            onDragEnd: () => setDraggedComboKey(null),
+                          }
+                        : undefined
+                    }
+                  />
+                </div>
               );
             })}
           </div>
