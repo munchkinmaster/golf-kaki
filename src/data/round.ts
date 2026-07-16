@@ -64,9 +64,22 @@ function givesAmount(deals: StrokeDeal[], from: PlayerKey, to: PlayerKey): numbe
   return deal.giver === from ? deal.amount : -deal.amount;
 }
 
-function receivesStroke(deals: StrokeDeal[], player: PlayerKey, opponent: PlayerKey, rank: Record<number, number>, holeN: number): boolean {
+/**
+ * Strokes `player` gets from `opponent` on this hole. `rank` only ranks the holes it was
+ * built from (9 for front/back, up to 18 for a full-round rank) — once the deal amount
+ * exceeds that count, one stroke per hole isn't enough to represent it (e.g. amount 10 over
+ * 9 holes: every hole gets 1, plus a 2nd on the single hardest). Same base+extra shape as
+ * strokesReceivedOnHole in handicap.ts, just against the deal amount instead of a course
+ * handicap, and against this rank set's size instead of a fixed 18.
+ */
+function strokesOnHole(deals: StrokeDeal[], player: PlayerKey, opponent: PlayerKey, rank: Record<number, number>, holeN: number): number {
   const deal = findDeal(deals, player, opponent);
-  return !!deal && deal.receiver === player && rank[holeN] <= deal.amount;
+  if (!deal || deal.receiver !== player) return 0;
+  const rankSize = Object.keys(rank).length;
+  if (rankSize === 0) return 0;
+  const base = Math.floor(deal.amount / rankSize);
+  const extra = rank[holeN]! <= deal.amount % rankSize ? 1 : 0;
+  return base + extra;
 }
 
 function rankBySi(holes: Hole[]): Record<number, number> {
@@ -96,8 +109,8 @@ function rangeIndices(start: number, end: number): number[] {
 
 function holeResult(p1: PlayerKey, p2: PlayerKey, holeIndex: number, deals: StrokeDeal[], rank: Record<number, number>, gross: GrossMap, holes: Hole[]): number {
   const holeN = holes[holeIndex]!.n;
-  const n1 = gross[p1]![holeIndex]! - (receivesStroke(deals, p1, p2, rank, holeN) ? 1 : 0);
-  const n2 = gross[p2]![holeIndex]! - (receivesStroke(deals, p2, p1, rank, holeN) ? 1 : 0);
+  const n1 = gross[p1]![holeIndex]! - strokesOnHole(deals, p1, p2, rank, holeN);
+  const n2 = gross[p2]![holeIndex]! - strokesOnHole(deals, p2, p1, rank, holeN);
   if (n1 < n2) return 1;
   if (n1 > n2) return -1;
   return 0;
@@ -212,8 +225,8 @@ export function getFlags(
 ) {
   const { deals, rank } = dealsAndRankForHole(schedule, holeN, frontNineDeals, backNineDeals, holes);
   return {
-    give: receivesStroke(deals, opponent, viewer, rank, holeN),
-    recv: receivesStroke(deals, viewer, opponent, rank, holeN),
+    give: strokesOnHole(deals, opponent, viewer, rank, holeN) > 0,
+    recv: strokesOnHole(deals, viewer, opponent, rank, holeN) > 0,
   };
 }
 
