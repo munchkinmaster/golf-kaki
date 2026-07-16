@@ -390,7 +390,7 @@ export function ScorecardScreen({ navigation, route }: Props) {
                   const isYou = p.playerId === viewerId;
                   const { give, recv } = viewerId
                     ? getFlags(p.playerId, viewerId, hole.n, holes, frontNineDeals, schedule, backNineDeals)
-                    : { give: false, recv: false };
+                    : { give: 0, recv: 0 };
                   const resultTint = getResultTint(p.playerId, i, hole.n);
                   const tintStyle =
                     resultTint === 'win'
@@ -416,8 +416,22 @@ export function ScorecardScreen({ navigation, route }: Props) {
                       ) : (
                         <Text style={styles.gridCellDash}>–</Text>
                       )}
-                      {give ? <Flag size={9} color={colors.scoreBirdie} style={styles.cellFlag} /> : null}
-                      {recv ? <Flag size={9} color={colors.statusSuccess} style={styles.cellFlag} /> : null}
+                      {Array.from({ length: give }, (_, flagIndex) => (
+                        <Flag
+                          key={`give-${flagIndex}`}
+                          size={9}
+                          color={colors.scoreBirdie}
+                          style={[styles.cellFlag, { right: 6 + flagIndex * 7 }]}
+                        />
+                      ))}
+                      {Array.from({ length: recv }, (_, flagIndex) => (
+                        <Flag
+                          key={`recv-${flagIndex}`}
+                          size={9}
+                          color={colors.statusSuccess}
+                          style={[styles.cellFlag, { right: 6 + flagIndex * 7 }]}
+                        />
+                      ))}
                     </Pressable>
                   );
                 })}

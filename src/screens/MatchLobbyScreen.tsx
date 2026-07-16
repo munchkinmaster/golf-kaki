@@ -58,6 +58,13 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
   const [golferCount, setGolferCount] = useState<number | null>(null);
   const [strokesBasis, setStrokesBasis] = useState<9 | 18>(9);
   const [pairSettings, setPairSettings] = useState<PairSetting[]>([]);
+  // Pairs the viewer has locally edited (stepper tap / get-give toggle) since
+  // mount, not yet confirmed persisted. Only these should keep their in-flight
+  // local value across a reload — an untouched pair should keep re-seeding
+  // from the ledger on every load, so a carry-forward that lands *after* this
+  // screen's first load (a real race — see finishRound/syncLedger) still
+  // self-corrects instead of freezing on a stale seed forever.
+  const touchedPairsRef = useRef<Set<string>>(new Set());
   const [stakePerHole, setStakePerHole] = useState(2);
   const [stakeInput, setStakeInput] = useState('2');
   const [starting, setStarting] = useState(false);
@@ -96,8 +103,11 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
 
     // A persisted matchup row is authoritative — anyone (including another
     // client over realtime) may have changed it since our last load, so it
-    // always wins over whatever we're currently showing. Only a pair nobody
-    // has touched yet falls back to the in-flight local value, then the ledger.
+    // always wins over whatever we're currently showing. A pair the viewer
+    // has locally touched (but not yet confirmed persisted) falls back to the
+    // in-flight local value; an untouched pair keeps re-seeding from the
+    // ledger every load, since the ledger can still be catching up to a
+    // just-finished round's carry-forward (see finishRound/syncLedger).
     //
     // Exception: front_nine_strokes' sign is how get/give is encoded (positive =
     // a gives b), which can't represent a direction at 0 strokes — 0 and -0 are
@@ -113,7 +123,8 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
           if (existing.frontNineStrokes === 0 && prevPair) return { ...prevPair, strokes: 0 };
           return seedPair(a, b, existing, 0);
         }
-        return prevPair ?? seedPair(a, b, undefined, ledger[key] ?? 0);
+        if (touchedPairsRef.current.has(key) && prevPair) return prevPair;
+        return seedPair(a, b, undefined, ledger[key] ?? 0);
       }),
     );
   }, [matchId, viewerId, navigation, matchName, courseName, gameModeName]);
@@ -213,6 +224,7 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
     const current = pairSettings.find((p) => p.playerAId === a && p.playerBId === b);
     if (!current) return;
     const updated = updater(current);
+    touchedPairsRef.current.add(pairKey(a, b));
     setPairSettings((prev) => prev.map((p) => (p.playerAId === a && p.playerBId === b ? updated : p)));
     persistPair(updated);
   }

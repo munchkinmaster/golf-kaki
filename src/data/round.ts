@@ -213,7 +213,7 @@ function dealsAndRankForHole(
   return { deals: backNineDeals ?? frontNineDeals, rank: backRank(holes) };
 }
 
-/** Give/receive flags for the viewer-vs-opponent pairing on a given hole (for the Scorecard grid). */
+/** Give/receive stroke counts for the viewer-vs-opponent pairing on a given hole (for the Scorecard grid). */
 export function getFlags(
   opponent: PlayerKey,
   viewer: PlayerKey,
@@ -225,8 +225,8 @@ export function getFlags(
 ) {
   const { deals, rank } = dealsAndRankForHole(schedule, holeN, frontNineDeals, backNineDeals, holes);
   return {
-    give: strokesOnHole(deals, opponent, viewer, rank, holeN) > 0,
-    recv: strokesOnHole(deals, viewer, opponent, rank, holeN) > 0,
+    give: strokesOnHole(deals, opponent, viewer, rank, holeN),
+    recv: strokesOnHole(deals, viewer, opponent, rank, holeN),
   };
 }
 

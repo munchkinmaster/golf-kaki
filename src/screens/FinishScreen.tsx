@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ChevronLeft, CircleCheckBig, Coffee, Flag, List, Lock, PartyPopper, Trophy, Users } from 'lucide-react-native';
+import { ChevronLeft, CircleCheckBig, Clock, Coffee, Flag, List, Lock, PartyPopper, Trophy, Users } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +21,7 @@ export function FinishScreen({ navigation, route }: Props) {
 
   const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
   const opponents = rosterIds.filter((id) => id !== viewerId);
+  const roundComplete = holes.length > 0 && thru === holes.length;
 
   const matchTotal = viewerId ? runningUp(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals) : 0;
 
@@ -59,7 +60,7 @@ export function FinishScreen({ navigation, route }: Props) {
         : `Tied it up after ${holes.length} — no clear winner today.`;
 
   async function handleFinish() {
-    if (!isHostViewer || finishing) return;
+    if (!isHostViewer || finishing || !roundComplete) return;
     setFinishing(true);
     setFinishError(null);
     try {
@@ -97,86 +98,109 @@ export function FinishScreen({ navigation, route }: Props) {
             </View>
           </View>
 
-          <View style={styles.resultCard}>
-            <View style={styles.resultIcon}>
-              <Trophy size={22} color={palette.white} />
+          {roundComplete ? (
+            <View style={styles.resultCard}>
+              <View style={styles.resultIcon}>
+                <Trophy size={22} color={palette.white} />
+              </View>
+              <View style={styles.resultBody}>
+                <Text style={styles.resultOverline}>Match play result</Text>
+                <Text style={styles.resultHeadline}>{resultHeadline}</Text>
+                <Text style={styles.resultDetail}>{resultDetail}</Text>
+              </View>
             </View>
-            <View style={styles.resultBody}>
-              <Text style={styles.resultOverline}>Match play result</Text>
-              <Text style={styles.resultHeadline}>{resultHeadline}</Text>
-              <Text style={styles.resultDetail}>{resultDetail}</Text>
+          ) : (
+            <View style={styles.resultCard}>
+              <View style={[styles.resultIcon, styles.resultIconWaiting]}>
+                <Clock size={22} color={palette.white} />
+              </View>
+              <View style={styles.resultBody}>
+                <Text style={styles.resultOverline}>Match play result</Text>
+                <Text style={styles.resultHeadline}>Waiting on everyone's card</Text>
+                <Text style={styles.resultDetail}>
+                  {thru} of {holes.length} holes locked in — the result and settlement show up here once every card is complete.
+                </Text>
+              </View>
             </View>
-          </View>
+          )}
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           {loading ? <Text style={styles.loadingText}>Loading round…</Text> : null}
           {finishError ? <Text style={styles.loadErrorText}>{finishError}</Text> : null}
 
-          <Text style={styles.sectionLabel}>Settlement</Text>
-          <View style={styles.settlementCard}>
-            <View style={styles.settlementHeader}>
-              <View style={styles.settlementHeaderLeft}>
-                <Coffee size={16} color={palette.orange[700]} />
-                <Text style={styles.settlementTitle}>Teh tarik stakes</Text>
-              </View>
-              <Text style={styles.settlementMeta}>${stakePerHole} / hole</Text>
-            </View>
-            <View style={styles.settlementList}>
-              {settlement.map(({ player, money: m }, index) => {
-                const playerColor = getPlayerColors(index);
-                return (
-                  <View key={player.playerId} style={styles.settlementRow}>
-                    <View style={styles.settlementNameRow}>
-                      <View style={[styles.settlementAvatar, { backgroundColor: playerColor.background }]}>
-                        <Text style={[styles.settlementAvatarLabel, { color: playerColor.color }]}>{player.name.charAt(0)}</Text>
+          {roundComplete ? (
+            <>
+              <Text style={styles.sectionLabel}>Settlement</Text>
+              <View style={styles.settlementCard}>
+                <View style={styles.settlementHeader}>
+                  <View style={styles.settlementHeaderLeft}>
+                    <Coffee size={16} color={palette.orange[700]} />
+                    <Text style={styles.settlementTitle}>Teh tarik stakes</Text>
+                  </View>
+                  <Text style={styles.settlementMeta}>${stakePerHole} / hole</Text>
+                </View>
+                <View style={styles.settlementList}>
+                  {settlement.map(({ player, money: m }, index) => {
+                    const playerColor = getPlayerColors(index);
+                    return (
+                      <View key={player.playerId} style={styles.settlementRow}>
+                        <View style={styles.settlementNameRow}>
+                          <View style={[styles.settlementAvatar, { backgroundColor: playerColor.background }]}>
+                            <Text style={[styles.settlementAvatarLabel, { color: playerColor.color }]}>{player.name.charAt(0)}</Text>
+                          </View>
+                          <Text style={styles.settlementName}>
+                            {player.name}
+                            {player.playerId === viewerId ? <Text style={styles.settlementYou}> (You)</Text> : null}
+                          </Text>
+                        </View>
+                        <Text style={[styles.settlementAmount, { color: m > 0 ? colors.statusSuccess : m < 0 ? colors.statusDanger : colors.textMuted }]}>
+                          {moneyLabel(m)}
+                        </Text>
                       </View>
-                      <Text style={styles.settlementName}>
-                        {player.name}
-                        {player.playerId === viewerId ? <Text style={styles.settlementYou}> (You)</Text> : null}
-                      </Text>
-                    </View>
-                    <Text style={[styles.settlementAmount, { color: m > 0 ? colors.statusSuccess : m < 0 ? colors.statusDanger : colors.textMuted }]}>
-                      {moneyLabel(m)}
+                    );
+                  })}
+                </View>
+                {buyers.length > 0 ? (
+                  <View style={styles.settlementFooter}>
+                    <PartyPopper size={15} color={palette.orange[700]} />
+                    <Text style={styles.settlementFooterText}>
+                      {buyers.join(' & ')} {buyers.length > 1 ? 'split' : 'buys'} the teh tarik.
                     </Text>
                   </View>
-                );
-              })}
-            </View>
-            {buyers.length > 0 ? (
-              <View style={styles.settlementFooter}>
-                <PartyPopper size={15} color={palette.orange[700]} />
-                <Text style={styles.settlementFooterText}>
-                  {buyers.join(' & ')} {buyers.length > 1 ? 'split' : 'buys'} the teh tarik.
-                </Text>
+                ) : null}
               </View>
-            ) : null}
-          </View>
+            </>
+          ) : null}
 
           <View style={styles.lockNote}>
             <Lock size={13} color={colors.textDisabled} />
             <Text style={styles.lockNoteText}>
-              {isHostViewer
-                ? 'Once finished, scores lock and the round moves to everyone’s history.'
-                : 'Only the host can finish the round — you’ll see the recap once they do.'}
+              {!roundComplete
+                ? 'Everyone needs to finish entering their scores before the round can be finished.'
+                : isHostViewer
+                  ? 'Once finished, scores lock and the round moves to everyone’s history.'
+                  : 'Only the host can finish the round — you’ll see the recap once they do.'}
             </Text>
           </View>
         </ScrollView>
 
         <View style={styles.ctaWrap}>
-          {isHostViewer ? (
+          {isHostViewer && roundComplete ? (
             <Pressable style={styles.ctaButton} onPress={handleFinish} disabled={finishing || loading}>
               <Flag size={18} color={palette.white} />
               <Text style={styles.ctaLabel}>{finishing ? 'Finishing…' : 'Finish & save round'}</Text>
             </Pressable>
-          ) : matchStatus === 'finished' ? (
+          ) : !isHostViewer && matchStatus === 'finished' ? (
             <Pressable style={styles.ctaButton} onPress={viewRecap}>
               <Flag size={18} color={palette.white} />
               <Text style={styles.ctaLabel}>View recap</Text>
             </Pressable>
           ) : (
             <View style={[styles.ctaButton, styles.ctaButtonDisabled]}>
-              <Text style={styles.ctaLabel}>Waiting for host to finish</Text>
+              <Text style={styles.ctaLabel}>
+                {!roundComplete ? 'Waiting for everyone’s scores' : 'Waiting for host to finish'}
+              </Text>
             </View>
           )}
         </View>
@@ -287,6 +311,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
     ...shadows.accent,
+  },
+  resultIconWaiting: {
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   resultBody: {
     flex: 1,
