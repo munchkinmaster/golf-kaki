@@ -13,10 +13,10 @@ import { BIRDIE_STREAK_MIN, PAR_STREAK_MIN } from './streaks';
 import { withRetry } from '../lib/retry';
 import { supabase } from '../lib/supabase';
 
-export type BadgeType = 'birdie_streak' | 'par_streak' | 'hole_in_one' | 'eagle';
-type MomentBadgeType = Extract<BadgeType, 'hole_in_one' | 'eagle'>;
+export type BadgeType = 'birdie_streak' | 'par_streak' | 'hole_in_one' | 'eagle' | 'broke_80';
+type MomentBadgeType = Extract<BadgeType, 'hole_in_one' | 'eagle' | 'broke_80'>;
 
-export type AttestationStatus = { birdieStreak: boolean; parStreak: boolean; holeInOne: boolean; eagle: boolean };
+export type AttestationStatus = { birdieStreak: boolean; parStreak: boolean; holeInOne: boolean; eagle: boolean; broke80: boolean };
 
 /** Whether ANY kaki has attested each of this player's badges. */
 export async function fetchAttestationStatus(playerId: string): Promise<AttestationStatus> {
@@ -29,6 +29,7 @@ export async function fetchAttestationStatus(playerId: string): Promise<Attestat
       parStreak: badgeTypes.has('par_streak'),
       holeInOne: badgeTypes.has('hole_in_one'),
       eagle: badgeTypes.has('eagle'),
+      broke80: badgeTypes.has('broke_80'),
     };
   });
 }
@@ -96,9 +97,11 @@ async function fetchAttestableBadgesOnce(viewerId: string): Promise<AttestableBa
     }
   }
 
-  // Moment badges (Hole-in-One, Eagle): one attestable entry per player+type,
-  // from their most recent qualifying hole — rows arrive date-desc, so the
-  // first hit per (player, type) is the latest.
+  // Moment badges (Hole-in-One, Eagle, Broke 80): one attestable entry per
+  // player+type, from their most recent qualifying hole/round — rows arrive
+  // date-desc, so the first hit per (player, type) is the latest. Broke 80
+  // is a whole-round achievement (hole_number is a DB-level sentinel, see
+  // badgeMoments.ts), so it gets its own detail text with no hole number.
   const seenMoment = new Set<string>();
   for (const row of momentsResult.data as unknown as { player_id: string; badge_type: MomentBadgeType; hole_number: number; courses: { name: string } | null }[]) {
     const key = `${row.player_id}:${row.badge_type}`;
@@ -107,7 +110,8 @@ async function fetchAttestableBadgesOnce(viewerId: string): Promise<AttestableBa
     const playerName = nameById.get(row.player_id);
     if (!playerName) continue;
     const courseName = row.courses?.name ?? 'a round';
-    attestable.push({ playerId: row.player_id, playerName, badgeType: row.badge_type, detail: `${courseName} · hole ${row.hole_number}` });
+    const detail = row.badge_type === 'broke_80' ? `Broke 80 at ${courseName}` : `${courseName} · hole ${row.hole_number}`;
+    attestable.push({ playerId: row.player_id, playerName, badgeType: row.badge_type, detail });
   }
 
   return attestable;

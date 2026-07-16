@@ -34,7 +34,7 @@ export function TrophyCabinetScreen({ navigation }: Props) {
     }, [refresh]),
   );
 
-  const [attested, setAttested] = useState<AttestationStatus>({ birdieStreak: false, parStreak: false, holeInOne: false, eagle: false });
+  const [attested, setAttested] = useState<AttestationStatus>({ birdieStreak: false, parStreak: false, holeInOne: false, eagle: false, broke80: false });
   useFocusEffect(
     useCallback(() => {
       if (!profile) return;
@@ -44,7 +44,7 @@ export function TrophyCabinetScreen({ navigation }: Props) {
     }, [profile?.id]),
   );
 
-  const [moments, setMoments] = useState<MomentBadges>({ hole_in_one: null, eagle: null });
+  const [moments, setMoments] = useState<MomentBadges>({ hole_in_one: null, eagle: null, broke_80: null });
   useFocusEffect(
     useCallback(() => {
       if (!profile) return;

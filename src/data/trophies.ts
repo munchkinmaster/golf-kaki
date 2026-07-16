@@ -36,17 +36,16 @@ export type AcePinAward = { tier: BadgeTier; icon: LucideIcon };
 
 /** Badges without their own detection logic yet — same for every viewer until each is wired to real data. */
 const STATIC_BADGES: TrophyBadge[] = [
-  { name: 'Broke 80', meta: 'Awaiting kaki', icon: Gauge, tier: 'epic', state: 'pending' },
   { name: 'Albatross', meta: 'Locked', icon: Target, tier: 'legendary', state: 'locked' },
   { name: 'Bogey-Free Nine', meta: 'Locked', icon: ShieldCheck, tier: 'legendary', state: 'locked' },
   { name: 'Broke 90', meta: 'Locked', icon: TrendingDown, tier: 'great', state: 'locked' },
 ];
 
 /** Has any kaki attested each of the viewer's real badges yet — see src/data/attestations.ts. */
-export type StreakAttestation = { birdieStreak: boolean; parStreak: boolean; holeInOne: boolean; eagle: boolean };
+export type StreakAttestation = { birdieStreak: boolean; parStreak: boolean; holeInOne: boolean; eagle: boolean; broke80: boolean };
 
-/** Hole-in-One / Eagle, built from a player's real badge_moments (see src/data/badgeMoments.ts) plus peer attestation status. */
-function buildMomentBadges(moments: MomentBadges, attested: StreakAttestation): [TrophyBadge, TrophyBadge] {
+/** Hole-in-One / Eagle / Broke 80, built from a player's real badge_moments (see src/data/badgeMoments.ts) plus peer attestation status. */
+function buildMomentBadges(moments: MomentBadges, attested: StreakAttestation): [TrophyBadge, TrophyBadge, TrophyBadge] {
   return [
     {
       name: 'Hole-in-One',
@@ -61,6 +60,13 @@ function buildMomentBadges(moments: MomentBadges, attested: StreakAttestation): 
       icon: Bird,
       tier: 'epic',
       state: momentState(moments.eagle, attested.eagle),
+    },
+    {
+      name: 'Broke 80',
+      meta: momentMeta(moments.broke_80, attested.broke80),
+      icon: Gauge,
+      tier: 'epic',
+      state: momentState(moments.broke_80, attested.broke80),
     },
   ];
 }
@@ -93,13 +99,13 @@ export function buildTrophyBadges(
   attested: StreakAttestation,
   moments: MomentBadges,
 ): TrophyBadge[] {
-  const [broke80, albatross, bogeyFreeNine, broke90] = STATIC_BADGES;
-  const [holeInOne, eagle] = buildMomentBadges(moments, attested);
+  const [albatross, bogeyFreeNine, broke90] = STATIC_BADGES;
+  const [holeInOne, eagle, broke80] = buildMomentBadges(moments, attested);
   const [birdieStreak, parStreak] = buildStreakBadges(profile, attested);
-  return [holeInOne, eagle, birdieStreak, broke80!, albatross!, bogeyFreeNine!, parStreak, broke90!];
+  return [holeInOne, eagle, birdieStreak, broke80, albatross!, bogeyFreeNine!, parStreak, broke90!];
 }
 
-export type FeaturedBadgeAttestationType = 'hole_in_one' | 'eagle' | 'birdie_streak' | 'par_streak';
+export type FeaturedBadgeAttestationType = 'hole_in_one' | 'eagle' | 'birdie_streak' | 'par_streak' | 'broke_80';
 
 export type FeaturedBadge = {
   name: string;
@@ -115,6 +121,7 @@ const FEATURED_ATTESTATION_TYPE: Partial<Record<string, FeaturedBadgeAttestation
   Eagle: 'eagle',
   'Birdie Streak': 'birdie_streak',
   'Par Streak': 'par_streak',
+  'Broke 80': 'broke_80',
 };
 
 function formatShortDate(iso: string): string {
@@ -123,10 +130,11 @@ function formatShortDate(iso: string): string {
 
 /**
  * The viewer's single best-tier earned badge, formatted for the Featured
- * Trophy Card — real course/hole/date for Hole-in-One/Eagle, real streak
- * length otherwise. Null if nothing's earned yet (Profile/Trophy Cabinet
- * fall back to the empty-cabinet nudge in that case) or if the best-earned
- * badge is one of the still-static ones (Broke 80/90 etc. never actually
+ * Trophy Card — real course/hole/date for Hole-in-One/Eagle, real course/date
+ * for Broke 80 (no hole number — it's a whole-round achievement), real streak
+ * length otherwise. Null if nothing's earned yet (Profile/Trophy Cabinet fall
+ * back to the empty-cabinet nudge in that case) or if the best-earned badge
+ * is one of the still-static ones (Albatross/Broke 90 etc. never actually
  * reach 'earned' today, so this is just a defensive fallback).
  */
 export function pickFeaturedBadge(trophyBadges: TrophyBadge[], moments: MomentBadges): FeaturedBadge | null {
@@ -135,8 +143,13 @@ export function pickFeaturedBadge(trophyBadges: TrophyBadge[], moments: MomentBa
   const attestationType = FEATURED_ATTESTATION_TYPE[best.name];
   if (!attestationType) return null;
 
-  const moment = attestationType === 'hole_in_one' ? moments.hole_in_one : attestationType === 'eagle' ? moments.eagle : null;
-  const metaText = moment ? `${moment.courseName} · hole ${moment.holeNumber} · ${formatShortDate(moment.achievedAt)}` : best.meta;
+  const moment =
+    attestationType === 'hole_in_one' ? moments.hole_in_one : attestationType === 'eagle' ? moments.eagle : attestationType === 'broke_80' ? moments.broke_80 : null;
+  const metaText = !moment
+    ? best.meta
+    : attestationType === 'broke_80'
+      ? `${moment.courseName} · ${formatShortDate(moment.achievedAt)}`
+      : `${moment.courseName} · hole ${moment.holeNumber} · ${formatShortDate(moment.achievedAt)}`;
 
   return { name: best.name, icon: best.icon, tier: best.tier, metaText, attestationType };
 }

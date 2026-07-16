@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Flag,
   Flame,
+  Gauge,
   MapPin,
   Plus,
   Repeat,
@@ -487,6 +488,8 @@ function badgeTypeLabel(badgeType: AttestableBadge['badgeType']): string {
       return 'hole-in-one';
     case 'eagle':
       return 'eagle';
+    case 'broke_80':
+      return 'Broke 80';
   }
 }
 
@@ -495,6 +498,7 @@ const BADGE_TYPE_ICON: Record<AttestableBadge['badgeType'], typeof Flame> = {
   par_streak: Repeat,
   hole_in_one: Target,
   eagle: Bird,
+  broke_80: Gauge,
 };
 
 function BadgeAttestationCard({
