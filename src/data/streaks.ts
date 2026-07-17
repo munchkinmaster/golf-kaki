@@ -20,6 +20,7 @@
 import type { BadgeState, BadgeTier } from './trophies';
 import { fetchCourseCatalog, getComboHoles } from './courses';
 import type { Course } from './courses';
+import { buildPlayOrder } from './round';
 import { withRetry } from '../lib/retry';
 import { supabase } from '../lib/supabase';
 
@@ -73,7 +74,7 @@ export function crossedNewMilestone(oldBest: number, newBest: number, thresholds
   return thresholds.some((t) => oldBest < t && newBest >= t);
 }
 
-type StreakMatch = { id: string; courseId: string; comboId: string };
+type StreakMatch = { id: string; courseId: string; comboId: string; startHole: number };
 
 /** Every match the player finished, in the order they were played (chronological, oldest first). */
 async function fetchFinishedMatchesForPlayer(playerId: string): Promise<StreakMatch[]> {
@@ -88,16 +89,17 @@ async function fetchFinishedMatchesForPlayer(playerId: string): Promise<StreakMa
 
   const { data: matchRows, error: matchError } = await supabase
     .from('matches')
-    .select('id, course_id, combo_id')
+    .select('id, course_id, combo_id, start_hole')
     .in('id', matchIds)
     .eq('status', 'finished')
     .order('finished_at', { ascending: true });
   if (matchError) throw matchError;
 
-  return (matchRows as { id: string; course_id: string; combo_id: string }[]).map((row) => ({
+  return (matchRows as { id: string; course_id: string; combo_id: string; start_hole: number }[]).map((row) => ({
     id: row.id,
     courseId: row.course_id,
     comboId: row.combo_id,
+    startHole: row.start_hole,
   }));
 }
 
@@ -141,9 +143,13 @@ function buildHoleDiffSequence(matches: StreakMatch[], scoresByMatch: Map<string
     } catch {
       continue;
     }
+    const holeByN = new Map(comboHoles.map((h) => [h.n, h]));
+    // Actual tee-off order, not hole-number order — a shotgun start means
+    // those differ (see round.ts's buildPlayOrder).
+    const orderedHoles = buildPlayOrder(match.startHole).map((n) => holeByN.get(n)).filter((h): h is NonNullable<typeof h> => h != null);
 
     const scores = scoresByMatch.get(match.id) ?? {};
-    for (const hole of comboHoles) {
+    for (const hole of orderedHoles) {
       const gross = scores[hole.n];
       if (gross != null) diffs.push(gross - hole.par);
     }

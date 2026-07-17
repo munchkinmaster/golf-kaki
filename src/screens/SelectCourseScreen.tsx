@@ -226,13 +226,15 @@ export function SelectCourseScreen({ navigation }: Props) {
 
               <View style={styles.holesToPlayHeader}>
                 <Text style={styles.holesSectionLabel}>Holes to play</Text>
-                <Pressable style={styles.startHoleChipRow} onPress={() => setStartHoleSheetOpen(true)}>
-                  <Text style={styles.startHoleChipLabel}>Starting from</Text>
-                  <View style={styles.startHoleChip}>
-                    <Text style={styles.startHoleChipValue}>Hole {startHole}</Text>
-                    <ChevronDown size={14} color={colors.primary} />
-                  </View>
-                </Pressable>
+                {holesToPlay === 18 ? (
+                  <Pressable style={styles.startHoleChipRow} onPress={() => setStartHoleSheetOpen(true)}>
+                    <Text style={styles.startHoleChipLabel}>Starting from</Text>
+                    <View style={styles.startHoleChip}>
+                      <Text style={styles.startHoleChipValue}>Hole {startHole}</Text>
+                      <ChevronDown size={14} color={colors.primary} />
+                    </View>
+                  </Pressable>
+                ) : null}
               </View>
               <View style={styles.holesToggleRow}>
                 <Pressable
@@ -266,6 +268,7 @@ export function SelectCourseScreen({ navigation }: Props) {
                 courseId: selectedCourse.id,
                 comboId: selectedCombo.id,
                 holesToPlay,
+                startHole: holesToPlay === 18 ? startHole : 1,
                 courseName: selectedCourse.name,
                 summaryLine,
               });

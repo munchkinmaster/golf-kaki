@@ -32,6 +32,7 @@ export type MatchLobby = {
   courseId: string;
   comboId: string;
   holesToPlay: HolesCount;
+  startHole: number;
   startedAt: string | null;
   finishedAt: string | null;
   players: MatchPlayer[];
@@ -64,6 +65,8 @@ export type CreateMatchParams = {
   courseId: string;
   comboId: string;
   holesToPlay: HolesCount;
+  /** Shotgun-start hole (1-18) — 1 for every normal, non-shotgun round. Only meaningful when holesToPlay is 18 (see SelectCourseScreen). */
+  startHole: number;
   matchName: string;
   gameMode: string;
   golferCount: number;
@@ -94,6 +97,7 @@ export async function createMatch(params: CreateMatchParams): Promise<{ id: stri
         // holes_to_play is 9); the lobby's "strokes set for" toggle can raise it
         // to 18 afterwards when holes_to_play allows it.
         strokes_basis: 9,
+        start_hole: params.startHole,
         match_name: params.matchName,
         game_mode: params.gameMode,
         golfer_count: params.golferCount,
@@ -152,6 +156,7 @@ type MatchRow = {
   course_id: string;
   combo_id: string;
   holes_to_play: HolesCount;
+  start_hole: number;
   started_at: string | null;
   finished_at: string | null;
 };
@@ -169,7 +174,7 @@ export async function fetchMatchLobby(matchId: string): Promise<MatchLobby> {
     const [{ data: matchData, error: matchError }, { data: playerRows, error: playersError }] = await Promise.all([
       supabase
         .from('matches')
-        .select('id, host_id, match_code, status, strokes_basis, stake_per_hole, golfer_count, course_id, combo_id, holes_to_play, started_at, finished_at')
+        .select('id, host_id, match_code, status, strokes_basis, stake_per_hole, golfer_count, course_id, combo_id, holes_to_play, start_hole, started_at, finished_at')
         .eq('id', matchId)
         .single(),
       supabase
@@ -203,6 +208,7 @@ export async function fetchMatchLobby(matchId: string): Promise<MatchLobby> {
       courseId: match.course_id,
       comboId: match.combo_id,
       holesToPlay: match.holes_to_play,
+      startHole: match.start_hole,
       startedAt: match.started_at,
       finishedAt: match.finished_at,
       players,

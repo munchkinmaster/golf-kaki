@@ -12,6 +12,7 @@ export type RootStackParamList = {
     courseId: string;
     comboId: string;
     holesToPlay: 9 | 18;
+    startHole: number;
     courseName: string;
     summaryLine: string;
   };

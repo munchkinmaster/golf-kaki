@@ -97,7 +97,7 @@ const GAME_MODES: GameMode[] = [
 ];
 
 export function CreateGameScreen({ navigation, route }: Props) {
-  const { courseId, comboId, holesToPlay, courseName, summaryLine } = route.params;
+  const { courseId, comboId, holesToPlay, startHole, courseName, summaryLine } = route.params;
   const { session } = useAuth();
   const { profile } = useProfile();
   const viewerId = session?.user.id;
@@ -144,6 +144,7 @@ export function CreateGameScreen({ navigation, route }: Props) {
         courseId,
         comboId,
         holesToPlay,
+        startHole,
         matchName,
         gameMode: GAME_MODE_ID,
         golferCount,

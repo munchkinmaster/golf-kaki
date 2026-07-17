@@ -31,7 +31,7 @@ function formatRecapDate(iso: string | null): string {
 
 export function RecapScreen({ navigation, route }: Props) {
   const { matchId, matchName, courseName, gameModeName } = route.params;
-  const { loading, viewerId, matchStatus, finishedAt, roster, holes, schedule, gross, thru, frontNineDeals, backNineDeals, stakePerHole, syncLedger } =
+  const { loading, viewerId, matchStatus, finishedAt, roster, holes, schedule, playOrder, gross, thru, frontNineDeals, backNineDeals, stakePerHole, syncLedger } =
     useLiveRound(matchId);
   const ledgerSynced = useRef(false);
 
@@ -53,14 +53,14 @@ export function RecapScreen({ navigation, route }: Props) {
   const standings = roster
     .map((p) => ({
       player: p,
-      net: runningUp(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals),
-      money: money(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole),
-      record: record(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals),
+      net: runningUp(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder),
+      money: money(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole, playOrder),
+      record: record(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder),
     }))
     .sort((a, b) => b.money - a.money || (a.player.handicap ?? 0) - (b.player.handicap ?? 0));
 
-  const viewerNet = viewerId ? runningUp(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals) : 0;
-  const viewerMoney = viewerId ? money(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole) : 0;
+  const viewerNet = viewerId ? runningUp(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder) : 0;
+  const viewerMoney = viewerId ? money(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole, playOrder) : 0;
   const minMoney = standings.length > 0 ? Math.min(...standings.map((s) => s.money)) : 0;
   const buyers = standings.filter((s) => s.money === minMoney && minMoney < 0).map((s) => s.player.name);
 
@@ -71,18 +71,18 @@ export function RecapScreen({ navigation, route }: Props) {
       : `${moneyLabel(viewerMoney)} for you — everyone's square on stakes.`;
 
   const coursePar = holes.reduce((sum, h) => sum + h.par, 0);
-  const viewerGross = viewerId ? grossTotal(viewerId, thru, gross) : 0;
+  const viewerGross = viewerId ? grossTotal(viewerId, thru, gross, playOrder) : 0;
   const viewerToPar = viewerGross - coursePar;
   const viewerToParLabel = viewerToPar === 0 ? 'E' : viewerToPar > 0 ? `+${viewerToPar}` : `${viewerToPar}`;
 
-  const outScores = sumRange(rosterIds, thru, 0, 9, gross);
-  const inScores = sumRange(rosterIds, thru, 9, 18, gross);
+  const outScores = sumRange(rosterIds, thru, 0, 9, gross, playOrder);
+  const inScores = sumRange(rosterIds, thru, 9, 18, gross, playOrder);
   const totalScores: Record<string, number> = {};
   rosterIds.forEach((id) => {
     totalScores[id] = (outScores[id] ?? 0) + (inScores[id] ?? 0);
   });
 
-  const viewerClassCounts = viewerId ? scoreClassCounts(viewerId, thru, gross, holes) : { eagle: 0, birdie: 0, par: 0, bogey: 0, doublePlus: 0 };
+  const viewerClassCounts = viewerId ? scoreClassCounts(viewerId, thru, gross, holes, playOrder) : { eagle: 0, birdie: 0, par: 0, bogey: 0, doublePlus: 0 };
   const nextRoundDeals = getNextRoundDeals(rosterIds, gross, frontNineDeals, holes, schedule, backNineDeals);
 
   // Scoped to the viewer's own pairs — the full pairwise table (every other
@@ -99,11 +99,11 @@ export function RecapScreen({ navigation, route }: Props) {
           opponent,
           mode: (deal.giver === viewerId ? 'give' : 'get') as StrokeMode,
           strokes: deal.amount,
-          h2h: pairwiseTotal(viewerId, opponentId, thru, gross, holes, frontNineDeals, schedule, backNineDeals),
+          h2h: pairwiseTotal(viewerId, opponentId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder),
         };
       })
       .filter((row): row is NonNullable<typeof row> => row !== null);
-  }, [nextRoundDeals, viewerId, roster, thru, gross, holes, frontNineDeals, schedule, backNineDeals]);
+  }, [nextRoundDeals, viewerId, roster, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder]);
 
   const onShare = () => {
     Share.share({
@@ -205,7 +205,7 @@ export function RecapScreen({ navigation, route }: Props) {
                       {isViewer ? <Text style={styles.standingYou}> (You)</Text> : null}
                     </Text>
                     <Text style={styles.standingSub}>
-                      {upLabel(net)} · {grossTotal(player.playerId, thru, gross)} gross · {rec.w}W {rec.l}L {rec.h}H
+                      {upLabel(net)} · {grossTotal(player.playerId, thru, gross, playOrder)} gross · {rec.w}W {rec.l}L {rec.h}H
                     </Text>
                   </View>
                   <Text style={[styles.standingMoney, { color: moneyColor }]}>{moneyLabel(m)}</Text>

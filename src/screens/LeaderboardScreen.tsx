@@ -36,12 +36,13 @@ function buildTrack(
   frontNineDeals: StrokeDeal[],
   schedule: RoundSchedule,
   backNineDeals: StrokeDeal[] | null,
+  playOrder: number[],
 ): Track[] {
   const track: Track[] = [];
-  for (let i = 0; i < thru; i++) {
-    const net = holeUpValue(players, playerId, i, gross, holes, frontNineDeals, schedule, backNineDeals);
+  for (const holeN of playOrder.slice(0, thru)) {
+    const net = holeUpValue(players, playerId, holeN - 1, gross, holes, frontNineDeals, schedule, backNineDeals);
     track.push({
-      n: holes[i]!.n,
+      n: holeN,
       label: net > 0 ? `${net}↑` : net < 0 ? `${-net}↓` : 'AS',
       up: net > 0,
       down: net < 0,
@@ -59,8 +60,9 @@ function recordLabel(
   frontNineDeals: StrokeDeal[],
   schedule: RoundSchedule,
   backNineDeals: StrokeDeal[] | null,
+  playOrder: number[],
 ) {
-  const { w, l, h } = record(players, playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals);
+  const { w, l, h } = record(players, playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder);
   return `${w}W ${l}L ${h}H`;
 }
 
@@ -137,7 +139,7 @@ function HoleTrack({ track }: { track: Track[] }) {
 
 export function LeaderboardScreen({ navigation, route }: Props) {
   const { matchId, matchName, courseName, gameModeName } = route.params;
-  const { loading, viewerId, hostId, roster, holes, schedule, gross, thru, frontNineDeals, backNineDeals, stakePerHole, refresh: refreshRound } =
+  const { loading, viewerId, hostId, roster, holes, schedule, playOrder, gross, thru, frontNineDeals, backNineDeals, stakePerHole, refresh: refreshRound } =
     useLiveRound(matchId);
 
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
@@ -163,19 +165,19 @@ export function LeaderboardScreen({ navigation, route }: Props) {
   const rows = useMemo(() => {
     const ranked = [...roster].sort(
       (a, b) =>
-        money(rosterIds, b.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole) -
-          money(rosterIds, a.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole) ||
+        money(rosterIds, b.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole, playOrder) -
+          money(rosterIds, a.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole, playOrder) ||
         (a.handicap ?? 0) - (b.handicap ?? 0),
     );
     return ranked.map((p, i) => ({
       player: p,
       leader: i === 0,
       rank: i + 1,
-      net: runningUp(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals),
-      track: buildTrack(p.playerId, rosterIds, thru, gross, holes, frontNineDeals, schedule, backNineDeals),
-      record: recordLabel(p.playerId, rosterIds, thru, gross, holes, frontNineDeals, schedule, backNineDeals),
+      net: runningUp(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder),
+      track: buildTrack(p.playerId, rosterIds, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder),
+      record: recordLabel(p.playerId, rosterIds, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder),
     }));
-  }, [roster, rosterIds, gross, holes, thru, frontNineDeals, schedule, backNineDeals, stakePerHole]);
+  }, [roster, rosterIds, gross, holes, thru, frontNineDeals, schedule, backNineDeals, stakePerHole, playOrder]);
 
   const spinRotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 

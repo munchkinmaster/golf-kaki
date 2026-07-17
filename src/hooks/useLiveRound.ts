@@ -17,7 +17,7 @@ import { recalculateAndSaveStreaks } from '../data/streaks';
 import { fetchMatchLobby, fetchMatchups, upsertMatchup } from '../data/matches';
 import type { MatchStatus, MatchupPair, StrokeMode } from '../data/matches';
 import { fetchCourseCatalog, getComboHoles } from '../data/courses';
-import { buildAllPairs, computeThru, getBackNineNet, getNextRoundNet, pairKey } from '../data/round';
+import { buildAllPairs, buildPlayOrder, computeThru, getBackNineNet, getNextRoundNet, pairKey } from '../data/round';
 import type { GrossMap, Hole, HoleScoreMap, RoundSchedule, StrokeDeal } from '../data/round';
 import { fetchScores, finishMatch, saveScore, upsertMatchupBackNine } from '../data/scores';
 import { useAuth } from '../state/AuthContext';
@@ -65,6 +65,7 @@ export function useLiveRound(matchId: string) {
   const [finishedAt, setFinishedAt] = useState<string | null>(null);
   const [holesToPlay, setHolesToPlay] = useState<9 | 18>(18);
   const [strokesBasis, setStrokesBasis] = useState<9 | 18>(9);
+  const [startHole, setStartHole] = useState(1);
   const [stakePerHole, setStakePerHole] = useState(0);
   const [roster, setRoster] = useState<LiveRoundPlayer[]>([]);
   const [holes, setHoles] = useState<Hole[]>([]);
@@ -73,7 +74,8 @@ export function useLiveRound(matchId: string) {
   const [matchupRows, setMatchupRows] = useState<MatchupPair[]>([]);
 
   const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
-  const schedule: RoundSchedule = useMemo(() => ({ holesToPlay, strokesBasis }), [holesToPlay, strokesBasis]);
+  const schedule: RoundSchedule = useMemo(() => ({ holesToPlay, strokesBasis, startHole }), [holesToPlay, strokesBasis, startHole]);
+  const playOrder = useMemo(() => buildPlayOrder(startHole).slice(0, holes.length), [startHole, holes.length]);
   const isHostViewer = hostId !== null && hostId === viewerId;
 
   const load = useCallback(async () => {
@@ -103,6 +105,7 @@ export function useLiveRound(matchId: string) {
     setFinishedAt(lobby.finishedAt);
     setHolesToPlay(lobby.holesToPlay);
     setStrokesBasis(lobby.strokesBasis);
+    setStartHole(lobby.startHole);
     setStakePerHole(lobby.stakePerHole);
     setRoster(lobby.players.map((p) => ({ playerId: p.playerId, name: p.name, handicap: p.handicap, isHost: p.isHost })));
     setHoles(nextHoles);
@@ -170,7 +173,7 @@ export function useLiveRound(matchId: string) {
     return map;
   }, [rosterIds, holes, scores]);
 
-  const thru = useMemo(() => computeThru(rosterIds, scores, holes.length), [rosterIds, scores, holes.length]);
+  const thru = useMemo(() => computeThru(rosterIds, scores, playOrder), [rosterIds, scores, playOrder]);
 
   const frontNineDeals = useMemo(() => pairSettingsToDeals(pairSettings), [pairSettings]);
   const backNineDeals = useMemo(() => buildBackNineDeals(rosterIds, matchupRows), [rosterIds, matchupRows]);
@@ -197,7 +200,7 @@ export function useLiveRound(matchId: string) {
     if (schedule.holesToPlay !== 18 || schedule.strokesBasis !== 9) return;
     if (thru !== 9) return;
 
-    const net = getBackNineNet(rosterIds, gross, frontNineDeals, holes);
+    const net = getBackNineNet(rosterIds, gross, frontNineDeals, holes, schedule);
     const rowByPair = new Map(matchupRows.map((m) => [pairKey(m.playerAId, m.playerBId), m]));
     const stalePairs = buildAllPairs(rosterIds)
       .filter(([a, b]) => isHostViewer || a === viewerId || b === viewerId)
@@ -290,6 +293,7 @@ export function useLiveRound(matchId: string) {
     holes,
     holesToPlay,
     schedule,
+    playOrder,
     gross,
     scores,
     thru,

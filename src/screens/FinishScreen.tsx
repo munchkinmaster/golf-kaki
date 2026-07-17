@@ -14,7 +14,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Finish'>;
 
 export function FinishScreen({ navigation, route }: Props) {
   const { matchId, matchName, courseName, gameModeName } = route.params;
-  const { loading, viewerId, isHostViewer, matchStatus, roster, holes, schedule, gross, thru, frontNineDeals, backNineDeals, stakePerHole, finishRound } =
+  const { loading, viewerId, isHostViewer, matchStatus, roster, holes, schedule, playOrder, gross, thru, frontNineDeals, backNineDeals, stakePerHole, finishRound } =
     useLiveRound(matchId);
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
@@ -23,13 +23,13 @@ export function FinishScreen({ navigation, route }: Props) {
   const opponents = rosterIds.filter((id) => id !== viewerId);
   const roundComplete = holes.length > 0 && thru === holes.length;
 
-  const matchTotal = viewerId ? runningUp(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals) : 0;
+  const matchTotal = viewerId ? runningUp(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder) : 0;
 
   const dominantOpponentId =
     viewerId && opponents.length > 0
       ? opponents.reduce((worst, opp) =>
-          pairwiseTotal(viewerId, opp, thru, gross, holes, frontNineDeals, schedule, backNineDeals) <
-          pairwiseTotal(viewerId, worst, thru, gross, holes, frontNineDeals, schedule, backNineDeals)
+          pairwiseTotal(viewerId, opp, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder) <
+          pairwiseTotal(viewerId, worst, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder)
             ? opp
             : worst,
         opponents[0]!)
@@ -39,9 +39,9 @@ export function FinishScreen({ navigation, route }: Props) {
     () =>
       roster.map((p) => ({
         player: p,
-        money: money(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole),
+        money: money(rosterIds, p.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole, playOrder),
       })),
-    [roster, rosterIds, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole],
+    [roster, rosterIds, thru, gross, holes, frontNineDeals, schedule, backNineDeals, stakePerHole, playOrder],
   );
   const minMoney = settlement.length > 0 ? Math.min(...settlement.map((s) => s.money)) : 0;
   const buyers = settlement.filter((s) => s.money === minMoney && minMoney < 0).map((s) => s.player.name);

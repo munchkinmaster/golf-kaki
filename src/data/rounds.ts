@@ -10,7 +10,7 @@ import { fetchCourseCatalog, getComboHoles } from './courses';
 import { fetchLedgerStrokesForGroup } from './kaki';
 import { fetchMatchups, gameModeDisplayName } from './matches';
 import type { HolesCount, MatchupPair } from './matches';
-import { buildAllPairs, computeThru, grossTotal, money, pairKey, runningUp } from './round';
+import { buildAllPairs, buildPlayOrder, computeThru, grossTotal, money, pairKey, runningUp } from './round';
 import type { GrossMap, Hole, RoundSchedule, StrokeDeal } from './round';
 import { withRetry } from '../lib/retry';
 import { fetchScores } from './scores';
@@ -41,6 +41,7 @@ type MatchRow = {
   game_mode: string;
   holes_to_play: HolesCount;
   strokes_basis: HolesCount;
+  start_hole: number;
   stake_per_hole: number;
   started_at: string | null;
   finished_at: string | null;
@@ -102,14 +103,15 @@ async function summarizeMatch(match: MatchRow, roster: RoundPlayer[], viewerId: 
     gross[id] = holes.map((h) => scoreMap[id]?.[h.n] ?? h.par);
   });
 
-  const thru = computeThru(rosterIds, scoreMap, holes.length);
+  const schedule: RoundSchedule = { holesToPlay: match.holes_to_play, strokesBasis: match.strokes_basis, startHole: match.start_hole };
+  const playOrder = buildPlayOrder(schedule.startHole).slice(0, holes.length);
+  const thru = computeThru(rosterIds, scoreMap, playOrder);
   const { frontNineDeals, backNineDeals } = buildDeals(rosterIds, matchups, ledger);
-  const schedule: RoundSchedule = { holesToPlay: match.holes_to_play, strokesBasis: match.strokes_basis };
 
   const viewerInRoster = rosterIds.includes(viewerId);
-  const viewerUp = viewerInRoster ? runningUp(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals) : null;
-  const viewerMoney = viewerInRoster ? money(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, Number(match.stake_per_hole)) : null;
-  const viewerGross = viewerInRoster ? grossTotal(viewerId, thru, gross) : null;
+  const viewerUp = viewerInRoster ? runningUp(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder) : null;
+  const viewerMoney = viewerInRoster ? money(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, Number(match.stake_per_hole), playOrder) : null;
+  const viewerGross = viewerInRoster ? grossTotal(viewerId, thru, gross, playOrder) : null;
 
   return {
     matchId: match.id,
@@ -166,7 +168,7 @@ async function fetchRoundSummariesOnce(viewerId: string, status: 'live' | 'finis
   const dateColumn = status === 'live' ? 'started_at' : 'finished_at';
   const { data: matchRows, error: matchError } = await supabase
     .from('matches')
-    .select('id, match_name, game_mode, holes_to_play, strokes_basis, stake_per_hole, started_at, finished_at, course_id, combo_id, courses ( name )')
+    .select('id, match_name, game_mode, holes_to_play, strokes_basis, start_hole, stake_per_hole, started_at, finished_at, course_id, combo_id, courses ( name )')
     .in('id', matchIds)
     .eq('status', status)
     .order(dateColumn, { ascending: false });

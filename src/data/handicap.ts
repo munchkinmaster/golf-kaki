@@ -11,7 +11,7 @@
  * it does.
  */
 
-import { computeThru } from './round';
+import { buildPlayOrder, computeThru } from './round';
 import { fetchCourseCatalog, getComboHoles } from './courses';
 import type { TeeColor } from './courses';
 import { fetchScores } from './scores';
@@ -217,7 +217,10 @@ export async function recalculateAndSaveHandicap(playerId: string, matchId: stri
     if (!seated) return;
 
     const scores = await fetchScores(matchId);
-    if (computeThru([playerId], scores, 18) !== 18) return;
+    // Full-completeness check only (does this player have all 18 hole numbers
+    // scored, regardless of what order they played them in) — identity play
+    // order is fine here since a fully-scored round yields thru=18 either way.
+    if (computeThru([playerId], scores, buildPlayOrder(1)) !== 18) return;
 
     const catalog = await fetchCourseCatalog();
     const course = catalog.find((c) => c.id === match.courseId);

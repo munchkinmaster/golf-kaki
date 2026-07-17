@@ -35,7 +35,20 @@ export type StrokeMode = 'get' | 'give';
 export type StrokeDeal = { giver: PlayerKey; receiver: PlayerKey; amount: number };
 
 /** How this match schedules its strokes — drives which SI ranking/restrike case applies. */
-export type RoundSchedule = { holesToPlay: 9 | 18; strokesBasis: 9 | 18 };
+export type RoundSchedule = { holesToPlay: 9 | 18; strokesBasis: 9 | 18; startHole: number };
+
+/**
+ * Hole numbers in actual tee-off order for a shotgun-started 18-hole round —
+ * e.g. startHole 10 → [10, 11, ..., 18, 1, ..., 9]. Identity ([1, 2, ..., 18])
+ * for startHole 1, which is every match created before shotgun starts existed
+ * and every 9-hole match today (that picker only offers 18-hole rounds — see
+ * SelectCourseScreen). "Front nine"/"back nine" elsewhere in this module means
+ * the first 9 holes played vs. the last 9, which only coincides with hole
+ * numbers 1-9/10-18 when startHole is 1.
+ */
+export function buildPlayOrder(startHole: number): number[] {
+  return Array.from({ length: 18 }, (_, i) => ((startHole - 1 + i) % 18) + 1);
+}
 
 export function pairKey(a: string, b: string): string {
   return a < b ? `${a}:${b}` : `${b}:${a}`;
@@ -91,12 +104,16 @@ function rankBySi(holes: Hole[]): Record<number, number> {
   return rank;
 }
 
-function frontRank(holes: Hole[]): Record<number, number> {
-  return rankBySi(holes.slice(0, Math.min(9, holes.length)));
+/** The first 9 holes played (by play order, not necessarily hole numbers 1-9 — see buildPlayOrder). */
+function frontRank(holes: Hole[], schedule: RoundSchedule): Record<number, number> {
+  const firstNinePlayed = new Set(buildPlayOrder(schedule.startHole).slice(0, Math.min(9, holes.length)));
+  return rankBySi(holes.filter((h) => firstNinePlayed.has(h.n)));
 }
 
-function backRank(holes: Hole[]): Record<number, number> {
-  return rankBySi(holes.slice(9, 18));
+/** The last 9 holes played (by play order, not necessarily hole numbers 10-18 — see buildPlayOrder). */
+function backRank(holes: Hole[], schedule: RoundSchedule): Record<number, number> {
+  const secondNinePlayed = new Set(buildPlayOrder(schedule.startHole).slice(9, 18));
+  return rankBySi(holes.filter((h) => secondNinePlayed.has(h.n)));
 }
 
 function fullRank(holes: Hole[]): Record<number, number> {
@@ -153,14 +170,20 @@ function netToDeals(net: Record<string, number>): StrokeDeal[] {
   return deals;
 }
 
-/** Re-struck from the front-9 record — the signed net (including zero) for every pair, for persisting to game_matchups.back_nine_strokes. */
-export function getBackNineNet(players: PlayerKey[], gross: GrossMap, frontNineDeals: StrokeDeal[], holes: Hole[]): Record<string, number> {
-  return restrikeNet(players, frontNineDeals, frontRank(holes), rangeIndices(0, Math.min(9, holes.length)), gross, holes);
+/** Array indices (into `holes`/`gross`) for a set of hole numbers — hole n lives at index n-1 since `holes` is always naturally ordered 1..18. */
+function indicesForHoleNumbers(holeNumbers: number[]): number[] {
+  return holeNumbers.map((n) => n - 1);
 }
 
-/** Re-struck from the front-9 record — the deal that applies to holes 10-18 in an 18-hole/9-strokes-basis match. */
-export function getBackNineDeals(players: PlayerKey[], gross: GrossMap, frontNineDeals: StrokeDeal[], holes: Hole[]): StrokeDeal[] {
-  return netToDeals(getBackNineNet(players, gross, frontNineDeals, holes));
+/** Re-struck from the first-9-played record — the signed net (including zero) for every pair, for persisting to game_matchups.back_nine_strokes. */
+export function getBackNineNet(players: PlayerKey[], gross: GrossMap, frontNineDeals: StrokeDeal[], holes: Hole[], schedule: RoundSchedule): Record<string, number> {
+  const firstNinePlayed = buildPlayOrder(schedule.startHole).slice(0, Math.min(9, holes.length));
+  return restrikeNet(players, frontNineDeals, frontRank(holes, schedule), indicesForHoleNumbers(firstNinePlayed), gross, holes);
+}
+
+/** Re-struck from the first-9-played record — the deal that applies to the last 9 holes played in an 18-hole/9-strokes-basis match. */
+export function getBackNineDeals(players: PlayerKey[], gross: GrossMap, frontNineDeals: StrokeDeal[], holes: Hole[], schedule: RoundSchedule): StrokeDeal[] {
+  return netToDeals(getBackNineNet(players, gross, frontNineDeals, holes, schedule));
 }
 
 /**
@@ -180,13 +203,14 @@ export function getNextRoundNet(
   backNineDeals: StrokeDeal[] | null,
 ): Record<string, number> {
   if (schedule.holesToPlay === 9) {
-    return restrikeNet(players, frontNineDeals, frontRank(holes), rangeIndices(0, holes.length), gross, holes);
+    return restrikeNet(players, frontNineDeals, frontRank(holes, schedule), rangeIndices(0, holes.length), gross, holes);
   }
   if (schedule.strokesBasis === 18) {
     return restrikeNet(players, frontNineDeals, fullRank(holes), rangeIndices(0, holes.length), gross, holes);
   }
-  const effectiveBackNine = backNineDeals ?? getBackNineDeals(players, gross, frontNineDeals, holes);
-  return restrikeNet(players, effectiveBackNine, backRank(holes), rangeIndices(9, holes.length), gross, holes);
+  const effectiveBackNine = backNineDeals ?? getBackNineDeals(players, gross, frontNineDeals, holes, schedule);
+  const secondNinePlayed = buildPlayOrder(schedule.startHole).slice(9, 18);
+  return restrikeNet(players, effectiveBackNine, backRank(holes, schedule), indicesForHoleNumbers(secondNinePlayed), gross, holes);
 }
 
 export function getNextRoundDeals(
@@ -207,10 +231,17 @@ function dealsAndRankForHole(
   backNineDeals: StrokeDeal[] | null,
   holes: Hole[],
 ): { deals: StrokeDeal[]; rank: Record<number, number> } {
-  if (schedule.holesToPlay === 9) return { deals: frontNineDeals, rank: frontRank(holes) };
+  if (schedule.holesToPlay === 9) return { deals: frontNineDeals, rank: frontRank(holes, schedule) };
   if (schedule.strokesBasis === 18) return { deals: frontNineDeals, rank: fullRank(holes) };
-  if (holeN <= 9) return { deals: frontNineDeals, rank: frontRank(holes) };
-  return { deals: backNineDeals ?? frontNineDeals, rank: backRank(holes) };
+  const firstNinePlayed = new Set(buildPlayOrder(schedule.startHole).slice(0, 9));
+  if (firstNinePlayed.has(holeN)) return { deals: frontNineDeals, rank: frontRank(holes, schedule) };
+  // Until the turn's restrike actually lands, there's no valid deal for these
+  // holes yet — falling back to frontNineDeals here (as this used to) applies
+  // the SAME stroke amount a second time via the back nine's own SI rank,
+  // effectively doubling the giver's strokes across the round instead of
+  // leaving the back nine unstruck until it's earned its own deal.
+  if (!backNineDeals) return { deals: [], rank: {} };
+  return { deals: backNineDeals, rank: backRank(holes, schedule) };
 }
 
 /** Give/receive stroke counts for the viewer-vs-opponent pairing on a given hole (for the Scorecard grid). */
@@ -277,9 +308,10 @@ export function runningUp(
   frontNineDeals: StrokeDeal[],
   schedule: RoundSchedule,
   backNineDeals: StrokeDeal[] | null,
+  playOrder: number[],
 ): number {
   let total = 0;
-  for (let i = 0; i < thru; i++) total += holeUpValue(players, playerKey, i, gross, holes, frontNineDeals, schedule, backNineDeals);
+  for (const holeN of playOrder.slice(0, thru)) total += holeUpValue(players, playerKey, holeN - 1, gross, holes, frontNineDeals, schedule, backNineDeals);
   return total;
 }
 
@@ -293,12 +325,13 @@ export function record(
   frontNineDeals: StrokeDeal[],
   schedule: RoundSchedule,
   backNineDeals: StrokeDeal[] | null,
+  playOrder: number[],
 ): { w: number; l: number; h: number } {
   let w = 0;
   let l = 0;
   let h = 0;
-  for (let i = 0; i < thru; i++) {
-    const v = holeUpValue(players, playerKey, i, gross, holes, frontNineDeals, schedule, backNineDeals);
+  for (const holeN of playOrder.slice(0, thru)) {
+    const v = holeUpValue(players, playerKey, holeN - 1, gross, holes, frontNineDeals, schedule, backNineDeals);
     if (v > 0) w++;
     else if (v < 0) l++;
     else h++;
@@ -316,8 +349,9 @@ export function money(
   schedule: RoundSchedule,
   backNineDeals: StrokeDeal[] | null,
   stake: number,
+  playOrder: number[],
 ): number {
-  return runningUp(players, playerKey, thru, gross, holes, frontNineDeals, schedule, backNineDeals) * stake;
+  return runningUp(players, playerKey, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder) * stake;
 }
 
 /** Summed result of one player against one specific opponent. */
@@ -330,17 +364,19 @@ export function pairwiseTotal(
   frontNineDeals: StrokeDeal[],
   schedule: RoundSchedule,
   backNineDeals: StrokeDeal[] | null,
+  playOrder: number[],
 ): number {
   let total = 0;
-  for (let i = 0; i < thru; i++) total += pairwiseResult(playerKey, opponent, i, gross, holes, frontNineDeals, schedule, backNineDeals);
+  for (const holeN of playOrder.slice(0, thru)) total += pairwiseResult(playerKey, opponent, holeN - 1, gross, holes, frontNineDeals, schedule, backNineDeals);
   return total;
 }
 
-export function grossTotal(playerKey: PlayerKey, thru: number, gross: GrossMap): number {
+export function grossTotal(playerKey: PlayerKey, thru: number, gross: GrossMap, playOrder: number[]): number {
   // gross[playerKey] can be legitimately absent for a beat after mount —
   // viewerId comes from auth (available immediately) while gross only fills
   // in once the round's roster/scores finish loading.
-  return (gross[playerKey] ?? []).slice(0, thru).reduce((sum, v) => sum + v, 0);
+  const playerGross = gross[playerKey] ?? [];
+  return playOrder.slice(0, thru).reduce((sum, holeN) => sum + (playerGross[holeN - 1] ?? 0), 0);
 }
 
 export function upLabel(net: number): string {
@@ -365,14 +401,14 @@ export function formatDeal(deal: StrokeDeal, roster: { id: string; name: string 
 }
 
 /** Scorecard ring/notation classification — same thresholds as ScoreBadge. */
-export function scoreClassCounts(playerKey: PlayerKey, thru: number, gross: GrossMap, holes: Hole[]) {
+export function scoreClassCounts(playerKey: PlayerKey, thru: number, gross: GrossMap, holes: Hole[], playOrder: number[]) {
   let eagle = 0;
   let birdie = 0;
   let par = 0;
   let bogey = 0;
   let doublePlus = 0;
-  for (let i = 0; i < thru; i++) {
-    const diff = gross[playerKey]![i]! - holes[i]!.par;
+  for (const holeN of playOrder.slice(0, thru)) {
+    const diff = gross[playerKey]![holeN - 1]! - holes[holeN - 1]!.par;
     if (diff <= -2) eagle++;
     else if (diff === -1) birdie++;
     else if (diff === 0) par++;
@@ -382,12 +418,14 @@ export function scoreClassCounts(playerKey: PlayerKey, thru: number, gross: Gros
   return { eagle, birdie, par, bogey, doublePlus };
 }
 
-export function sumRange(players: PlayerKey[], thru: number, start: number, end: number, gross: GrossMap): Record<PlayerKey, number> {
+/** `start`/`end` are hole-number bounds (0 = hole 1), always literal — OUT/IN are fixed scorecard halves, unaffected by shotgun starts. Only "has this hole been played yet" is play-order-aware. */
+export function sumRange(players: PlayerKey[], thru: number, start: number, end: number, gross: GrossMap, playOrder: number[]): Record<PlayerKey, number> {
+  const playedHoles = new Set(playOrder.slice(0, thru));
   const sums: Record<PlayerKey, number> = {};
   players.forEach((p) => {
     let total = 0;
     for (let i = start; i < end; i++) {
-      if (i + 1 <= thru) total += gross[p]![i]!;
+      if (playedHoles.has(i + 1)) total += gross[p]![i]!;
     }
     sums[p] = total;
   });
@@ -408,17 +446,20 @@ export function buildViewerDeal(viewer: PlayerKey, opponentKey: PlayerKey, strok
 }
 
 /**
- * Largest contiguous prefix of holes for which every roster player has a
- * recorded score — holes 1..thru are considered "played" everywhere else in
- * this module. A gap (someone's card missing a hole) stalls thru at the last
- * fully-scored hole, even if later holes happen to be filled in already.
+ * Largest contiguous prefix of `playOrder` for which every roster player has
+ * a recorded score — the first `thru` holes of `playOrder` are considered
+ * "played" everywhere else in this module. A gap (someone's card missing a
+ * hole) stalls thru at the last fully-scored hole, even if later holes
+ * happen to be filled in already. `playOrder` is the match's actual tee-off
+ * sequence (see buildPlayOrder) — NOT necessarily hole numbers 1, 2, 3...,
+ * so a shotgun-started round's progress is tracked correctly.
  */
-export function computeThru(players: PlayerKey[], scores: HoleScoreMap, totalHoles: number): number {
+export function computeThru(players: PlayerKey[], scores: HoleScoreMap, playOrder: number[]): number {
   let thru = 0;
-  for (let n = 1; n <= totalHoles; n++) {
+  for (const n of playOrder) {
     const allScored = players.every((p) => scores[p]?.[n] !== undefined);
     if (!allScored) break;
-    thru = n;
+    thru++;
   }
   return thru;
 }

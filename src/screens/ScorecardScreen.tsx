@@ -100,6 +100,7 @@ export function ScorecardScreen({ navigation, route }: Props) {
     roster,
     holes,
     schedule,
+    playOrder,
     gross,
     scores,
     thru,
@@ -140,11 +141,18 @@ export function ScorecardScreen({ navigation, route }: Props) {
   const spin = useRef(new Animated.Value(0)).current;
   const initialized = useRef(false);
 
+  // Hole numbers in actual tee-off order (see round.ts's buildPlayOrder) —
+  // identity [1, 2, ..., N] for every non-shotgun match. "Thru count N" means
+  // "the next hole to play is playOrder[N]" (clamped to the last hole once
+  // the round is fully done), NOT literally hole number N+1 — that's only the
+  // same thing when the round starts at hole 1.
+  const holeAtThru = (count: number): number => playOrder[Math.min(playOrder.length - 1, count)] ?? 1;
+
   useEffect(() => {
     if (loading || initialized.current || holes.length === 0 || !viewerId) return;
     initialized.current = true;
-    const viewerThru = computeThru([viewerId], scores, holes.length);
-    setActiveHole(Math.min(holes.length, viewerThru + 1));
+    const viewerThru = computeThru([viewerId], scores, playOrder);
+    setActiveHole(holeAtThru(viewerThru));
     setActivePlayerKey(viewerId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
@@ -162,16 +170,17 @@ export function ScorecardScreen({ navigation, route }: Props) {
   // on the whole group's `thru` meant finishing a hole ahead of a slower
   // partner immediately looked "not live" and bounced the cursor backward.
   const activePlayerThru = useMemo(
-    () => (activePlayerKey ? computeThru([activePlayerKey], scores, holes.length) : 0),
-    [activePlayerKey, scores, holes.length],
+    () => (activePlayerKey ? computeThru([activePlayerKey], scores, playOrder) : 0),
+    [activePlayerKey, scores, playOrder],
   );
-  const onLiveHole = activeHole === activePlayerThru + 1;
+  const onLiveHole = activeHole === holeAtThru(activePlayerThru);
   // True exactly when saving the currently active hole finishes the active
-  // player's own card — their next hole to play, and it's the last one.
+  // player's own card — their next hole to play, and it's the last one in
+  // play order (not necessarily hole number 18 — see holeAtThru above).
   // Deliberately not "activePlayerThru >= holes.length": that's stale by one
-  // tap, since the state update from committing hole 18 hasn't landed yet
-  // when this same button press needs to decide whether to redirect.
-  const roundComplete = onLiveHole && holes.length > 0 && activeHole === holes.length;
+  // tap, since the state update from committing the last hole hasn't landed
+  // yet when this same button press needs to decide whether to redirect.
+  const roundComplete = onLiveHole && playOrder.length > 0 && activeHole === playOrder[playOrder.length - 1];
 
   function refresh() {
     if (refreshing) return;
@@ -220,10 +229,14 @@ export function ScorecardScreen({ navigation, route }: Props) {
     else if (holeDiff <= -2) newCelebrations.push(eagleCelebration(activeHole));
 
     if (birdieBaseline.current !== null && parBaseline.current !== null) {
+      // "Prior" holes means prior in actual tee-off order, not hole number
+      // order — for a shotgun start those don't match (see playOrder).
       const priorDiffs: number[] = [];
-      for (let i = 0; i < activeHole - 1; i++) {
-        const g = gross[viewerId]?.[i];
-        const par = holes[i]?.par;
+      const activePos = playOrder.indexOf(activeHole);
+      for (let k = 0; k < activePos; k++) {
+        const holeN = playOrder[k]!;
+        const g = gross[viewerId]?.[holeN - 1];
+        const par = holes[holeN - 1]?.par;
         if (g != null && par != null) priorDiffs.push(g - par);
       }
       const inProgressDiffs = [...priorDiffs, holeDiff];
@@ -269,15 +282,20 @@ export function ScorecardScreen({ navigation, route }: Props) {
     // half even as you keep entering new scores past the turn.
     setNineOverride(null);
     if (onLiveHole) {
-      setActiveHole(Math.min(holes.length, activeHole + 1));
+      const pos = playOrder.indexOf(activeHole);
+      setActiveHole(playOrder[Math.min(playOrder.length - 1, pos + 1)] ?? activeHole);
     } else {
-      setActiveHole(Math.min(holes.length, activePlayerThru + 1) || 1);
+      setActiveHole(holeAtThru(activePlayerThru));
     }
     if (viewerId) setActivePlayerKey(viewerId);
   }
 
   function getResultTint(playerId: string, holeIndex: number, holeN: number): ResultTint {
-    if (!viewerId || playerId === viewerId || holeN > thru) return null;
+    // `thru` counts holes into the round in tee-off order, not literal hole
+    // number — comparing it directly against `holeN` only worked when every
+    // round started at hole 1. Use the hole's position in playOrder instead.
+    const playedPosition = playOrder.indexOf(holeN);
+    if (!viewerId || playerId === viewerId || playedPosition < 0 || playedPosition >= thru) return null;
     const result = pairwiseResult(viewerId, playerId, holeIndex, gross, holes, frontNineDeals, schedule, backNineDeals);
     if (result > 0) return 'win';
     if (result < 0) return 'lose';
@@ -285,8 +303,8 @@ export function ScorecardScreen({ navigation, route }: Props) {
   }
 
   const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
-  const outScores = useMemo(() => sumRange(rosterIds, thru, 0, 9, gross), [rosterIds, thru, gross]);
-  const inScores = useMemo(() => sumRange(rosterIds, thru, 9, 18, gross), [rosterIds, thru, gross]);
+  const outScores = useMemo(() => sumRange(rosterIds, thru, 0, 9, gross, playOrder), [rosterIds, thru, gross, playOrder]);
+  const inScores = useMemo(() => sumRange(rosterIds, thru, 9, 18, gross, playOrder), [rosterIds, thru, gross, playOrder]);
   const totalScores = useMemo(() => {
     const totals: Record<string, number> = {};
     rosterIds.forEach((id) => {
