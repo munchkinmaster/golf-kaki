@@ -49,6 +49,16 @@ type StartHole = {
 export function SelectCourseScreen({ navigation }: Props) {
   const [query, setQuery] = useState('');
   const [selectedCourseId, setSelectedCourseId] = useState('');
+  // Distinguishes "still on the auto-picked default" from "the viewer actually
+  // tapped a course" — the default-selection effect below keeps free to
+  // re-target the nearest club as geolocation resolves (async, arrives after
+  // the catalog) until the viewer makes a real choice, so the pre-selected
+  // course never silently mismatches whichever list is actually on screen.
+  const userPickedCourseRef = useRef(false);
+  function selectCourse(id: string) {
+    userPickedCourseRef.current = true;
+    setSelectedCourseId(id);
+  }
   const [holesToPlay, setHolesToPlay] = useState<HolesToPlay>(18);
   const [startHole, setStartHole] = useState(1);
   const [startHoleSheetOpen, setStartHoleSheetOpen] = useState(false);
@@ -107,10 +117,18 @@ export function SelectCourseScreen({ navigation }: Props) {
     return withDistance.sort((a, b) => a.distanceKm - b.distanceKm).slice(0, NEARBY_COUNT);
   }, [allCourses, userLocation]);
 
-  // Nothing's selected until the catalog loads — default to the first club.
+  // Auto-pick a default so Continue is immediately actionable — the nearest
+  // club once geolocation resolves, or the catalog's pinned-first club before
+  // that (or if location's unavailable). Keeps re-targeting as those inputs
+  // change until the viewer actually taps a course, so whatever's
+  // pre-selected always matches the list actually on screen (nearbyCourses
+  // resolves after the catalog, so without this the selection could silently
+  // default to a club that isn't even in the visible "Near you" list).
   useEffect(() => {
-    if (!selectedCourseId && allCourses.length > 0) setSelectedCourseId(allCourses[0]!.id);
-  }, [allCourses, selectedCourseId]);
+    if (userPickedCourseRef.current) return;
+    const preferredId = nearbyCourses?.[0]?.id ?? allCourses[0]?.id;
+    if (preferredId && preferredId !== selectedCourseId) setSelectedCourseId(preferredId);
+  }, [allCourses, nearbyCourses, selectedCourseId]);
 
   const q = query.trim().toLowerCase();
   const filteredCourses = useMemo(
@@ -184,7 +202,7 @@ export function SelectCourseScreen({ navigation }: Props) {
                   course={course}
                   distance={formatDistanceKm(course.distanceKm)}
                   selected={selectedCourseId === course.id}
-                  onPress={() => setSelectedCourseId(course.id)}
+                  onPress={() => selectCourse(course.id)}
                 />
               ))}
             </View>
@@ -195,7 +213,7 @@ export function SelectCourseScreen({ navigation }: Props) {
                   key={course.id}
                   course={course}
                   selected={selectedCourseId === course.id}
-                  onPress={() => setSelectedCourseId(course.id)}
+                  onPress={() => selectCourse(course.id)}
                 />
               ))}
             </View>

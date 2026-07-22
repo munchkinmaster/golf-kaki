@@ -15,6 +15,7 @@ import { EmptyTrophyCard } from '../components/EmptyTrophyCard';
 import { FeaturedTrophyCard } from '../components/FeaturedTrophyCard';
 import { HandicapBadge } from '../components/HandicapBadge';
 import { IconButton } from '../components/IconButton';
+import { NotificationBell } from '../components/NotificationBell';
 import { StatRow } from '../components/StatRow';
 import type { AttestationStatus, Attester } from '../data/attestations';
 import { fetchAttestationStatus, fetchAttesters } from '../data/attestations';
@@ -24,6 +25,7 @@ import { fetchHandicapRecordCount, handicapCaption } from '../data/handicap';
 import { getInitials, stripHandlePrefix } from '../data/profile';
 import { fetchRoundSummaries, profileRoundStats } from '../data/rounds';
 import { buildTrophyBadges, pickFeaturedBadge, trophyCounts } from '../data/trophies';
+import { useNotificationCount } from '../hooks/useNotificationCount';
 import type { RootStackParamList } from '../navigation/types';
 import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, palette, radius, screenGutter, spacing } from '../theme/tokens';
@@ -32,6 +34,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Profile'>;
 
 export function ProfileScreen({ navigation }: Props) {
   const { profile, error, refresh, updateProfile } = useProfile();
+  const notificationCount = useNotificationCount(profile?.id ?? null);
 
   // Handicap and trophy badges are recalculated server-side when a round
   // finishes, but this screen's `profile` is a shared context value fetched
@@ -175,7 +178,10 @@ export function ProfileScreen({ navigation }: Props) {
         <View style={styles.header}>
           <View style={styles.headerSpacer} />
           <Text style={styles.headerTitle}>Profile</Text>
-          <IconButton icon={Settings} iconSize={18} />
+          <View style={styles.headerActions}>
+            <NotificationBell count={notificationCount} size={40} iconSize={18} onPress={() => navigation.navigate('Notifications')} />
+            <IconButton icon={Settings} iconSize={18} />
+          </View>
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
@@ -348,8 +354,13 @@ const styles = StyleSheet.create({
     paddingBottom: screenGutter,
   },
   headerSpacer: {
-    width: 40,
+    width: 89,
     height: 40,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
   },
   headerTitle: {
     fontFamily: getFontFamily('display', '700'),

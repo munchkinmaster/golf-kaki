@@ -6,8 +6,10 @@ import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { navigationRef } from './src/navigation/navigationRef';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { AuthProvider, useAuth } from './src/state/AuthContext';
+import { InviteToastProvider } from './src/state/InviteToastProvider';
 import { ProfileProvider } from './src/state/ProfileContext';
 import { fontAssets } from './src/theme/fonts';
 import { colors } from './src/theme/tokens';
@@ -24,7 +26,9 @@ export default function App() {
       <AuthProvider>
         <ProfileProvider>
           <SafeAreaProvider>
-            <AppNavigation />
+            <InviteToastProvider>
+              <AppNavigation />
+            </InviteToastProvider>
           </SafeAreaProvider>
         </ProfileProvider>
       </AuthProvider>
@@ -69,6 +73,7 @@ function AppNavigation() {
 
   return (
     <NavigationContainer
+      ref={navigationRef}
       initialState={initialState}
       onStateChange={(state) => {
         AsyncStorage.setItem(NAVIGATION_STATE_KEY, JSON.stringify(state)).catch(() => {});

@@ -390,6 +390,19 @@ export async function upsertMatchup(
   });
 }
 
+/**
+ * Host-only: removes an unfinished round for everyone — cascades to
+ * match_players, game_matchups, scores, badge_moments, and
+ * handicap_differentials via FK. RLS also enforces host-only and rejects a
+ * finished match server-side, so this is safe even if a stale UI calls it.
+ */
+export async function deleteMatch(matchId: string): Promise<void> {
+  await withRetry(async () => {
+    const { error } = await supabase.from('matches').delete().eq('id', matchId);
+    if (error) throw error;
+  });
+}
+
 /** Idempotent — retrying just re-sets the same status/timestamp. */
 export async function startMatch(matchId: string): Promise<void> {
   await withRetry(async () => {

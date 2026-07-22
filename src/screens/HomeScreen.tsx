@@ -1,23 +1,8 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
-import {
-  Bird,
-  Check,
-  ChevronRight,
-  Flag,
-  Flame,
-  Gauge,
-  MapPin,
-  Plus,
-  Repeat,
-  Target,
-  Trophy,
-  UserPlus,
-  Users,
-  X,
-} from 'lucide-react-native';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ChevronRight, Flag, Plus, Trophy, Users } from 'lucide-react-native';
+import { useCallback, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
@@ -26,6 +11,8 @@ import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { HandicapBadge } from '../components/HandicapBadge';
+import { NotificationBell } from '../components/NotificationBell';
+import { BadgeAttestationCard, FriendRequestCard, GameInviteCard } from '../components/NotificationCards';
 import type { AttestableBadge } from '../data/attestations';
 import { attestBadge, fetchAttestableBadges } from '../data/attestations';
 import type { FriendRequest } from '../data/kaki';
@@ -76,19 +63,17 @@ export function HomeScreen({ navigation }: Props) {
     setPastRounds(past.slice(0, 3));
   }, []);
 
-  useEffect(() => {
-    if (!profile) return;
-    // Notifications are supplementary — a failed fetch just means none show, not a blocking error.
-    loadNotifications(profile.id).catch(() => {});
-  }, [profile, loadNotifications]);
-
-  // Refetch on focus, not just mount — the viewer lands back on Home right
-  // after starting or finishing a round.
+  // Refetch on focus, not just mount — an invite/request/attestation can land
+  // while the viewer is on another screen entirely (no realtime push yet, see
+  // NotificationsScreen), and the viewer just as often lands back on Home
+  // right after starting or finishing a round.
   useFocusEffect(
     useCallback(() => {
       if (!profile) return;
+      // Notifications are supplementary — a failed fetch just means none show, not a blocking error.
+      loadNotifications(profile.id).catch(() => {});
       loadRounds(profile.id).catch(() => {});
-    }, [profile, loadRounds]),
+    }, [profile, loadNotifications, loadRounds]),
   );
 
   async function handleAcceptInvite(invite: MatchInvite) {
@@ -164,7 +149,10 @@ export function HomeScreen({ navigation }: Props) {
               <Text style={styles.greetingName}>{profile.displayName}</Text>
             </View>
           </View>
-          <HandicapBadge value={profile.handicap} />
+          <View style={styles.headerActions}>
+            <NotificationBell count={notificationCount} onPress={() => navigation.navigate('Notifications')} />
+            <HandicapBadge value={profile.handicap} />
+          </View>
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
@@ -230,6 +218,7 @@ export function HomeScreen({ navigation }: Props) {
               <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>In play</Text>
               <HomeLiveRoundCard
                 round={liveRounds[0]}
+                isHost={profile?.id === liveRounds[0]!.hostId}
                 onResume={() =>
                   navigation.navigate('Scorecard', {
                     matchId: liveRounds[0]!.matchId,
@@ -237,6 +226,14 @@ export function HomeScreen({ navigation }: Props) {
                     courseName: liveRounds[0]!.courseName,
                     gameModeName: liveRounds[0]!.gameModeName,
                     isHost: false,
+                  })
+                }
+                onFinish={() =>
+                  navigation.navigate('Finish', {
+                    matchId: liveRounds[0]!.matchId,
+                    matchName: liveRounds[0]!.matchName,
+                    courseName: liveRounds[0]!.courseName,
+                    gameModeName: liveRounds[0]!.gameModeName,
                   })
                 }
               />
@@ -303,33 +300,38 @@ export function HomeScreen({ navigation }: Props) {
   );
 }
 
+// Static, not pulsing — temporary experiment to check whether iOS Safari's
+// tap unresponsiveness is caused by continuous JS-driven Animated loops
+// (useNativeDriver doesn't offload to a native thread on web the way it does
+// in the native app). Revert to the pulsing version if this doesn't help.
 function LiveBadge() {
-  const pulse = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 0.45, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [pulse]);
-
   return (
     <View style={styles.liveBadge}>
-      <Animated.View style={[styles.liveDot, { opacity: pulse }]} />
+      <View style={styles.liveDot} />
       <Text style={styles.liveLabel}>Live</Text>
     </View>
   );
 }
 
-function HomeLiveRoundCard({ round, onResume }: { round: RoundSummary; onResume: () => void }) {
+function HomeLiveRoundCard({
+  round,
+  isHost,
+  onResume,
+  onFinish,
+}: {
+  round: RoundSummary;
+  isHost: boolean;
+  onResume: () => void;
+  onFinish: () => void;
+}) {
   const up = round.viewerUp ?? 0;
   const scoreValue = round.viewerUp === null ? '–' : String(Math.abs(up));
   const scoreLabel = round.viewerUp === null ? '' : up > 0 ? 'up' : up < 0 ? 'down' : 'square';
   const sub = [round.courseName, round.comboLabel, `Thru ${round.thru}`].filter(Boolean).join(' · ');
+  // Every hole scored but the host hasn't tapped Finish yet — nothing ends
+  // the round automatically, so nudge whoever can act (see FinishScreen's
+  // finishRound, which only the host may call).
+  const fullyScored = round.thru >= round.holesToPlay;
 
   return (
     <Card variant="inverse" watermark style={styles.liveCard}>
@@ -344,6 +346,12 @@ function HomeLiveRoundCard({ round, onResume }: { round: RoundSummary; onResume:
           <Text style={styles.liveScoreLabel}>{scoreLabel}</Text>
         </View>
       </View>
+      {fullyScored ? (
+        <View style={styles.liveNudgeRow}>
+          <Flag size={13} color="rgba(255,255,255,0.7)" />
+          <Text style={styles.liveNudgeText}>{isHost ? 'Fully scored — finish to save it' : 'Fully scored — waiting for host to finish'}</Text>
+        </View>
+      ) : null}
       <View style={styles.liveCardBottom}>
         <View style={styles.avatarStack}>
           {round.players.slice(0, 4).map((player, index) => {
@@ -360,185 +368,15 @@ function HomeLiveRoundCard({ round, onResume }: { round: RoundSummary; onResume:
           })}
         </View>
         <Button
-          label="Resume"
+          label={fullyScored && isHost ? 'Finish round' : 'Resume'}
           variant="accent"
           size="sm"
           icon={<ChevronRight size={16} color={colors.textOnAccent} />}
           iconPosition="right"
-          onPress={onResume}
+          onPress={fullyScored && isHost ? onFinish : onResume}
         />
       </View>
     </Card>
-  );
-}
-
-function GameInviteCard({
-  invite,
-  colorIndex,
-  onDecline,
-  onAccept,
-}: {
-  invite: MatchInvite;
-  colorIndex: number;
-  onDecline: () => void;
-  onAccept: () => void;
-}) {
-  const playerColor = getPlayerColors(colorIndex);
-  const holesPart = invite.summaryLine.split(' · ')[0];
-
-  return (
-    <View style={[styles.notifCard, styles.notifCardInvite]}>
-      <View style={styles.notifTopRow}>
-        <Avatar initials={getInitials(invite.hostName)} size={42} backgroundColor={playerColor.background} color={playerColor.color} />
-        <View style={styles.notifBody}>
-          <Text style={styles.notifLead}>
-            <Text style={styles.notifLeadStrong}>{invite.hostName}</Text> invited you
-          </Text>
-          <Text style={styles.notifHeadline}>{invite.matchName}</Text>
-        </View>
-        <View style={[styles.newPill, styles.newPillOrange]}>
-          <Text style={[styles.newPillLabel, styles.newPillLabelOrange]}>New</Text>
-        </View>
-      </View>
-      <View style={styles.notifMetaRow}>
-        <View style={styles.notifMetaItem}>
-          <MapPin size={13} color={colors.textDisabled} />
-          <Text style={styles.notifMetaText}>{invite.courseName}</Text>
-        </View>
-        <View style={styles.notifMetaItem}>
-          <Flag size={13} color={colors.textDisabled} />
-          <Text style={styles.notifMetaText}>
-            {holesPart} · {invite.gameModeName}
-          </Text>
-        </View>
-      </View>
-      <View style={styles.notifActions}>
-        <Pressable style={styles.notifActionGhost} onPress={onDecline}>
-          <X size={16} color={colors.textMuted} />
-          <Text style={styles.notifActionGhostLabel}>Decline</Text>
-        </Pressable>
-        <Pressable style={styles.notifActionAccent} onPress={onAccept}>
-          <Check size={16} color={palette.white} />
-          <Text style={styles.notifActionAccentLabel}>Accept</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
-function FriendRequestCard({
-  request,
-  colorIndex,
-  onIgnore,
-  onAccept,
-}: {
-  request: FriendRequest;
-  colorIndex: number;
-  onIgnore: () => void;
-  onAccept: () => void;
-}) {
-  const playerColor = getPlayerColors(colorIndex);
-
-  return (
-    <View style={[styles.notifCard, styles.notifCardFriend]}>
-      <View style={styles.notifTopRow}>
-        <Avatar initials={getInitials(request.name)} size={42} backgroundColor={playerColor.background} color={playerColor.color} />
-        <View style={styles.notifBody}>
-          <Text style={styles.notifLead}>
-            <Text style={styles.notifLeadStrong}>{request.name}</Text> wants to be your kaki
-          </Text>
-          <View style={styles.notifMetaRow}>
-            <View style={styles.notifMetaItem}>
-              <Users size={13} color={colors.textDisabled} />
-              <Text style={styles.notifMetaText}>{request.handle}</Text>
-            </View>
-            {request.handicap !== null ? (
-              <View style={styles.notifMetaItem}>
-                <Target size={13} color={colors.textDisabled} />
-                <Text style={styles.notifMetaText}>HCP {request.handicap}</Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
-        <View style={[styles.newPill, styles.newPillGreen]}>
-          <Text style={[styles.newPillLabel, styles.newPillLabelGreen]}>New</Text>
-        </View>
-      </View>
-      <View style={styles.notifActions}>
-        <Pressable style={styles.notifActionGhost} onPress={onIgnore}>
-          <X size={16} color={colors.textMuted} />
-          <Text style={styles.notifActionGhostLabel}>Ignore</Text>
-        </Pressable>
-        <Pressable style={styles.notifActionPrimary} onPress={onAccept}>
-          <UserPlus size={16} color={palette.white} />
-          <Text style={styles.notifActionAccentLabel}>Accept</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
-function badgeTypeLabel(badgeType: AttestableBadge['badgeType']): string {
-  switch (badgeType) {
-    case 'birdie_streak':
-      return 'birdie streak';
-    case 'par_streak':
-      return 'par streak';
-    case 'hole_in_one':
-      return 'hole-in-one';
-    case 'eagle':
-      return 'eagle';
-    case 'broke_80':
-      return 'Broke 80';
-  }
-}
-
-const BADGE_TYPE_ICON: Record<AttestableBadge['badgeType'], typeof Flame> = {
-  birdie_streak: Flame,
-  par_streak: Repeat,
-  hole_in_one: Target,
-  eagle: Bird,
-  broke_80: Gauge,
-};
-
-function BadgeAttestationCard({
-  badge,
-  colorIndex,
-  onConfirm,
-}: {
-  badge: AttestableBadge;
-  colorIndex: number;
-  onConfirm: () => void;
-}) {
-  const playerColor = getPlayerColors(colorIndex);
-  const Icon = BADGE_TYPE_ICON[badge.badgeType];
-
-  return (
-    <View style={[styles.notifCard, styles.notifCardFriend]}>
-      <View style={styles.notifTopRow}>
-        <Avatar initials={getInitials(badge.playerName)} size={42} backgroundColor={playerColor.background} color={playerColor.color} />
-        <View style={styles.notifBody}>
-          <Text style={styles.notifLead}>
-            <Text style={styles.notifLeadStrong}>{badge.playerName}</Text>'s {badgeTypeLabel(badge.badgeType)}
-          </Text>
-          <View style={styles.notifMetaRow}>
-            <View style={styles.notifMetaItem}>
-              <Icon size={13} color={colors.textDisabled} />
-              <Text style={styles.notifMetaText}>{badge.detail}</Text>
-            </View>
-          </View>
-        </View>
-        <View style={[styles.newPill, styles.newPillGreen]}>
-          <Text style={[styles.newPillLabel, styles.newPillLabelGreen]}>New</Text>
-        </View>
-      </View>
-      <View style={styles.notifActions}>
-        <Pressable style={styles.notifActionPrimary} onPress={onConfirm}>
-          <Check size={16} color={palette.white} />
-          <Text style={styles.notifActionAccentLabel}>Confirm</Text>
-        </Pressable>
-      </View>
-    </View>
   );
 }
 
@@ -573,6 +411,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[3],
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2] + 2,
   },
   greetingLabel: {
     fontFamily: getFontFamily('body', '400'),
@@ -662,6 +505,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: 'rgba(255,255,255,0.6)',
   },
+  liveNudgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2] - 2,
+    marginTop: spacing[3],
+  },
+  liveNudgeText: {
+    fontFamily: getFontFamily('body', '500'),
+    fontWeight: '500',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+  },
   liveCardBottom: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -707,140 +562,6 @@ const styles = StyleSheet.create({
     fontFamily: getFontFamily('numeric', '700'),
     fontWeight: '700',
     fontSize: 11,
-    color: palette.white,
-  },
-  notifCard: {
-    backgroundColor: colors.surfaceCard,
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: spacing[3] + 2,
-    marginBottom: spacing[2] + 2,
-    ...shadows.xs,
-  },
-  notifCardInvite: {
-    borderColor: palette.orange[200],
-  },
-  notifCardFriend: {
-    borderColor: palette.green[200],
-  },
-  notifTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2] + 3,
-  },
-  notifBody: {
-    flex: 1,
-    minWidth: 0,
-  },
-  notifLead: {
-    fontFamily: getFontFamily('body', '400'),
-    fontSize: 13,
-    color: colors.textMuted,
-  },
-  notifLeadStrong: {
-    fontFamily: getFontFamily('body', '700'),
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  notifHeadline: {
-    fontFamily: getFontFamily('display', '700'),
-    fontWeight: '700',
-    fontSize: 16,
-    color: colors.textPrimary,
-    marginTop: 1,
-  },
-  newPill: {
-    borderWidth: 1,
-    borderRadius: radius.pill,
-    paddingVertical: 4,
-    paddingHorizontal: spacing[2] + 1,
-    flexShrink: 0,
-  },
-  newPillLabel: {
-    fontFamily: getFontFamily('body', '600'),
-    fontWeight: '600',
-    fontSize: 10,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  newPillOrange: {
-    backgroundColor: palette.orange[100],
-    borderColor: palette.orange[200],
-  },
-  newPillLabelOrange: {
-    color: palette.orange[700],
-  },
-  newPillGreen: {
-    backgroundColor: colors.surfaceBrandSoft,
-    borderColor: palette.green[200],
-  },
-  newPillLabelGreen: {
-    color: colors.statusSuccess,
-  },
-  notifMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[3] + 1,
-    marginTop: spacing[2] + 1,
-  },
-  notifMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1] + 1,
-  },
-  notifMetaText: {
-    fontFamily: getFontFamily('body', '400'),
-    fontSize: 12,
-    color: colors.textDisabled,
-  },
-  notifActions: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[3] + 1,
-  },
-  notifActionGhost: {
-    flex: 1,
-    height: 44,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceCard,
-    borderWidth: 1.5,
-    borderColor: colors.borderDefault,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[1] + 3,
-  },
-  notifActionGhostLabel: {
-    fontFamily: getFontFamily('body', '600'),
-    fontWeight: '600',
-    fontSize: 14,
-    color: colors.textMuted,
-  },
-  notifActionAccent: {
-    flex: 1,
-    height: 44,
-    borderRadius: radius.pill,
-    backgroundColor: colors.accent,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[1] + 3,
-    ...shadows.accent,
-  },
-  notifActionPrimary: {
-    flex: 1,
-    height: 44,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing[1] + 3,
-  },
-  notifActionAccentLabel: {
-    fontFamily: getFontFamily('body', '600'),
-    fontWeight: '600',
-    fontSize: 14,
     color: palette.white,
   },
   pastGameList: {

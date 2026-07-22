@@ -1,6 +1,7 @@
 export type RootStackParamList = {
   Landing: undefined;
   Home: undefined;
+  Notifications: undefined;
   Profile: undefined;
   Kaki: undefined;
   Rounds: { initialTab?: 'live' | 'past' } | undefined;

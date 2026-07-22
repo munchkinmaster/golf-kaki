@@ -29,6 +29,7 @@ export type RoundSummary = {
   finishedAt: string | null;
   players: RoundPlayer[];
   thru: number;
+  hostId: string;
   /** Match-play "up" total against the whole field — null if the viewer isn't in this match's roster. */
   viewerUp: number | null;
   viewerMoney: number | null;
@@ -47,6 +48,7 @@ type MatchRow = {
   finished_at: string | null;
   course_id: string;
   combo_id: string;
+  host_id: string;
   courses: { name: string } | null;
 };
 
@@ -124,6 +126,7 @@ async function summarizeMatch(match: MatchRow, roster: RoundPlayer[], viewerId: 
     finishedAt: match.finished_at,
     players: roster,
     thru,
+    hostId: match.host_id,
     viewerUp,
     viewerMoney,
     viewerGross,
@@ -168,7 +171,7 @@ async function fetchRoundSummariesOnce(viewerId: string, status: 'live' | 'finis
   const dateColumn = status === 'live' ? 'started_at' : 'finished_at';
   const { data: matchRows, error: matchError } = await supabase
     .from('matches')
-    .select('id, match_name, game_mode, holes_to_play, strokes_basis, start_hole, stake_per_hole, started_at, finished_at, course_id, combo_id, courses ( name )')
+    .select('id, match_name, game_mode, holes_to_play, strokes_basis, start_hole, stake_per_hole, started_at, finished_at, course_id, combo_id, host_id, courses ( name )')
     .in('id', matchIds)
     .eq('status', status)
     .order(dateColumn, { ascending: false });

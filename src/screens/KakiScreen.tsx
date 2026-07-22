@@ -21,8 +21,10 @@ import { Avatar } from '../components/Avatar';
 import { BottomNav } from '../components/BottomNav';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { NotificationBell } from '../components/NotificationBell';
 import type { AddCandidate, Friend, FriendRequest } from '../data/kaki';
 import { acceptFriendRequest, fetchKakiOverview, removeKakiRelationship, sendFriendRequest } from '../data/kaki';
+import { useNotificationCount } from '../hooks/useNotificationCount';
 import type { RootStackParamList } from '../navigation/types';
 import { useAuth } from '../state/AuthContext';
 import { colors, getFontFamily, getPlayerColors, motion, palette, radius, screenGutter, spacing } from '../theme/tokens';
@@ -32,6 +34,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Kaki'>;
 export function KakiScreen({ navigation }: Props) {
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
+  const notificationCount = useNotificationCount(userId);
 
   const [query, setQuery] = useState('');
   const [requests, setRequests] = useState<FriendRequest[]>([]);
@@ -117,14 +120,17 @@ export function KakiScreen({ navigation }: Props) {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Kaki</Text>
-          <Button
-            label="Add"
-            variant="ghost"
-            size="sm"
-            icon={<UserPlus size={15} color={colors.primary} />}
-            onPress={() => setAddOpen(true)}
-            style={styles.addButton}
-          />
+          <View style={styles.headerActions}>
+            <NotificationBell count={notificationCount} size={40} iconSize={18} onPress={() => navigation.navigate('Notifications')} />
+            <Button
+              label="Add"
+              variant="ghost"
+              size="sm"
+              icon={<UserPlus size={15} color={colors.primary} />}
+              onPress={() => setAddOpen(true)}
+              style={styles.addButton}
+            />
+          </View>
         </View>
 
         <View style={styles.searchWrap}>
@@ -459,6 +465,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 22,
     color: colors.textPrimary,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2] + 2,
   },
   addButton: {
     borderWidth: 1,

@@ -12,6 +12,7 @@ import { KakiScreen } from '../screens/KakiScreen';
 import { LandingScreen } from '../screens/LandingScreen';
 import { LeaderboardScreen } from '../screens/LeaderboardScreen';
 import { MatchLobbyScreen } from '../screens/MatchLobbyScreen';
+import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { RecapScreen } from '../screens/RecapScreen';
 import { RoundsScreen } from '../screens/RoundsScreen';
@@ -36,6 +37,7 @@ export function RootNavigator() {
     <Stack.Navigator initialRouteName={session ? 'Home' : 'Landing'} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Landing" component={LandingScreen} />
       <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Kaki" component={KakiScreen} />
       <Stack.Screen name="Rounds" component={RoundsScreen} />
