@@ -1,7 +1,6 @@
 import { BadgeCheck } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { useEffect, useRef } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 
 import { Avatar } from './Avatar';
@@ -72,26 +71,16 @@ export function FeaturedTrophyCard({ badge, attesters, style, onPress }: Feature
   return onPress ? <Pressable onPress={onPress}>{card}</Pressable> : card;
 }
 
-/** Keeps the dc.html's looping shine sweep — an intentional exception to the no-looping-animation rule, matching the Live badge pulse precedent on Home. */
+// Static, not pulsing — same iOS Safari tap-unresponsiveness fix as the Live
+// badge on Home/Rounds (continuous JS-driven Animated loops don't offload to
+// a native thread on web the way useNativeDriver does in the native app).
 function FeaturedMedal({ icon: Icon }: { icon: LucideIcon }) {
-  const shine = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.timing(shine, { toValue: 1, duration: 2800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [shine]);
-
-  const translateX = shine.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-FEATURED_MEDAL_SIZE * 1.2, FEATURED_MEDAL_SIZE * 2.2],
-  });
-
   return (
     <View style={styles.medal}>
-      <Animated.View pointerEvents="none" style={[styles.medalShine, { transform: [{ rotate: '8deg' }, { translateX }] }]} />
+      <View
+        pointerEvents="none"
+        style={[styles.medalShine, { transform: [{ rotate: '8deg' }, { translateX: FEATURED_MEDAL_SIZE * 0.6 }] }]}
+      />
       <Icon size={32} color={palette.white} />
     </View>
   );
