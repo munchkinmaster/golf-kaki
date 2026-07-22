@@ -36,24 +36,37 @@ export function ProfileScreen({ navigation }: Props) {
   const { profile, error, refresh, updateProfile } = useProfile();
   const notificationCount = useNotificationCount(profile?.id ?? null);
 
+  const [roundStats, setRoundStats] = useState<{ rounds: number; best: number | null; wins: number } | null>(null);
+  const [attested, setAttested] = useState<AttestationStatus>({ birdieStreak: false, parStreak: false, holeInOne: false, eagle: false, broke80: false });
+  const [moments, setMoments] = useState<MomentBadges>({ hole_in_one: null, eagle: null, broke_80: null });
+  const [handicapRoundCount, setHandicapRoundCount] = useState<number | null>(null);
+
   // Handicap and trophy badges are recalculated server-side when a round
   // finishes, but this screen's `profile` is a shared context value fetched
   // once at sign-in — refetch on focus so a round finished elsewhere (or in
-  // a prior visit) shows up here without a manual reload.
+  // a prior visit) shows up here without a manual reload. Bundled into one
+  // Promise.all (rather than a separate useFocusEffect per fetch, as this
+  // screen used to have) so the results land in a single re-render instead
+  // of a burst of four staggered ones — that burst was landing right as the
+  // tab gained focus and was making taps briefly unresponsive on iOS Safari.
   useFocusEffect(
     useCallback(() => {
       refresh().catch(() => {});
-    }, [refresh]),
-  );
-
-  const [roundStats, setRoundStats] = useState<{ rounds: number; best: number | null; wins: number } | null>(null);
-  useFocusEffect(
-    useCallback(() => {
       if (!profile) return;
-      fetchRoundSummaries(profile.id, 'finished')
-        .then((summaries) => setRoundStats(profileRoundStats(summaries)))
+      Promise.all([
+        fetchRoundSummaries(profile.id, 'finished'),
+        fetchAttestationStatus(profile.id),
+        fetchLatestMoments(profile.id),
+        fetchHandicapRecordCount(profile.id),
+      ])
+        .then(([summaries, attestationStatus, momentBadges, handicapCount]) => {
+          setRoundStats(profileRoundStats(summaries));
+          setAttested(attestationStatus);
+          setMoments(momentBadges);
+          setHandicapRoundCount(handicapCount);
+        })
         .catch(() => {});
-    }, [profile?.id]),
+    }, [profile?.id, refresh]),
   );
 
   const stats = [
@@ -61,26 +74,6 @@ export function ProfileScreen({ navigation }: Props) {
     { value: roundStats?.best ?? '–', label: 'Best', color: colors.scorePar },
     { value: roundStats?.wins ?? '–', label: 'Wins', color: colors.textPrimary },
   ];
-
-  const [attested, setAttested] = useState<AttestationStatus>({ birdieStreak: false, parStreak: false, holeInOne: false, eagle: false, broke80: false });
-  useFocusEffect(
-    useCallback(() => {
-      if (!profile) return;
-      fetchAttestationStatus(profile.id)
-        .then(setAttested)
-        .catch(() => {});
-    }, [profile?.id]),
-  );
-
-  const [moments, setMoments] = useState<MomentBadges>({ hole_in_one: null, eagle: null, broke_80: null });
-  useFocusEffect(
-    useCallback(() => {
-      if (!profile) return;
-      fetchLatestMoments(profile.id)
-        .then(setMoments)
-        .catch(() => {});
-    }, [profile?.id]),
-  );
 
   const trophyBadges = useMemo(
     () => buildTrophyBadges(profile, attested, moments),
@@ -110,14 +103,6 @@ export function ProfileScreen({ navigation }: Props) {
   const [bioDraft, setBioDraft] = useState('');
   const [savingBio, setSavingBio] = useState(false);
   const [bioError, setBioError] = useState<string | null>(null);
-
-  const [handicapRoundCount, setHandicapRoundCount] = useState<number | null>(null);
-  useEffect(() => {
-    if (!profile) return;
-    fetchHandicapRecordCount(profile.id)
-      .then(setHandicapRoundCount)
-      .catch(() => {});
-  }, [profile?.id]);
 
   function startEditIdentity() {
     if (!profile) return;
