@@ -213,17 +213,6 @@ export function getNextRoundNet(
   return restrikeNet(players, effectiveBackNine, backRank(holes, schedule), indicesForHoleNumbers(secondNinePlayed), gross, holes);
 }
 
-export function getNextRoundDeals(
-  players: PlayerKey[],
-  gross: GrossMap,
-  frontNineDeals: StrokeDeal[],
-  holes: Hole[],
-  schedule: RoundSchedule,
-  backNineDeals: StrokeDeal[] | null,
-): StrokeDeal[] {
-  return netToDeals(getNextRoundNet(players, gross, frontNineDeals, holes, schedule, backNineDeals));
-}
-
 function dealsAndRankForHole(
   schedule: RoundSchedule,
   holeN: number,

@@ -8,6 +8,9 @@
 
 import { withRetry } from '../lib/retry';
 import { supabase } from '../lib/supabase';
+import { fetchCourseCatalog, getComboHoles } from './courses';
+import { getNextRoundNet, pairKey } from './round';
+import type { GrossMap, RoundSchedule, StrokeDeal } from './round';
 
 export type KakiPerson = {
   id: string;
@@ -122,10 +125,110 @@ async function fetchKakiOverviewOnce(userId: string): Promise<KakiOverview> {
   return { friends, requests, directory };
 }
 
-/** Accepts an incoming request. */
+/**
+ * Finds the most recently finished match both players appeared in, for the
+ * ledger backfill below — two queries plus a JS intersect, since PostgREST
+ * can't filter one joined table by two different player_ids in one request.
+ */
+async function findLastSharedFinishedMatch(playerAId: string, playerBId: string): Promise<string | null> {
+  const { data: aRows, error: aError } = await supabase
+    .from('match_players')
+    .select('match_id, matches!inner(finished_at, status)')
+    .eq('player_id', playerAId)
+    .eq('matches.status', 'finished');
+  if (aError) throw aError;
+  const aMatches = aRows as unknown as { match_id: string; matches: { finished_at: string | null } }[];
+  if (aMatches.length === 0) return null;
+
+  const { data: bRows, error: bError } = await supabase
+    .from('match_players')
+    .select('match_id')
+    .eq('player_id', playerBId)
+    .in(
+      'match_id',
+      aMatches.map((m) => m.match_id),
+    );
+  if (bError) throw bError;
+  const sharedIds = new Set((bRows as { match_id: string }[]).map((r) => r.match_id));
+
+  const shared = aMatches.filter((m) => sharedIds.has(m.match_id));
+  if (shared.length === 0) return null;
+  shared.sort((x, y) => (y.matches.finished_at ?? '').localeCompare(x.matches.finished_at ?? ''));
+  return shared[0]!.match_id;
+}
+
+/**
+ * Recomputes one pair's next-round net strokes from a single finished match.
+ * Pairwise match-play math only ever depends on the two players' own gross
+ * scores and their own deal, never the rest of that match's roster, so this
+ * doesn't need the full roster/scores useLiveRound assembles for a live round.
+ */
+async function computePairNetForMatch(matchId: string, playerAId: string, playerBId: string): Promise<number | null> {
+  const { data: matchRow, error: matchError } = await supabase
+    .from('matches')
+    .select('holes_to_play, strokes_basis, start_hole, course_id, combo_id')
+    .eq('id', matchId)
+    .single();
+  if (matchError) throw matchError;
+  const match = matchRow as { holes_to_play: 9 | 18; strokes_basis: 9 | 18; start_hole: number; course_id: string; combo_id: string };
+
+  const [a, b] = playerAId < playerBId ? [playerAId, playerBId] : [playerBId, playerAId];
+
+  const [{ data: scoreRows, error: scoreError }, { data: matchupRow, error: matchupError }, catalog] = await Promise.all([
+    supabase.from('scores').select('player_id, hole_number, gross_strokes').eq('match_id', matchId).in('player_id', [a, b]),
+    supabase.from('game_matchups').select('front_nine_strokes, back_nine_strokes').eq('match_id', matchId).eq('player_a_id', a).eq('player_b_id', b).maybeSingle(),
+    fetchCourseCatalog(),
+  ]);
+  if (scoreError) throw scoreError;
+  if (matchupError) throw matchupError;
+
+  const course = catalog.find((c) => c.id === match.course_id);
+  if (!course) return null;
+  const allHoles = getComboHoles(course, match.combo_id);
+  const holes = match.holes_to_play === 9 ? allHoles.slice(0, 9) : allHoles;
+
+  const scores = scoreRows as { player_id: string; hole_number: number; gross_strokes: number }[];
+  const gross: GrossMap = {};
+  for (const p of [a, b]) gross[p] = holes.map((h) => scores.find((s) => s.player_id === p && s.hole_number === h.n)?.gross_strokes ?? h.par);
+
+  const row = matchupRow as { front_nine_strokes: number; back_nine_strokes: number | null } | null;
+  const toDeal = (amount: number): StrokeDeal[] =>
+    amount === 0 ? [] : amount > 0 ? [{ giver: a, receiver: b, amount }] : [{ giver: b, receiver: a, amount: -amount }];
+  const frontNineDeals = toDeal(row?.front_nine_strokes ?? 0);
+  const backNineDeals = row?.back_nine_strokes == null ? null : toDeal(row.back_nine_strokes);
+
+  const schedule: RoundSchedule = { holesToPlay: match.holes_to_play, strokesBasis: match.strokes_basis, startHole: match.start_hole };
+  const net = getNextRoundNet([a, b], gross, frontNineDeals, holes, schedule, backNineDeals);
+  return net[pairKey(a, b)] ?? 0;
+}
+
+/**
+ * Accepts an incoming request, then backfills the stroke ledger from the
+ * pair's most recent finished match together, if any. Two kaki can play a
+ * match before formally accepting each other — updateLedgerStrokes silently
+ * no-ops without an accepted relationship (see its own comment) — so without
+ * this, that match's carry-forward would be stranded forever the moment they
+ * do accept, with no later event left to re-trigger the write.
+ */
 export async function acceptFriendRequest(relationshipId: string): Promise<void> {
-  const { error } = await supabase.from('kaki_relationships').update({ status: 'accepted' }).eq('id', relationshipId);
+  const { data, error } = await supabase
+    .from('kaki_relationships')
+    .update({ status: 'accepted' })
+    .eq('id', relationshipId)
+    .select('player_a_id, player_b_id')
+    .single();
   if (error) throw error;
+  const { player_a_id, player_b_id } = data as { player_a_id: string; player_b_id: string };
+
+  try {
+    const lastMatchId = await findLastSharedFinishedMatch(player_a_id, player_b_id);
+    if (lastMatchId) {
+      const net = await computePairNetForMatch(lastMatchId, player_a_id, player_b_id);
+      if (net !== null) await updateLedgerStrokes(player_a_id, player_b_id, net);
+    }
+  } catch {
+    // Backfill is best-effort — a failure here shouldn't block accepting the request.
+  }
 }
 
 /** Declines an incoming request, or cancels one the viewer sent — both are just row removal. */

@@ -6,8 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { ScoreBadge } from '../components/ScoreBadge';
-import { getNextRoundDeals, grossTotal, money, moneyLabel, pairwiseTotal, record, runningUp, scoreClassCounts, sumRange, upLabel } from '../data/round';
-import type { StrokeMode } from '../data/round';
+import { getNextRoundNet, grossTotal, money, moneyLabel, pairKey, pairwiseTotal, record, runningUp, scoreClassCounts, sumRange, upLabel } from '../data/round';
 import { recalculateAndSaveMomentBadges } from '../data/badgeMoments';
 import { recalculateAndSaveHandicap } from '../data/handicap';
 import { recalculateAndSaveStreaks } from '../data/streaks';
@@ -83,27 +82,28 @@ export function RecapScreen({ navigation, route }: Props) {
   });
 
   const viewerClassCounts = viewerId ? scoreClassCounts(viewerId, thru, gross, holes, playOrder) : { eagle: 0, birdie: 0, par: 0, bogey: 0, doublePlus: 0 };
-  const nextRoundDeals = getNextRoundDeals(rosterIds, gross, frontNineDeals, holes, schedule, backNineDeals);
+  const nextRoundNet = getNextRoundNet(rosterIds, gross, frontNineDeals, holes, schedule, backNineDeals);
 
   // Scoped to the viewer's own pairs — the full pairwise table (every other
   // player's deal with every other player) isn't the viewer's business here.
+  // Every opponent gets a row, even a pair that nets to 0 strokes — dropping
+  // it (as this used to, by only listing pairs with a nonzero deal) reads as
+  // a missing/buggy row instead of a genuinely even deal.
   const carryForwardRows = useMemo(() => {
     if (!viewerId) return [];
-    return nextRoundDeals
-      .filter((deal) => deal.giver === viewerId || deal.receiver === viewerId)
-      .map((deal) => {
-        const opponentId = deal.giver === viewerId ? deal.receiver : deal.giver;
-        const opponent = roster.find((p) => p.playerId === opponentId);
-        if (!opponent) return null;
+    return roster
+      .filter((p) => p.playerId !== viewerId)
+      .map((opponent) => {
+        const net = nextRoundNet[pairKey(viewerId, opponent.playerId)] ?? 0;
+        const viewerGives = viewerId < opponent.playerId ? net : -net;
         return {
           opponent,
-          mode: (deal.giver === viewerId ? 'give' : 'get') as StrokeMode,
-          strokes: deal.amount,
-          h2h: pairwiseTotal(viewerId, opponentId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder),
+          mode: (viewerGives === 0 ? 'even' : viewerGives > 0 ? 'give' : 'get') as 'even' | 'give' | 'get',
+          strokes: Math.abs(viewerGives),
+          h2h: pairwiseTotal(viewerId, opponent.playerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder),
         };
-      })
-      .filter((row): row is NonNullable<typeof row> => row !== null);
-  }, [nextRoundDeals, viewerId, roster, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder]);
+      });
+  }, [nextRoundNet, viewerId, roster, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder]);
 
   const onShare = () => {
     Share.share({
@@ -314,6 +314,7 @@ export function RecapScreen({ navigation, route }: Props) {
                   const h2hColor = h2h > 0 ? colors.statusSuccess : h2h < 0 ? colors.statusDanger : colors.textMuted;
                   const h2hLabel = h2h > 0 ? `${h2h} up head-to-head` : h2h < 0 ? `${-h2h} down head-to-head` : 'Square head-to-head';
                   const isGet = mode === 'get';
+                  const isEven = mode === 'even';
 
                   return (
                     <View key={opponent.playerId} style={styles.carryRow}>
@@ -324,11 +325,18 @@ export function RecapScreen({ navigation, route }: Props) {
                         <Text style={styles.carryName}>{opponent.name}</Text>
                         <Text style={[styles.carryH2h, { color: h2hColor }]}>{h2hLabel}</Text>
                       </View>
-                      <View style={[styles.pill, isGet ? styles.pillGet : styles.pillGive]}>
-                        <Text style={[styles.pillLabel, { color: isGet ? colors.statusSuccess : palette.orange[700] }]}>
-                          {isGet ? 'Get' : 'Give'}
+                      <View style={[styles.pill, isEven ? styles.pillEven : isGet ? styles.pillGet : styles.pillGive]}>
+                        <Text
+                          style={[
+                            styles.pillLabel,
+                            { color: isEven ? colors.textMuted : isGet ? colors.statusSuccess : palette.orange[700] },
+                          ]}
+                        >
+                          {isEven ? 'Even' : isGet ? 'Get' : 'Give'}
                         </Text>
-                        <Text style={[styles.pillNumber, { color: isGet ? palette.green[600] : palette.orange[700] }]}>{strokes}</Text>
+                        {isEven ? null : (
+                          <Text style={[styles.pillNumber, { color: isGet ? palette.green[600] : palette.orange[700] }]}>{strokes}</Text>
+                        )}
                       </View>
                     </View>
                   );
@@ -870,6 +878,11 @@ const styles = StyleSheet.create({
   pillGive: {
     backgroundColor: palette.orange[100],
     borderColor: palette.orange[200],
+  },
+  pillEven: {
+    backgroundColor: palette.sand[100],
+    borderColor: colors.borderDefault,
+    paddingRight: spacing[2] + 3,
   },
   pillLabel: {
     fontFamily: getFontFamily('body', '600'),

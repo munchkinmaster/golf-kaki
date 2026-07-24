@@ -274,6 +274,18 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
       // debounce above having already fired) so a toggle right before Start
       // is never lost.
       await updateMatchSettings(matchId, { strokesBasis, stakePerHole });
+      // Persists EVERY pair's front-9 deal now, not just ones a player happened
+      // to touch — otherwise an untouched pair stays ephemeral (re-derived
+      // client-side from the kaki ledger on every load) until the back-9
+      // re-strike writes its first game_matchups row and silently defaults
+      // front_nine_strokes to 0 (see upsertMatchupBackNine's own comment),
+      // discarding whatever carry-forward should have applied. Also closes a
+      // multi-client race: two players' phones independently computing and
+      // writing that same first row at the turn, with no coordination beyond
+      // last-write-wins, can't happen if the row already exists by kickoff.
+      await Promise.all(
+        pairSettings.map((pair) => upsertMatchup(matchId, pair.playerAId, pair.playerBId, pair.strokes, pair.aGives ? 'give' : 'get')),
+      );
       await startMatch(matchId);
       navigation.navigate('Scorecard', {
         matchId,
