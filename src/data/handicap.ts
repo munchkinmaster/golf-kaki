@@ -71,13 +71,20 @@ export function computeCourseHandicap(handicapIndex: number, slopeRating: number
 }
 
 /**
- * Adjusted Gross Score: each hole's gross capped at net double bogey
- * (par + 2 + strokes received there). `courseHandicap === null` means no
- * established index yet — falls back to a flat double-bogey cap (par + 2, no
- * stroke allowance), the standard WHS treatment for a player's first-ever
- * differential(s).
+ * Adjusted Gross Score: each hole's gross capped per WHS Rule 3.1. With an
+ * established Handicap Index (Rule 3.1b), the cap is net double bogey —
+ * par + 2 + handicap strokes received there. `courseHandicap === null` means
+ * no established index yet (a player's first-ever differential(s)) — Rule
+ * 3.1a caps every hole at a flat par + 5 instead, since there's no Course
+ * Handicap yet to derive a stroke allowance from.
  */
 export function computeAdjustedGrossScore(holes: SiHole[], grossByHoleN: Record<number, number>, courseHandicap: number | null): number {
+  if (courseHandicap === null) {
+    let total = 0;
+    for (const hole of holes) total += Math.min(grossByHoleN[hole.n]!, hole.par + 5);
+    return total;
+  }
+
   const rankByHoleN = new Map<number, number>();
   [...holes]
     .sort((a, b) => a.si - b.si)
@@ -85,9 +92,8 @@ export function computeAdjustedGrossScore(holes: SiHole[], grossByHoleN: Record<
 
   let total = 0;
   for (const hole of holes) {
-    const gross = grossByHoleN[hole.n]!;
-    const strokes = courseHandicap === null ? 0 : strokesReceivedOnHole(courseHandicap, rankByHoleN.get(hole.n)!);
-    total += Math.min(gross, hole.par + 2 + strokes);
+    const strokes = strokesReceivedOnHole(courseHandicap, rankByHoleN.get(hole.n)!);
+    total += Math.min(grossByHoleN[hole.n]!, hole.par + 2 + strokes);
   }
   return total;
 }

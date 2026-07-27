@@ -276,6 +276,30 @@ export function useLiveRound(matchId: string) {
     setMatchStatus('finished');
   }
 
+  // Recomputes the viewer's own handicap/streaks/badges the moment their
+  // client notices this match finished — from whichever of the 5 live-round
+  // screens they currently have open, not just Recap. Each of these recalc
+  // functions only ever runs for "the viewer, right now" (RLS lets a player
+  // write only their own handicap/streak/badge rows, never a host writing on
+  // someone else's behalf — see 20260714120000_moment_badges.sql's RLS policy
+  // comment), so a non-host player who finishes a round and backs out from
+  // Finish or Scorecard straight to Home, without ever opening the full
+  // Recap screen, previously had their own stats for that match silently
+  // never computed. RecapScreen's own mount effect does the same thing; both
+  // are safe to run for the same match (each recalc function is documented
+  // idempotent).
+  const ownStatsSynced = useRef(false);
+  useEffect(() => {
+    if (matchStatus !== 'finished' || !viewerId) return;
+    if (ownStatsSynced.current) return;
+    ownStatsSynced.current = true;
+    Promise.all([recalculateAndSaveHandicap(viewerId, matchId), recalculateAndSaveStreaks(viewerId), recalculateAndSaveMomentBadges(viewerId, matchId)]).catch(
+      () => {
+        ownStatsSynced.current = false;
+      },
+    );
+  }, [matchStatus, viewerId, matchId]);
+
   function refresh() {
     load().catch((err) => setError(err instanceof Error ? err.message : "Couldn't refresh this round."));
   }
