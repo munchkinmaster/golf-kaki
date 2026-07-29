@@ -58,10 +58,24 @@ export async function upsertMatchupBackNine(matchId: string, playerAId: string, 
   });
 }
 
-/** Idempotent — retrying just re-sets the same status/timestamp. Host-only via RLS (mirrors startMatch). */
-export async function finishMatch(matchId: string): Promise<void> {
-  await withRetry(async () => {
-    const { error } = await supabase.from('matches').update({ status: 'finished', finished_at: new Date().toISOString() }).eq('id', matchId);
+export type LedgerDeal = { playerAId: string; playerBId: string; netStrokesPer9: number };
+
+/**
+ * Atomically flips the match to 'finished' and settles every pairwise
+ * carry-forward deal into kaki_relationships, in one DB transaction (the
+ * `finish_match` RPC — see its migration comment for why this can't be two
+ * separate calls). Host-only; enforced inside the RPC itself, not by RLS,
+ * since the function runs security definer to get past kaki_relationships'
+ * participants-only write policy. Idempotent to retry: re-running just
+ * re-applies the same deals and a fresh finished_at.
+ */
+export async function finishMatchAndSettleLedger(matchId: string, deals: LedgerDeal[]): Promise<string> {
+  return withRetry(async () => {
+    const { data, error } = await supabase.rpc('finish_match', {
+      p_match_id: matchId,
+      p_deals: deals.map((d) => ({ player_a_id: d.playerAId, player_b_id: d.playerBId, net_strokes_per_9: d.netStrokesPer9 })),
+    });
     if (error) throw error;
+    return data as string;
   });
 }

@@ -379,8 +379,8 @@ export function ScorecardScreen({ navigation, route }: Props) {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <View style={styles.gridHeaderRow}>
             <Text style={styles.gridHeaderH}>H</Text>
-            <Text style={styles.gridHeaderMeta}>Par</Text>
             <Text style={styles.gridHeaderMeta}>SI</Text>
+            <Text style={styles.gridHeaderMeta}>Par</Text>
             {roster.map((p) => (
               <Text key={p.playerId} style={[styles.gridHeaderPlayer, p.playerId === viewerId && styles.gridHeaderPlayerYou]}>
                 {p.playerId === viewerId ? 'You' : firstName(p.name)}
@@ -397,8 +397,8 @@ export function ScorecardScreen({ navigation, route }: Props) {
             return (
               <View key={hole.n} style={[styles.gridRow, isActiveRow && styles.gridRowCurrent]}>
                 <Text style={[styles.gridCellNum, isActiveRow && styles.gridCellNumCurrent]}>{hole.n}</Text>
-                <Text style={styles.gridCellMeta}>{hole.par}</Text>
                 <Text style={styles.gridCellMeta}>{hole.si}</Text>
+                <Text style={styles.gridCellMeta}>{hole.par}</Text>
                 {roster.map((p) => {
                   // Per-player, per-hole — a player's own entered score shows
                   // immediately, independent of whether the rest of the

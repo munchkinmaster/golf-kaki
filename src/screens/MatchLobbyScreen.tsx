@@ -62,7 +62,7 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
   // mount, not yet confirmed persisted. Only these should keep their in-flight
   // local value across a reload — an untouched pair should keep re-seeding
   // from the ledger on every load, so a carry-forward that lands *after* this
-  // screen's first load (a real race — see finishRound/syncLedger) still
+  // screen's first load (a real race — see finishRound's ledger settle) still
   // self-corrects instead of freezing on a stale seed forever.
   const touchedPairsRef = useRef<Set<string>>(new Set());
   const [stakePerHole, setStakePerHole] = useState(2);
@@ -107,7 +107,7 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
     // has locally touched (but not yet confirmed persisted) falls back to the
     // in-flight local value; an untouched pair keeps re-seeding from the
     // ledger every load, since the ledger can still be catching up to a
-    // just-finished round's carry-forward (see finishRound/syncLedger).
+    // just-finished round's carry-forward (see finishRound's ledger settle).
     //
     // Exception: front_nine_strokes' sign is how get/give is encoded (positive =
     // a gives b), which can't represent a direction at 0 strokes — 0 and -0 are

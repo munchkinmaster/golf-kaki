@@ -1,15 +1,26 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ChevronLeft, Crown, MapPin, Share2, Trophy } from 'lucide-react-native';
-import { useEffect, useMemo, useRef } from 'react';
+import { ChevronLeft, Crown, Flag, MapPin, Share2, Trophy } from 'lucide-react-native';
+import { useMemo } from 'react';
 import { Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { ScoreBadge } from '../components/ScoreBadge';
-import { getNextRoundNet, grossTotal, money, moneyLabel, pairKey, pairwiseTotal, record, runningUp, scoreClassCounts, sumRange, upLabel } from '../data/round';
-import { recalculateAndSaveMomentBadges } from '../data/badgeMoments';
-import { recalculateAndSaveHandicap } from '../data/handicap';
-import { recalculateAndSaveStreaks } from '../data/streaks';
+import {
+  getFlags,
+  getNextRoundNet,
+  grossTotal,
+  money,
+  moneyLabel,
+  pairKey,
+  pairwiseResult,
+  pairwiseTotal,
+  record,
+  runningUp,
+  scoreClassCounts,
+  sumRange,
+  upLabel,
+} from '../data/round';
 import { useLiveRound } from '../hooks/useLiveRound';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
@@ -30,22 +41,8 @@ function formatRecapDate(iso: string | null): string {
 
 export function RecapScreen({ navigation, route }: Props) {
   const { matchId, matchName, courseName, gameModeName } = route.params;
-  const { loading, viewerId, matchStatus, finishedAt, roster, holes, schedule, playOrder, gross, thru, frontNineDeals, backNineDeals, stakePerHole, syncLedger } =
+  const { loading, viewerId, finishedAt, roster, holes, schedule, playOrder, gross, thru, frontNineDeals, backNineDeals, stakePerHole } =
     useLiveRound(matchId);
-  const ledgerSynced = useRef(false);
-
-  useEffect(() => {
-    if (matchStatus !== 'finished' || ledgerSynced.current) return;
-    ledgerSynced.current = true;
-    Promise.all([
-      syncLedger(),
-      viewerId ? recalculateAndSaveHandicap(viewerId, matchId) : Promise.resolve(),
-      viewerId ? recalculateAndSaveStreaks(viewerId) : Promise.resolve(),
-      viewerId ? recalculateAndSaveMomentBadges(viewerId, matchId) : Promise.resolve(),
-    ]).catch(() => {
-      ledgerSynced.current = false;
-    });
-  }, [matchStatus, syncLedger, viewerId, matchId]);
 
   const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
 
@@ -104,6 +101,19 @@ export function RecapScreen({ navigation, route }: Props) {
         };
       });
   }, [nextRoundNet, viewerId, roster, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder]);
+
+  // Tints every opponent's cell by the viewer's own pairwise result that
+  // hole (win/lose/halve) — mirrors ScorecardScreen's live getResultTint so
+  // the two grids read the same way. The viewer's own column stays untinted,
+  // same as live.
+  function getResultTint(playerId: string, holeIndex: number, holeN: number): 'win' | 'lose' | 'halve' | null {
+    const playedPosition = playOrder.indexOf(holeN);
+    if (!viewerId || playerId === viewerId || playedPosition < 0 || playedPosition >= thru) return null;
+    const result = pairwiseResult(viewerId, playerId, holeIndex, gross, holes, frontNineDeals, schedule, backNineDeals);
+    if (result > 0) return 'win';
+    if (result < 0) return 'lose';
+    return 'halve';
+  }
 
   const onShare = () => {
     Share.share({
@@ -270,11 +280,33 @@ export function RecapScreen({ navigation, route }: Props) {
                 <View key={hole.n} style={styles.gridRow}>
                   <Text style={styles.gridCellNum}>{hole.n}</Text>
                   <Text style={styles.gridCellMeta}>{hole.par}</Text>
-                  {roster.map((p) => (
-                    <View key={p.playerId} style={styles.gridCell}>
-                      <ScoreBadge value={gross[p.playerId]?.[i] ?? hole.par} par={hole.par} size={24} />
-                    </View>
-                  ))}
+                  {roster.map((p) => {
+                    const resultTint = getResultTint(p.playerId, i, hole.n);
+                    const tintStyle =
+                      resultTint === 'win'
+                        ? styles.cellTintWin
+                        : resultTint === 'lose'
+                          ? styles.cellTintLose
+                          : resultTint === 'halve'
+                            ? styles.cellTintHalve
+                            : null;
+                    const { give, recv } = viewerId
+                      ? getFlags(p.playerId, viewerId, hole.n, holes, frontNineDeals, schedule, backNineDeals)
+                      : { give: 0, recv: 0 };
+                    return (
+                      <View key={p.playerId} style={styles.gridCell}>
+                        <View style={[styles.cellTintWrap, tintStyle]}>
+                          <ScoreBadge value={gross[p.playerId]?.[i] ?? hole.par} par={hole.par} size={24} />
+                          {Array.from({ length: give }, (_, flagIndex) => (
+                            <Flag key={`give-${flagIndex}`} size={9} color={colors.scoreBirdie} style={[styles.cellFlag, { right: 4 + flagIndex * 7 }]} />
+                          ))}
+                          {Array.from({ length: recv }, (_, flagIndex) => (
+                            <Flag key={`recv-${flagIndex}`} size={9} color={colors.statusSuccess} style={[styles.cellFlag, { right: 4 + flagIndex * 7 }]} />
+                          ))}
+                        </View>
+                      </View>
+                    );
+                  })}
                 </View>
               ))}
             </View>
@@ -301,6 +333,26 @@ export function RecapScreen({ navigation, route }: Props) {
                 <View style={[styles.legendRingInner, { borderColor: colors.scoreEagle }]} />
               </View>
               <Text style={styles.legendText}>eagle or better</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendSwatch, styles.cellTintWin]} />
+              <Text style={styles.legendText}>you win</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendSwatch, styles.cellTintLose]} />
+              <Text style={styles.legendText}>you lose</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendSwatch, styles.cellTintHalve]} />
+              <Text style={styles.legendText}>halved</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <Flag size={11} color={colors.scoreBirdie} />
+              <Text style={styles.legendText}>stroke given</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <Flag size={11} color={colors.statusSuccess} />
+              <Text style={styles.legendText}>stroke received</Text>
             </View>
           </View>
 
@@ -731,6 +783,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  cellTintWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+    marginHorizontal: 2,
+    borderRadius: radius.xs,
+    paddingVertical: 2,
+  },
+  cellFlag: {
+    position: 'absolute',
+    top: 2,
+    right: 4,
+  },
+  cellTintWin: {
+    backgroundColor: 'rgba(46,138,76,0.18)',
+  },
+  cellTintLose: {
+    backgroundColor: 'rgba(224,116,46,0.18)',
+  },
+  cellTintHalve: {
+    backgroundColor: 'rgba(120,130,124,0.16)',
+  },
   summaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -804,6 +879,11 @@ const styles = StyleSheet.create({
     height: 13,
     borderRadius: 6.5,
     borderWidth: 1.5,
+  },
+  legendSwatch: {
+    width: 11,
+    height: 11,
+    borderRadius: radius.xs - 1,
   },
   legendText: {
     fontFamily: getFontFamily('body', '400'),

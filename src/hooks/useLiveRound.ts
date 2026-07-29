@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { MatchupEditorPlayer, PairSetting } from '../components/MatchupEditor';
 import { recalculateAndSaveMomentBadges } from '../data/badgeMoments';
-import { fetchLedgerStrokesForGroup, updateLedgerStrokes } from '../data/kaki';
+import { fetchLedgerStrokesForGroup } from '../data/kaki';
 import { recalculateAndSaveHandicap } from '../data/handicap';
 import { recalculateAndSaveStreaks } from '../data/streaks';
 import { fetchMatchLobby, fetchMatchups, upsertMatchup } from '../data/matches';
@@ -19,7 +19,8 @@ import type { MatchStatus, MatchupPair, StrokeMode } from '../data/matches';
 import { fetchCourseCatalog, getComboHoles } from '../data/courses';
 import { buildAllPairs, buildPlayOrder, computeThru, getBackNineNet, getNextRoundNet, pairKey } from '../data/round';
 import type { GrossMap, Hole, HoleScoreMap, RoundSchedule, StrokeDeal } from '../data/round';
-import { fetchScores, finishMatch, saveScore, upsertMatchupBackNine } from '../data/scores';
+import { fetchScores, finishMatchAndSettleLedger, saveScore, upsertMatchupBackNine } from '../data/scores';
+import type { LedgerDeal } from '../data/scores';
 import { useAuth } from '../state/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -251,25 +252,23 @@ export function useLiveRound(matchId: string) {
   }
 
   /**
-   * Writes this viewer's own pairs' carry-forward deal into the kaki ledger —
-   * scoped to pairs containing the viewer, since kaki_relationships' UPDATE
-   * RLS only allows a participant to touch their own pair (never the host
-   * writing on someone else's behalf). Safe to call repeatedly (plain
-   * UPDATE, same idempotent value each time) — called once from FinishScreen
-   * and again from RecapScreen's mount, so a non-host player's own pairs
-   * update even if they never open Finish.
+   * Finishes the round: computes every pairwise carry-forward deal in the
+   * roster (not just the host's own pairs) and settles them into the kaki
+   * ledger together with the status flip, in one atomic RPC — see
+   * finishMatchAndSettleLedger/finish_match's migration comment. Recap no
+   * longer writes the ledger at all, so reopening any match's recap, old or
+   * new, can never drag a pair's ledger backwards in time.
    */
-  async function syncLedger() {
-    if (!viewerId) return;
-    const net = getNextRoundNet(rosterIds, gross, frontNineDeals, holes, schedule, backNineDeals);
-    const ownPairs = buildAllPairs(rosterIds).filter(([a, b]) => a === viewerId || b === viewerId);
-    await Promise.all(ownPairs.map(([a, b]) => updateLedgerStrokes(a, b, net[pairKey(a, b)] ?? 0)));
-  }
-
   async function finishRound() {
     if (!isHostViewer) return;
-    await finishMatch(matchId);
-    await syncLedger();
+    const net = getNextRoundNet(rosterIds, gross, frontNineDeals, holes, schedule, backNineDeals);
+    const deals: LedgerDeal[] = buildAllPairs(rosterIds).map(([a, b]) => ({
+      playerAId: a,
+      playerBId: b,
+      netStrokesPer9: net[pairKey(a, b)] ?? 0,
+    }));
+    const finishedAtIso = await finishMatchAndSettleLedger(matchId, deals);
+    setFinishedAt(finishedAtIso);
     if (viewerId) await recalculateAndSaveHandicap(viewerId, matchId).catch(() => {});
     if (viewerId) await recalculateAndSaveStreaks(viewerId).catch(() => {});
     if (viewerId) await recalculateAndSaveMomentBadges(viewerId, matchId).catch(() => {});
@@ -330,6 +329,5 @@ export function useLiveRound(matchId: string) {
     adjustPairStrokes,
     setPairAGives,
     finishRound,
-    syncLedger,
   };
 }
