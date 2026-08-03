@@ -798,13 +798,13 @@ const styles = StyleSheet.create({
     right: 4,
   },
   cellTintWin: {
-    backgroundColor: 'rgba(46,138,76,0.18)',
+    backgroundColor: 'rgba(46,138,76,0.34)',
   },
   cellTintLose: {
-    backgroundColor: 'rgba(224,116,46,0.18)',
+    backgroundColor: 'rgba(224,116,46,0.34)',
   },
   cellTintHalve: {
-    backgroundColor: 'rgba(120,130,124,0.16)',
+    backgroundColor: 'rgba(90,98,93,0.32)',
   },
   summaryRow: {
     flexDirection: 'row',
