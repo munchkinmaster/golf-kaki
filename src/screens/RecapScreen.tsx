@@ -41,7 +41,7 @@ function formatRecapDate(iso: string | null): string {
 
 export function RecapScreen({ navigation, route }: Props) {
   const { matchId, matchName, courseName, gameModeName } = route.params;
-  const { loading, viewerId, finishedAt, roster, holes, schedule, playOrder, gross, thru, frontNineDeals, backNineDeals, stakePerHole } =
+  const { loading, viewerId, finishedAt, roster, holes, schedule, playOrder, gross, scores, thru, frontNineDeals, backNineDeals, stakePerHole } =
     useLiveRound(matchId);
 
   const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
@@ -293,10 +293,17 @@ export function RecapScreen({ navigation, route }: Props) {
                     const { give, recv } = viewerId
                       ? getFlags(p.playerId, viewerId, hole.n, holes, frontNineDeals, schedule, backNineDeals)
                       : { give: 0, recv: 0 };
+                    // gross[p.playerId]?.[i] pads a missing hole to par (see
+                    // useLiveRound's GrossMap) so match-play math always has a
+                    // number to compare — that's the right default to COMPUTE
+                    // with, but wrong to DISPLAY: a round ended early (weather)
+                    // never actually saw this player card a par here. Check the
+                    // raw recorded score instead.
+                    const played = scores[p.playerId]?.[hole.n] !== undefined;
                     return (
                       <View key={p.playerId} style={styles.gridCell}>
                         <View style={[styles.cellTintWrap, tintStyle]}>
-                          <ScoreBadge value={gross[p.playerId]?.[i] ?? hole.par} par={hole.par} size={24} />
+                          <ScoreBadge value={played ? gross[p.playerId]?.[i] : undefined} par={hole.par} size={24} />
                           {Array.from({ length: give }, (_, flagIndex) => (
                             <Flag key={`give-${flagIndex}`} size={9} color={colors.scoreBirdie} style={[styles.cellFlag, { right: 4 + flagIndex * 7 }]} />
                           ))}

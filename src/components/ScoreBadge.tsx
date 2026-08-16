@@ -4,8 +4,8 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import { colors, getFontFamily } from '../theme/tokens';
 
 type ScoreBadgeProps = {
-  /** Strokes taken on the hole. */
-  value: number;
+  /** Strokes taken on the hole — `undefined` for a hole that hasn't been played (a round ended early, or hasn't reached it yet), rendered as a muted dash rather than guessed at. */
+  value: number | undefined;
   par: number;
   size?: number;
   style?: StyleProp<ViewStyle>;
@@ -17,9 +17,10 @@ const RING_WIDTH = 1.5;
 const RING_GROWTH = 6; // outer ring's size delta for the doubled (eagle) case
 
 export function ScoreBadge({ value, par, size = 32, style }: ScoreBadgeProps) {
-  const diff = value - par;
-  const eagleOrBetter = diff <= -2;
-  const birdie = diff === -1;
+  const played = value !== undefined;
+  const diff = played ? value - par : 0;
+  const eagleOrBetter = played && diff <= -2;
+  const birdie = played && diff === -1;
 
   let color: string | undefined;
   if (eagleOrBetter) color = colors.scoreEagle;
@@ -29,8 +30,8 @@ export function ScoreBadge({ value, par, size = 32, style }: ScoreBadgeProps) {
     <View style={[styles.container, { width: size, height: size }, style]}>
       {color && eagleOrBetter ? <Ring size={size + RING_GROWTH} color={color} /> : null}
       {color ? <Ring size={size} color={color} /> : null}
-      <Text style={[styles.value, { fontSize: Math.round(size * 0.5), color: color ?? colors.textPrimary }]}>
-        {value}
+      <Text style={[styles.value, { fontSize: Math.round(size * 0.5), color: played ? (color ?? colors.textPrimary) : colors.textDisabled }]}>
+        {played ? value : '–'}
       </Text>
     </View>
   );
