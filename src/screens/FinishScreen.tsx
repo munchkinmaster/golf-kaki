@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ChevronLeft, CircleCheckBig, Clock, Coffee, Flag, List, Lock, PartyPopper, Trophy, Users } from 'lucide-react-native';
+import { ChevronLeft, CircleCheckBig, Clock, Coffee, CloudRain, Flag, List, Lock, PartyPopper, Trophy, Users } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,10 +18,17 @@ export function FinishScreen({ navigation, route }: Props) {
     useLiveRound(matchId);
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
+  const [earlyEndArmed, setEarlyEndArmed] = useState(false);
 
   const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
   const opponents = rosterIds.filter((id) => id !== viewerId);
   const roundComplete = holes.length > 0 && thru === holes.length;
+  // A round can be cut short (weather, someone unable to continue) with no
+  // way for every card to ever fill in — the host can still lock in the
+  // result as it stands once at least one hole is fully scored. `thru`
+  // itself (see round.ts's computeThru) already only counts holes where
+  // EVERY roster player has a score, so there's no ambiguity to resolve here.
+  const canEndEarly = isHostViewer && !roundComplete && thru > 0;
 
   const matchTotal = viewerId ? runningUp(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder) : 0;
 
@@ -54,13 +61,14 @@ export function FinishScreen({ navigation, route }: Props) {
         : 'Match all square';
   const resultDetail =
     matchTotal > 0
-      ? `Finished ${matchTotal} up overall — nice finish.`
+      ? `${roundComplete ? 'Finished' : `Thru ${thru}`} ${matchTotal} up${roundComplete ? ' overall' : ''} — nice finish.`
       : matchTotal < 0
-        ? `Finished ${Math.abs(matchTotal)} down overall — ${dominantOpponentId ? playerName(dominantOpponentId, roster.map((p) => ({ id: p.playerId, name: p.name }))) : 'your opponent'} had the edge.`
-        : `Tied it up after ${holes.length} — no clear winner today.`;
+        ? `${roundComplete ? 'Finished' : `Thru ${thru}`} ${Math.abs(matchTotal)} down${roundComplete ? ' overall' : ''} — ${dominantOpponentId ? playerName(dominantOpponentId, roster.map((p) => ({ id: p.playerId, name: p.name }))) : 'your opponent'} had the edge.`
+        : `All square thru ${thru}${roundComplete ? '' : ' so far'} — no clear winner today.`;
 
-  async function handleFinish() {
-    if (!isHostViewer || finishing || !roundComplete) return;
+  async function handleFinish(force = false) {
+    if (!isHostViewer || finishing) return;
+    if (!roundComplete && !force) return;
     setFinishing(true);
     setFinishError(null);
     try {
@@ -68,6 +76,7 @@ export function FinishScreen({ navigation, route }: Props) {
       navigation.navigate('Recap', { matchId, matchName, courseName, gameModeName });
     } catch (err) {
       setFinishError(err instanceof Error ? err.message : 'Could not finish the round — try again.');
+      setEarlyEndArmed(false);
     } finally {
       setFinishing(false);
     }
@@ -98,7 +107,7 @@ export function FinishScreen({ navigation, route }: Props) {
             </View>
           </View>
 
-          {roundComplete ? (
+          {thru > 0 ? (
             <View style={styles.resultCard}>
               <View style={styles.resultIcon}>
                 <Trophy size={22} color={palette.white} />
@@ -116,9 +125,9 @@ export function FinishScreen({ navigation, route }: Props) {
               </View>
               <View style={styles.resultBody}>
                 <Text style={styles.resultOverline}>Match play result</Text>
-                <Text style={styles.resultHeadline}>Waiting on everyone's card</Text>
+                <Text style={styles.resultHeadline}>Waiting on the first hole</Text>
                 <Text style={styles.resultDetail}>
-                  {thru} of {holes.length} holes locked in — the result and settlement show up here once every card is complete.
+                  The result and settlement show up here once everyone's card has at least one hole in.
                 </Text>
               </View>
             </View>
@@ -129,9 +138,9 @@ export function FinishScreen({ navigation, route }: Props) {
           {loading ? <Text style={styles.loadingText}>Loading round…</Text> : null}
           {finishError ? <Text style={styles.loadErrorText}>{finishError}</Text> : null}
 
-          {roundComplete ? (
+          {thru > 0 ? (
             <>
-              <Text style={styles.sectionLabel}>Settlement</Text>
+              <Text style={styles.sectionLabel}>Settlement{roundComplete ? '' : ` · thru ${thru}`}</Text>
               <View style={styles.settlementCard}>
                 <View style={styles.settlementHeader}>
                   <View style={styles.settlementHeaderLeft}>
@@ -177,7 +186,9 @@ export function FinishScreen({ navigation, route }: Props) {
             <Lock size={13} color={colors.textDisabled} />
             <Text style={styles.lockNoteText}>
               {!roundComplete
-                ? 'Everyone needs to finish entering their scores before the round can be finished.'
+                ? canEndEarly
+                  ? 'Everyone needs to finish entering their scores before a normal finish — or end the round early below if play’s been cut short.'
+                  : 'Everyone needs to finish entering their scores before the round can be finished.'
                 : isHostViewer
                   ? 'Once finished, scores lock and the round moves to everyone’s history.'
                   : 'Only the host can finish the round — you’ll see the recap once they do.'}
@@ -187,7 +198,7 @@ export function FinishScreen({ navigation, route }: Props) {
 
         <View style={styles.ctaWrap}>
           {isHostViewer && roundComplete ? (
-            <Pressable style={styles.ctaButton} onPress={handleFinish} disabled={finishing || loading}>
+            <Pressable style={styles.ctaButton} onPress={() => handleFinish()} disabled={finishing || loading}>
               <Flag size={18} color={palette.white} />
               <Text style={styles.ctaLabel}>{finishing ? 'Finishing…' : 'Finish & save round'}</Text>
             </Pressable>
@@ -195,6 +206,26 @@ export function FinishScreen({ navigation, route }: Props) {
             <Pressable style={styles.ctaButton} onPress={viewRecap}>
               <Flag size={18} color={palette.white} />
               <Text style={styles.ctaLabel}>View recap</Text>
+            </Pressable>
+          ) : canEndEarly && earlyEndArmed ? (
+            <View style={styles.earlyEndConfirm}>
+              <Text style={styles.earlyEndConfirmText}>
+                End it at hole {thru}? Holes {thru + 1}–{holes.length} won’t count — this locks in the result and settles stakes as they stand.
+              </Text>
+              <View style={styles.earlyEndConfirmRow}>
+                <Pressable style={styles.earlyEndCancelButton} onPress={() => setEarlyEndArmed(false)} disabled={finishing}>
+                  <Text style={styles.earlyEndCancelLabel}>Cancel</Text>
+                </Pressable>
+                <Pressable style={[styles.ctaButton, styles.earlyEndConfirmButton]} onPress={() => handleFinish(true)} disabled={finishing || loading}>
+                  <Flag size={18} color={palette.white} />
+                  <Text style={styles.ctaLabel}>{finishing ? 'Ending…' : `Yes, end at hole ${thru}`}</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : canEndEarly ? (
+            <Pressable style={styles.earlyEndButton} onPress={() => setEarlyEndArmed(true)}>
+              <CloudRain size={16} color={colors.textSecondary} />
+              <Text style={styles.earlyEndButtonLabel}>End round early (thru {thru})</Text>
             </Pressable>
           ) : (
             <View style={[styles.ctaButton, styles.ctaButtonDisabled]}>
@@ -498,6 +529,59 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
     color: palette.white,
+  },
+  earlyEndButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    height: 44,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.borderDefault,
+    backgroundColor: colors.surfaceCard,
+  },
+  earlyEndButtonLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  earlyEndConfirm: {
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1,
+    borderColor: colors.borderDefault,
+    borderRadius: radius.lg,
+    padding: spacing[3],
+    gap: spacing[2] + 1,
+  },
+  earlyEndConfirmText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 17,
+  },
+  earlyEndConfirmRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  earlyEndConfirmButton: {
+    flex: 1,
+  },
+  earlyEndCancelButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 54,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.borderDefault,
+  },
+  earlyEndCancelLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 15,
+    color: colors.textSecondary,
   },
   inRoundNav: {
     flexDirection: 'row',

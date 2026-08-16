@@ -79,7 +79,7 @@ export function RecapScreen({ navigation, route }: Props) {
   });
 
   const viewerClassCounts = viewerId ? scoreClassCounts(viewerId, thru, gross, holes, playOrder) : { eagle: 0, birdie: 0, par: 0, bogey: 0, doublePlus: 0 };
-  const nextRoundNet = getNextRoundNet(rosterIds, gross, frontNineDeals, holes, schedule, backNineDeals);
+  const nextRoundNet = getNextRoundNet(rosterIds, gross, frontNineDeals, holes, schedule, backNineDeals, thru);
 
   // Scoped to the viewer's own pairs — the full pairwise table (every other
   // player's deal with every other player) isn't the viewer's business here.
@@ -149,7 +149,7 @@ export function RecapScreen({ navigation, route }: Props) {
 
           <View style={styles.heroBody}>
             <Text style={styles.heroOverline}>
-              {gameModeName} · {holes.length} holes
+              {gameModeName} · {holes.length} holes{thru < holes.length ? ` · thru ${thru}` : ''}
             </Text>
             <Text style={styles.heroTitle}>{matchName}</Text>
             <View style={styles.heroMetaRow}>

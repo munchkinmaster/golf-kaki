@@ -201,7 +201,7 @@ export function useLiveRound(matchId: string) {
     if (schedule.holesToPlay !== 18 || schedule.strokesBasis !== 9) return;
     if (thru !== 9) return;
 
-    const net = getBackNineNet(rosterIds, gross, frontNineDeals, holes, schedule);
+    const net = getBackNineNet(rosterIds, gross, frontNineDeals, holes, schedule, thru);
     const rowByPair = new Map(matchupRows.map((m) => [pairKey(m.playerAId, m.playerBId), m]));
     const stalePairs = buildAllPairs(rosterIds)
       .filter(([a, b]) => isHostViewer || a === viewerId || b === viewerId)
@@ -261,7 +261,7 @@ export function useLiveRound(matchId: string) {
    */
   async function finishRound() {
     if (!isHostViewer) return;
-    const net = getNextRoundNet(rosterIds, gross, frontNineDeals, holes, schedule, backNineDeals);
+    const net = getNextRoundNet(rosterIds, gross, frontNineDeals, holes, schedule, backNineDeals, thru);
     const deals: LedgerDeal[] = buildAllPairs(rosterIds).map(([a, b]) => ({
       playerAId: a,
       playerBId: b,

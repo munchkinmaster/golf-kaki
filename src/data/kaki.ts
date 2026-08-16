@@ -9,8 +9,8 @@
 import { withRetry } from '../lib/retry';
 import { supabase } from '../lib/supabase';
 import { fetchCourseCatalog, getComboHoles } from './courses';
-import { getNextRoundNet, pairKey } from './round';
-import type { GrossMap, RoundSchedule, StrokeDeal } from './round';
+import { buildPlayOrder, computeThru, getNextRoundNet, pairKey } from './round';
+import type { GrossMap, HoleScoreMap, RoundSchedule, StrokeDeal } from './round';
 
 export type KakiPerson = {
   id: string;
@@ -198,7 +198,14 @@ async function computePairNetForMatch(matchId: string, playerAId: string, player
   const backNineDeals = row?.back_nine_strokes == null ? null : toDeal(row.back_nine_strokes);
 
   const schedule: RoundSchedule = { holesToPlay: match.holes_to_play, strokesBasis: match.strokes_basis, startHole: match.start_hole };
-  const net = getNextRoundNet([a, b], gross, frontNineDeals, holes, schedule, backNineDeals);
+  const playOrder = buildPlayOrder(schedule.startHole).slice(0, holes.length);
+  const scoreMap: HoleScoreMap = { [a]: {}, [b]: {} };
+  for (const s of scores) scoreMap[s.player_id]![s.hole_number] = s.gross_strokes;
+  // A match finished early (weather, someone quitting) can leave this pair's
+  // own record short of holes.length even though the match itself carries
+  // status='finished' — same reasoning as getNextRoundNet's own thru cap.
+  const thru = computeThru([a, b], scoreMap, playOrder);
+  const net = getNextRoundNet([a, b], gross, frontNineDeals, holes, schedule, backNineDeals, thru);
   return net[pairKey(a, b)] ?? 0;
 }
 

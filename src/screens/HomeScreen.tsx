@@ -36,7 +36,14 @@ function getGreeting(): string {
 }
 
 function pastGameSubtitle(round: RoundSummary): string {
-  const parts = [round.courseName, round.finishedAt ? new Date(round.finishedAt).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' }) : null];
+  // thru < holesToPlay on an already-finished round means it was ended early
+  // (weather, a player unable to continue) rather than played to the last
+  // hole — flag that here so it doesn't read as a full round with no result.
+  const parts = [
+    round.courseName,
+    round.finishedAt ? new Date(round.finishedAt).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' }) : null,
+    round.thru < round.holesToPlay ? `Thru ${round.thru}` : null,
+  ];
   return parts.filter(Boolean).join(' · ');
 }
 

@@ -336,7 +336,9 @@ function DeleteRoundSheet({
 function PastRoundRow({ round, onPress }: { round: RoundSummary; onPress: () => void }) {
   const money = round.viewerMoney ?? 0;
   const moneyColor = money > 0 ? colors.statusSuccess : money < 0 ? colors.statusDanger : colors.textDisabled;
-  const club = [round.courseName, round.comboLabel].filter(Boolean).join(' · ');
+  // thru < holesToPlay on an already-finished round means it was ended early
+  // (weather, a player unable to continue) — same flag HomeScreen's past list uses.
+  const club = [round.courseName, round.comboLabel, round.thru < round.holesToPlay ? `Thru ${round.thru}` : null].filter(Boolean).join(' · ');
 
   return (
     <Pressable onPress={onPress}>

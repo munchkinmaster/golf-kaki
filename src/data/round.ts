@@ -175,15 +175,25 @@ function indicesForHoleNumbers(holeNumbers: number[]): number[] {
   return holeNumbers.map((n) => n - 1);
 }
 
-/** Re-struck from the first-9-played record — the signed net (including zero) for every pair, for persisting to game_matchups.back_nine_strokes. */
-export function getBackNineNet(players: PlayerKey[], gross: GrossMap, frontNineDeals: StrokeDeal[], holes: Hole[], schedule: RoundSchedule): Record<string, number> {
-  const firstNinePlayed = buildPlayOrder(schedule.startHole).slice(0, Math.min(9, holes.length));
+/**
+ * Re-struck from the first-9-played record — the signed net (including zero)
+ * for every pair, for persisting to game_matchups.back_nine_strokes.
+ * `thru` caps how many of those holes are actually counted — for the
+ * mid-round turn effect this is always exactly 9 (the front 9 just
+ * completed), but the same function doubles as the "next round" fallback
+ * for a match that never reached the turn at all (see getNextRoundNet),
+ * where `thru` can be smaller. Without the cap, an unplayed hole would fall
+ * back to GrossMap's par default and get silently scored as a wash for
+ * everyone — never actually neutral once handicap strokes are in play.
+ */
+export function getBackNineNet(players: PlayerKey[], gross: GrossMap, frontNineDeals: StrokeDeal[], holes: Hole[], schedule: RoundSchedule, thru: number): Record<string, number> {
+  const firstNinePlayed = buildPlayOrder(schedule.startHole).slice(0, Math.min(9, holes.length, thru));
   return restrikeNet(players, frontNineDeals, frontRank(holes, schedule), indicesForHoleNumbers(firstNinePlayed), gross, holes);
 }
 
 /** Re-struck from the first-9-played record — the deal that applies to the last 9 holes played in an 18-hole/9-strokes-basis match. */
-export function getBackNineDeals(players: PlayerKey[], gross: GrossMap, frontNineDeals: StrokeDeal[], holes: Hole[], schedule: RoundSchedule): StrokeDeal[] {
-  return netToDeals(getBackNineNet(players, gross, frontNineDeals, holes, schedule));
+export function getBackNineDeals(players: PlayerKey[], gross: GrossMap, frontNineDeals: StrokeDeal[], holes: Hole[], schedule: RoundSchedule, thru: number): StrokeDeal[] {
+  return netToDeals(getBackNineNet(players, gross, frontNineDeals, holes, schedule, thru));
 }
 
 /**
@@ -193,6 +203,12 @@ export function getBackNineDeals(players: PlayerKey[], gross: GrossMap, frontNin
  * (no mid-match restrike happened), or just the back-9 record for an
  * 18-hole/9-strokes-basis match (the front 9 already fed its own restrike at
  * the turn; re-applying it here would double-count).
+ *
+ * `thru` bounds every branch to holes actually scored — a round finished
+ * early (weather, one player quitting, anything short of every hole in) must
+ * only feed its ACTUAL head-to-head record into the carry-forward, not pad
+ * the unplayed tail with GrossMap's par default. For a normally completed
+ * round `thru === holes.length`, so this is a no-op there.
  */
 export function getNextRoundNet(
   players: PlayerKey[],
@@ -201,15 +217,16 @@ export function getNextRoundNet(
   holes: Hole[],
   schedule: RoundSchedule,
   backNineDeals: StrokeDeal[] | null,
+  thru: number,
 ): Record<string, number> {
   if (schedule.holesToPlay === 9) {
-    return restrikeNet(players, frontNineDeals, frontRank(holes, schedule), rangeIndices(0, holes.length), gross, holes);
+    return restrikeNet(players, frontNineDeals, frontRank(holes, schedule), rangeIndices(0, Math.min(thru, holes.length)), gross, holes);
   }
   if (schedule.strokesBasis === 18) {
-    return restrikeNet(players, frontNineDeals, fullRank(holes), rangeIndices(0, holes.length), gross, holes);
+    return restrikeNet(players, frontNineDeals, fullRank(holes), rangeIndices(0, Math.min(thru, holes.length)), gross, holes);
   }
-  const effectiveBackNine = backNineDeals ?? getBackNineDeals(players, gross, frontNineDeals, holes, schedule);
-  const secondNinePlayed = buildPlayOrder(schedule.startHole).slice(9, 18);
+  const effectiveBackNine = backNineDeals ?? getBackNineDeals(players, gross, frontNineDeals, holes, schedule, thru);
+  const secondNinePlayed = buildPlayOrder(schedule.startHole).slice(9, Math.min(18, thru));
   return restrikeNet(players, effectiveBackNine, backRank(holes, schedule), indicesForHoleNumbers(secondNinePlayed), gross, holes);
 }
 
