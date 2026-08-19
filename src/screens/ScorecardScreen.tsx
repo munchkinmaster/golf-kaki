@@ -426,7 +426,7 @@ export function ScorecardScreen({ navigation, route }: Props) {
                     <Pressable
                       key={p.playerId}
                       style={[styles.gridCell, tintStyle, isSelected && styles.gridCellSelected]}
-                      disabled={!played || !canEdit(p.playerId)}
+                      disabled={!canEdit(p.playerId)}
                       onPress={() => selectCell(p.playerId, hole.n)}
                     >
                       {played ? (
