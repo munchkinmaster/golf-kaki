@@ -133,6 +133,11 @@ async function summarizeMatch(match: MatchRow, roster: RoundPlayer[], viewerId: 
   };
 }
 
+/** A finished round that ended before every hole was scored (host tapped Finish early, not a full 18/9) — Home and Rounds both mute this round's card rather than presenting it as a normal completed result. */
+export function isIncompleteRound(round: Pick<RoundSummary, 'thru' | 'holesToPlay'>): boolean {
+  return round.thru < round.holesToPlay;
+}
+
 /**
  * Profile stat-strip numbers derived from a viewer's finished rounds: total
  * played, their best (lowest) gross score, and win count. "Best" only looks

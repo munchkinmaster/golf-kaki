@@ -13,7 +13,7 @@ import { IconButton } from '../components/IconButton';
 import { NotificationBell } from '../components/NotificationBell';
 import { deleteMatch } from '../data/matches';
 import type { RoundSummary } from '../data/rounds';
-import { fetchRoundSummaries } from '../data/rounds';
+import { fetchRoundSummaries, isIncompleteRound } from '../data/rounds';
 import { moneyLabel } from '../data/round';
 import { useNotificationCount } from '../hooks/useNotificationCount';
 import type { RootStackParamList } from '../navigation/types';
@@ -218,7 +218,7 @@ function SegmentedControl({
   );
 }
 
-function PlayerAvatarStack({ players, onGreen }: { players: string[]; onGreen: boolean }) {
+function PlayerAvatarStack({ players, onGreen, borderColor }: { players: string[]; onGreen: boolean; borderColor?: string }) {
   return (
     <View style={styles.avatarStack}>
       {players.map((initial, index) => {
@@ -229,7 +229,7 @@ function PlayerAvatarStack({ players, onGreen }: { players: string[]; onGreen: b
             style={[
               styles.stackedAvatar,
               index > 0 && styles.stackedAvatarOverlap,
-              { backgroundColor: playerColor.background, borderColor: onGreen ? colors.primary : colors.surfaceCard },
+              { backgroundColor: playerColor.background, borderColor: borderColor ?? (onGreen ? colors.primary : colors.surfaceCard) },
             ]}
           >
             <Text style={[styles.stackedAvatarLabel, { color: playerColor.color }]}>{initial}</Text>
@@ -334,29 +334,31 @@ function DeleteRoundSheet({
 }
 
 function PastRoundRow({ round, onPress }: { round: RoundSummary; onPress: () => void }) {
+  const incomplete = isIncompleteRound(round);
   const money = round.viewerMoney ?? 0;
-  const moneyColor = money > 0 ? colors.statusSuccess : money < 0 ? colors.statusDanger : colors.textDisabled;
+  const moneyColor = incomplete ? colors.textDisabled : money > 0 ? colors.statusSuccess : money < 0 ? colors.statusDanger : colors.textDisabled;
   const club = [round.courseName, round.comboLabel].filter(Boolean).join(' · ');
+  const meta = [club, shortDate(round.finishedAt), incomplete ? `Thru ${round.thru}` : null].filter(Boolean).join(' · ');
 
   return (
     <Pressable onPress={onPress}>
-    <Card>
+    <Card style={incomplete ? styles.pastCardMuted : undefined}>
       <View style={styles.pastTopRow}>
         <View style={styles.pastInfo}>
-          <Text style={styles.pastName} numberOfLines={1}>
+          <Text style={[styles.pastName, incomplete && styles.pastNameMuted]} numberOfLines={1}>
             {round.matchName}
           </Text>
           <Text style={styles.pastMeta} numberOfLines={1}>
-            {club} · {shortDate(round.finishedAt)}
+            {meta}
           </Text>
         </View>
         <View style={styles.pastScoreWrap}>
-          <Text style={styles.pastGross}>{round.viewerGross ?? '–'}</Text>
+          <Text style={[styles.pastGross, incomplete && styles.pastGrossMuted]}>{round.viewerGross ?? '–'}</Text>
           <Text style={styles.pastGrossLabel}>gross</Text>
           <Text style={[styles.pastMoney, { color: moneyColor }]}>{round.viewerMoney === null ? '' : moneyLabel(money)}</Text>
         </View>
       </View>
-      <PlayerAvatarStack players={initialsFor(round)} onGreen={false} />
+      <PlayerAvatarStack players={initialsFor(round)} onGreen={false} borderColor={incomplete ? colors.surfacePage : undefined} />
     </Card>
     </Pressable>
   );
@@ -567,6 +569,12 @@ const styles = StyleSheet.create({
   pastList: {
     gap: spacing[2] + 2,
   },
+  pastCardMuted: {
+    backgroundColor: colors.surfacePage,
+    borderColor: colors.borderDefault,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   pastTopRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -581,6 +589,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
     color: colors.textPrimary,
+  },
+  pastNameMuted: {
+    color: colors.textMuted,
   },
   pastMeta: {
     fontFamily: getFontFamily('body', '400'),
@@ -598,6 +609,9 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 22,
     color: colors.textPrimary,
+  },
+  pastGrossMuted: {
+    color: colors.textDisabled,
   },
   pastGrossLabel: {
     fontFamily: getFontFamily('body', '400'),

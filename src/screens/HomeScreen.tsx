@@ -21,7 +21,7 @@ import type { MatchInvite } from '../data/matches';
 import { acceptMatchInvite, declineMatchInvite, fetchMatchInvites } from '../data/matches';
 import { getInitials } from '../data/profile';
 import type { RoundSummary } from '../data/rounds';
-import { fetchRoundSummaries } from '../data/rounds';
+import { fetchRoundSummaries, isIncompleteRound } from '../data/rounds';
 import type { RootStackParamList } from '../navigation/types';
 import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
@@ -36,7 +36,11 @@ function getGreeting(): string {
 }
 
 function pastGameSubtitle(round: RoundSummary): string {
-  const parts = [round.courseName, round.finishedAt ? new Date(round.finishedAt).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' }) : null];
+  const parts = [
+    round.courseName,
+    round.finishedAt ? new Date(round.finishedAt).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' }) : null,
+    isIncompleteRound(round) ? `Thru ${round.thru}` : null,
+  ];
   return parts.filter(Boolean).join(' · ');
 }
 
@@ -249,38 +253,43 @@ export function HomeScreen({ navigation }: Props) {
                 </Pressable>
               </View>
               <View style={styles.pastGameList}>
-                {pastRounds.map((round) => (
-                  <Pressable
-                    key={round.matchId}
-                    onPress={() =>
-                      navigation.navigate('Recap', {
-                        matchId: round.matchId,
-                        matchName: round.matchName,
-                        courseName: round.courseName,
-                        gameModeName: round.gameModeName,
-                      })
-                    }
-                  >
-                    <Card style={styles.pastGameRow}>
-                      <View style={styles.pastGameIcon}>
-                        {(round.viewerMoney ?? 0) > 0 ? (
-                          <Trophy size={18} color={colors.scoreEagle} />
-                        ) : (
-                          <Flag size={18} color={colors.scorePar} />
-                        )}
-                      </View>
-                      <View style={styles.pastGameInfo}>
-                        <Text style={styles.pastGameTitle}>{round.matchName}</Text>
-                        <Text style={styles.pastGameSubtitle}>{pastGameSubtitle(round)}</Text>
-                      </View>
-                      <View style={styles.pastGameScoreWrap}>
-                        <Text style={styles.pastGameScore}>{round.viewerGross ?? '–'}</Text>
-                        <Text style={styles.pastGameScoreLabel}>gross</Text>
-                      </View>
-                      <ChevronRight size={17} color={palette.sand[400]} />
-                    </Card>
-                  </Pressable>
-                ))}
+                {pastRounds.map((round) => {
+                  const incomplete = isIncompleteRound(round);
+                  return (
+                    <Pressable
+                      key={round.matchId}
+                      onPress={() =>
+                        navigation.navigate('Recap', {
+                          matchId: round.matchId,
+                          matchName: round.matchName,
+                          courseName: round.courseName,
+                          gameModeName: round.gameModeName,
+                        })
+                      }
+                    >
+                      <Card style={[styles.pastGameRow, incomplete && styles.pastGameRowMuted]}>
+                        <View style={[styles.pastGameIcon, incomplete && styles.pastGameIconMuted]}>
+                          {incomplete ? (
+                            <Flag size={18} color={colors.textDisabled} />
+                          ) : (round.viewerMoney ?? 0) > 0 ? (
+                            <Trophy size={18} color={colors.scoreEagle} />
+                          ) : (
+                            <Flag size={18} color={colors.scorePar} />
+                          )}
+                        </View>
+                        <View style={styles.pastGameInfo}>
+                          <Text style={[styles.pastGameTitle, incomplete && styles.pastGameTitleMuted]}>{round.matchName}</Text>
+                          <Text style={styles.pastGameSubtitle}>{pastGameSubtitle(round)}</Text>
+                        </View>
+                        <View style={styles.pastGameScoreWrap}>
+                          <Text style={[styles.pastGameScore, incomplete && styles.pastGameScoreMuted]}>{round.viewerGross ?? '–'}</Text>
+                          <Text style={styles.pastGameScoreLabel}>gross</Text>
+                        </View>
+                        <ChevronRight size={17} color={palette.sand[400]} />
+                      </Card>
+                    </Pressable>
+                  );
+                })}
               </View>
             </>
           ) : null}
@@ -572,6 +581,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[3],
   },
+  pastGameRowMuted: {
+    backgroundColor: colors.surfacePage,
+    borderColor: colors.borderDefault,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   pastGameIcon: {
     width: 38,
     height: 38,
@@ -579,6 +594,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceBrandSoft,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  pastGameIconMuted: {
+    backgroundColor: colors.surfaceSunken,
   },
   pastGameInfo: {
     flex: 1,
@@ -588,6 +606,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
     color: colors.textPrimary,
+  },
+  pastGameTitleMuted: {
+    color: colors.textMuted,
   },
   pastGameSubtitle: {
     fontFamily: getFontFamily('body', '400'),
@@ -602,6 +623,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 17,
     color: colors.textPrimary,
+  },
+  pastGameScoreMuted: {
+    color: colors.textDisabled,
   },
   pastGameScoreLabel: {
     fontFamily: getFontFamily('body', '400'),
