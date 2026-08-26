@@ -12,6 +12,7 @@ import { TournamentLockedNotice } from '../components/TournamentLockedNotice';
 import { TournamentWizardHeader } from '../components/TournamentWizardHeader';
 import type { Course as CatalogCourse, NineCombo, TeeColor } from '../data/courses';
 import { fetchCourseCatalog, getComboHoles } from '../data/courses';
+import { TEE_COLORS, teePresentation } from '../data/tees';
 import { fetchComboRating } from '../data/handicap';
 import { distanceKm, formatDistanceKm } from '../lib/geo';
 import type { TournamentStackParamList } from '../navigation/types';
@@ -23,13 +24,6 @@ type Props = NativeStackScreenProps<TournamentStackParamList, 'TournamentCourse'
 type StartHole = { n: number; meta: string };
 
 const NEARBY_COUNT = 5;
-
-const TEE_OPTIONS: { id: TeeColor; label: string; dot: string; dotBorder?: string }[] = [
-  { id: 'black', label: 'Black', dot: palette.tee.black },
-  { id: 'blue', label: 'Blue', dot: palette.tee.blue },
-  { id: 'white', label: 'White', dot: palette.tee.white, dotBorder: palette.tee.whiteBorder },
-  { id: 'red', label: 'Red', dot: palette.tee.red },
-];
 
 export function TournamentCourseScreen({ navigation }: Props) {
   const { draft, update } = useTournamentDraft();
@@ -254,13 +248,14 @@ export function TournamentCourseScreen({ navigation }: Props) {
               <View>
                 <Text style={styles.fieldLabel}>Default tee box</Text>
                 <View style={styles.row}>
-                  {TEE_OPTIONS.map((tee) => {
-                    const selected = draft.defaultTee === tee.id;
+                  {TEE_COLORS.map((color) => {
+                    const tee = teePresentation(draft.courseId, color);
+                    const selected = draft.defaultTee === color;
                     return (
                       <Pressable
-                        key={tee.id}
+                        key={color}
                         style={[styles.teeOption, selected && styles.teeOptionSelected]}
-                        onPress={() => update({ defaultTee: tee.id })}
+                        onPress={() => update({ defaultTee: color })}
                       >
                         <View style={[styles.teeDot, { backgroundColor: tee.dot }, tee.dotBorder ? { borderWidth: 1, borderColor: tee.dotBorder } : null]} />
                         <Text style={[styles.teeOptionLabel, selected && styles.teeOptionLabelSelected]}>{tee.label}</Text>

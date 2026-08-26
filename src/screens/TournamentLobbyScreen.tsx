@@ -16,6 +16,7 @@ import { System36NoHandicapCallout } from '../components/System36NoHandicapCallo
 import { System36RuleCards } from '../components/System36RuleCards';
 import type { Course as CatalogCourse, TeeColor } from '../data/courses';
 import { fetchCourseCatalog, getComboHoles } from '../data/courses';
+import { TEE_COLORS, teePresentation } from '../data/tees';
 import { computeCourseHandicap, computePlayingHandicap, fetchComboRating } from '../data/handicap';
 import { startMatch } from '../data/matches';
 import type { TournamentLobby, TournamentLobbyPlayer, TournamentPlayerSeatPatch } from '../data/tournaments';
@@ -26,10 +27,6 @@ import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutt
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TournamentLobby'>;
 
-const TEE_COLORS: TeeColor[] = ['black', 'blue', 'white', 'red'];
-const TEE_DOT_COLOR: Record<string, string> = { black: palette.tee.black, blue: palette.tee.blue, white: palette.tee.white, red: palette.tee.red };
-const TEE_LABEL: Record<string, string> = { black: 'Black', blue: 'Blue', white: 'White', red: 'Red' };
-const TEE_DESCRIPTIONS: Record<string, string> = { black: 'Championship', blue: "Men's", white: 'Forward', red: 'Ladies' };
 
 const TIE_RULE_LABEL: Record<string, string> = { carryover: 'Carries over', split_pot: 'Splits immediately', void: "Void — doesn't carry" };
 
@@ -334,6 +331,7 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
                   key={player.id}
                   player={player}
                   colorIndex={index}
+                  courseId={course?.id ?? null}
                   editable={canEditPlayer(player.id)}
                   showPlayingHandicap={!isSystem36}
                   onOpenTee={() => setTeeSheetPlayerId(player.id)}
@@ -487,6 +485,7 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
               const rating = ratings[tee];
               const yardage = course && combo ? getComboHoles(course, combo.id).reduce((sum, h) => sum + h.yardageM[tee], 0) : null;
               const selected = teeSheetPlayer.teeColor === tee;
+              const pres = teePresentation(course?.id, tee);
               return (
                 <Pressable
                   key={tee}
@@ -501,11 +500,11 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
                     setTeeSheetPlayerId(null);
                   }}
                 >
-                  <View style={[styles.teeRowDot, { backgroundColor: TEE_DOT_COLOR[tee] }, tee === 'white' ? styles.teeRowDotBordered : null]} />
+                  <View style={[styles.teeRowDot, { backgroundColor: pres.dot }, pres.dotBorder ? styles.teeRowDotBordered : null]} />
                   <View style={styles.teeRowBody}>
-                    <Text style={styles.teeRowName}>{TEE_LABEL[tee]}</Text>
+                    <Text style={styles.teeRowName}>{pres.label}</Text>
                     <Text style={styles.teeRowMeta}>
-                      {TEE_DESCRIPTIONS[tee]}
+                      {pres.description}
                       {rating ? ` · CR ${rating.courseRating.toFixed(1)} · Slope ${rating.slopeRating}` : ''}
                       {yardage ? ` · ${yardage.toLocaleString()} m` : ''}
                     </Text>
@@ -542,6 +541,7 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
 function FieldRow({
   player,
   colorIndex,
+  courseId,
   editable,
   showPlayingHandicap,
   onOpenTee,
@@ -549,12 +549,14 @@ function FieldRow({
 }: {
   player: TournamentLobbyPlayer;
   colorIndex: number;
+  courseId: string | null;
   editable: boolean;
   /** System 36 derives each handicap from play (36 − points) — there's nothing to set pre-round, so the Play HC tile is hidden entirely (see SY6). */
   showPlayingHandicap: boolean;
   onOpenTee: () => void;
   onOpenHandicap: () => void;
 }) {
+  const teePres = teePresentation(courseId, player.teeColor);
   const initials = player.name
     .split(' ')
     .map((w) => w[0])
@@ -582,8 +584,8 @@ function FieldRow({
         </Text>
       </View>
       <Pressable style={styles.teeChip} onPress={onOpenTee} disabled={!editable}>
-        <View style={[styles.teeChipDot, { backgroundColor: TEE_DOT_COLOR[player.teeColor] }]} />
-        <Text style={styles.teeChipLabel}>{TEE_LABEL[player.teeColor]}</Text>
+        <View style={[styles.teeChipDot, { backgroundColor: teePres.dot }, teePres.dotBorder ? styles.teeChipDotBordered : null]} />
+        <Text style={styles.teeChipLabel}>{teePres.label}</Text>
         {editable ? <ChevronDown size={11} color={palette.soon.labelUpcoming} /> : null}
       </Pressable>
       {showPlayingHandicap ? (
@@ -936,6 +938,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+  },
+  teeChipDotBordered: {
+    borderWidth: 1,
+    borderColor: palette.tee.whiteBorder,
   },
   teeChipLabel: {
     fontFamily: getFontFamily('body', '700'),

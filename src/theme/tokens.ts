@@ -152,6 +152,11 @@ const tee = {
   white: '#E8E2D2',
   whiteBorder: '#C9BF9E',
   red: '#C0392B',
+  // Cosmetic per-course tee-marker colors (see data/tees.ts) — The Els Club
+  // Teluk Datai brands its blue/white/red tees Silver/Copper/Jade.
+  silver: '#9AA0A6',
+  copper: '#B0693A',
+  jade: '#2E8B6B',
 } as const;
 
 // ---- Solid player-avatar cycle ---- (tournament flow's Field roster, S4/S6b/S6c/S9 —

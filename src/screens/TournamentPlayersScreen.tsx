@@ -12,6 +12,7 @@ import { System36NoHandicapCallout } from '../components/System36NoHandicapCallo
 import { TournamentWizardHeader } from '../components/TournamentWizardHeader';
 import type { Course as CatalogCourse, TeeColor } from '../data/courses';
 import { fetchCourseCatalog, getComboHoles } from '../data/courses';
+import { TEE_COLORS, teePresentation } from '../data/tees';
 import { computeCourseHandicap, computePlayingHandicap, fetchComboRating } from '../data/handicap';
 import { fetchKakiOverview } from '../data/kaki';
 import { createTournament, inviteTournamentPlayer, removeTournamentPlayer, updateTournamentPlayerSeat } from '../data/tournaments';
@@ -24,10 +25,6 @@ import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutt
 
 type Props = NativeStackScreenProps<TournamentStackParamList, 'TournamentPlayers'>;
 
-const TEE_COLORS: TeeColor[] = ['black', 'blue', 'white', 'red'];
-const TEE_LABELS: Record<TeeColor, string> = { black: 'Black', blue: 'Blue', white: 'White', red: 'Red' };
-const TEE_DESCRIPTIONS: Record<TeeColor, string> = { black: 'Championship', blue: "Men's", white: 'Forward', red: 'Ladies' };
-const TEE_DOT_COLOR: Record<TeeColor, string> = { black: palette.tee.black, blue: palette.tee.blue, white: palette.tee.white, red: palette.tee.red };
 
 type Rating = { courseRating: number; slopeRating: number };
 
@@ -357,6 +354,7 @@ export function TournamentPlayersScreen({ navigation }: Props) {
                   key={player.id}
                   player={player}
                   colorIndex={index}
+                  courseId={draft.courseId}
                   busy={inviteBusyId === player.id}
                   isSystem36={isSystem36}
                   onOpenTee={() => setTeeSheetPlayerId(player.id)}
@@ -409,6 +407,7 @@ export function TournamentPlayersScreen({ navigation }: Props) {
               const rating = ratings[tee];
               const yardage = course && combo ? getComboHoles(course, combo.id).reduce((sum, h) => sum + h.yardageM[tee], 0) : null;
               const selected = teeSheetPlayer.tee === tee;
+              const pres = teePresentation(course?.id, tee);
               return (
                 <Pressable
                   key={tee}
@@ -420,11 +419,11 @@ export function TournamentPlayersScreen({ navigation }: Props) {
                     setTeeSheetPlayerId(null);
                   }}
                 >
-                  <View style={[styles.teeRowDot, { backgroundColor: TEE_DOT_COLOR[tee] }, tee === 'white' ? styles.teeRowDotBordered : null]} />
+                  <View style={[styles.teeRowDot, { backgroundColor: pres.dot }, pres.dotBorder ? styles.teeRowDotBordered : null]} />
                   <View style={styles.teeRowBody}>
-                    <Text style={styles.teeRowName}>{TEE_LABELS[tee]}</Text>
+                    <Text style={styles.teeRowName}>{pres.label}</Text>
                     <Text style={styles.teeRowMeta}>
-                      {TEE_DESCRIPTIONS[tee]}
+                      {pres.description}
                       {rating ? ` · CR ${rating.courseRating.toFixed(1)} · Slope ${rating.slopeRating}` : ''}
                       {yardage ? ` · ${yardage.toLocaleString()} m` : ''}
                     </Text>
@@ -491,6 +490,7 @@ function SearchResultRow({
 function PlayerRow({
   player,
   colorIndex,
+  courseId,
   busy,
   isSystem36,
   onOpenTee,
@@ -499,12 +499,14 @@ function PlayerRow({
 }: {
   player: TournamentPlayerDraft;
   colorIndex: number;
+  courseId: string | null;
   busy: boolean;
   isSystem36: boolean;
   onOpenTee: () => void;
   onOpenHandicap: () => void;
   onRemove?: () => void;
 }) {
+  const teePres = teePresentation(courseId, player.tee);
   const initials = player.name
     .split(' ')
     .map((w) => w[0])
@@ -563,8 +565,8 @@ function PlayerRow({
       </View>
       <View style={styles.teeColumn}>
         <Pressable style={styles.teeChip} onPress={onOpenTee}>
-          <View style={[styles.teeChipDot, { backgroundColor: TEE_DOT_COLOR[player.tee] }, player.tee === 'white' ? styles.teeChipDotBordered : null]} />
-          <Text style={styles.teeChipLabel}>{TEE_LABELS[player.tee]}</Text>
+          <View style={[styles.teeChipDot, { backgroundColor: teePres.dot }, teePres.dotBorder ? styles.teeChipDotBordered : null]} />
+          <Text style={styles.teeChipLabel}>{teePres.label}</Text>
           <ChevronDown size={11} color={palette.soon.labelUpcoming} />
         </Pressable>
         {isSystem36 ? <Text style={styles.teeCaption}>Tee</Text> : null}

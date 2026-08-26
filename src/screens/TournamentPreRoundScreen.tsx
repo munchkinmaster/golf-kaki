@@ -11,6 +11,7 @@ import { System36NoHandicapCallout } from '../components/System36NoHandicapCallo
 import { System36RuleCards } from '../components/System36RuleCards';
 import type { Course as CatalogCourse } from '../data/courses';
 import { fetchCourseCatalog, getComboHoles } from '../data/courses';
+import { teePresentation } from '../data/tees';
 import { startMatch } from '../data/matches';
 import { createTournament, fetchTournamentLobby, removeTournamentPlayer, setSkinsParticipant } from '../data/tournaments';
 import type { RootStackParamList, TournamentStackParamList } from '../navigation/types';
@@ -20,9 +21,6 @@ import { useTournamentDraft } from '../state/TournamentDraftContext';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<TournamentStackParamList, 'TournamentPreRound'>;
-
-const TEE_DOT_COLOR: Record<string, string> = { black: palette.tee.black, blue: palette.tee.blue, white: palette.tee.white, red: palette.tee.red };
-const TEE_LABEL: Record<string, string> = { black: 'Black', blue: 'Blue', white: 'White', red: 'Red' };
 
 const TIE_RULE_SUMMARY: Record<string, { label: string; sub: string }> = {
   carryover: { label: 'carryover', sub: "18th-hole tie splits the carried pot" },
@@ -324,6 +322,7 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
                       .slice(0, 2)
                       .join('')
                       .toUpperCase();
+                    const teePres = teePresentation(draft.courseId, player.tee);
                     return (
                       <View key={player.id} style={styles.reviewRow}>
                         <View style={[styles.avatar, { backgroundColor: getSolidAvatarColor(index) }]}>
@@ -346,9 +345,9 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
                         <View style={styles.teeColumn}>
                           <View style={styles.teePillStatic}>
                             <View
-                              style={[styles.teeDot, { backgroundColor: TEE_DOT_COLOR[player.tee] }, player.tee === 'white' ? styles.teeDotBordered : null]}
+                              style={[styles.teeDot, { backgroundColor: teePres.dot }, teePres.dotBorder ? styles.teeDotBordered : null]}
                             />
-                            <Text style={styles.teePillLabel}>{TEE_LABEL[player.tee]}</Text>
+                            <Text style={styles.teePillLabel}>{teePres.label}</Text>
                           </View>
                           <Text style={styles.teeCaption}>Tee</Text>
                         </View>
@@ -440,7 +439,7 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
             {actionError ? <Text style={styles.actionErrorText}>{actionError}</Text> : null}
             <View style={styles.playerList}>
               {draft.players.map((player, index) => (
-                <PlayerRow key={player.id} player={player} colorIndex={index} onRemove={player.isHost ? undefined : () => removePlayer(player.id)} />
+                <PlayerRow key={player.id} player={player} colorIndex={index} courseId={draft.courseId} onRemove={player.isHost ? undefined : () => removePlayer(player.id)} />
               ))}
               <Pressable style={styles.inviteMoreButton} onPress={() => navigation.navigate('TournamentPlayers')}>
                 <UserPlus size={16} color={colors.textSecondary} />
@@ -539,7 +538,8 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
 
 const REMOVE_WIDTH = 76;
 
-function PlayerRow({ player, colorIndex, onRemove }: { player: TournamentPlayerDraft; colorIndex: number; onRemove?: () => void }) {
+function PlayerRow({ player, colorIndex, courseId, onRemove }: { player: TournamentPlayerDraft; colorIndex: number; courseId: string | null; onRemove?: () => void }) {
+  const teePres = teePresentation(courseId, player.tee);
   const translateX = useRef(new Animated.Value(0)).current;
   const dragStart = useRef(0);
 
@@ -590,15 +590,15 @@ function PlayerRow({ player, colorIndex, onRemove }: { player: TournamentPlayerD
           <View style={styles.playerMetaRow}>
             <Text style={styles.playerMeta}>Play HC {player.playingHandicap}</Text>
             <Text style={styles.playerMetaDot}>·</Text>
-            <View style={[styles.metaDot, { backgroundColor: TEE_DOT_COLOR[player.tee] }]} />
-            <Text style={styles.playerMeta}>{TEE_LABEL[player.tee]}</Text>
+            <View style={[styles.metaDot, { backgroundColor: teePres.dot }, teePres.dotBorder ? styles.metaDotBordered : null]} />
+            <Text style={styles.playerMeta}>{teePres.label}</Text>
           </View>
         ) : (
           <View style={styles.playerMetaRow}>
             <Text style={styles.playerMetaInvited}>Invited · awaiting reply</Text>
             <Text style={styles.playerMetaDot}>·</Text>
-            <View style={[styles.metaDot, { backgroundColor: TEE_DOT_COLOR[player.tee] }]} />
-            <Text style={styles.playerMetaInvited}>{TEE_LABEL[player.tee]}</Text>
+            <View style={[styles.metaDot, { backgroundColor: teePres.dot }, teePres.dotBorder ? styles.metaDotBordered : null]} />
+            <Text style={styles.playerMetaInvited}>{teePres.label}</Text>
           </View>
         )}
       </View>
@@ -945,6 +945,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+  },
+  metaDotBordered: {
+    borderWidth: 1,
+    borderColor: palette.tee.whiteBorder,
   },
   invitedTag: {
     backgroundColor: '#FBF3E4',
