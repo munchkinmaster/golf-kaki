@@ -1,0 +1,53 @@
+/* ============================================================
+   Golf Kaki — Base element styles & utility primitives
+   Lightweight, opt-in. Sets sensible defaults on the page body.
+   ============================================================ */
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background-color: var(--surface-page);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+  margin: 0 0 0.4em;
+  line-height: var(--leading-tight);
+}
+h1 { font-size: var(--text-3xl); }
+h2 { font-size: var(--text-2xl); }
+h3 { font-size: var(--text-xl); }
+h4 { font-size: var(--text-lg); }
+
+p { margin: 0 0 1em; }
+
+a { color: var(--text-brand); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+
+/* Brand overline — the "TRACK SCORE · ADD FUN" treatment */
+.gk-overline {
+  font-family: var(--font-body);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Numeric display — scores, handicaps, stats */
+.gk-numeric {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+::selection { background: var(--orange-200); color: var(--ink-900); }

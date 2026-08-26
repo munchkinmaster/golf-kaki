@@ -12,7 +12,19 @@ import { supabase } from '../lib/supabase';
 const EARLIER_LIMIT = 5;
 
 export type EarlierItem =
-  | { type: 'result'; key: string; matchId: string; matchName: string; courseName: string; gameModeName: string; won: boolean; money: number; at: string }
+  | {
+      type: 'result';
+      key: string;
+      matchId: string;
+      matchName: string;
+      courseName: string;
+      gameModeName: string;
+      won: boolean;
+      money: number;
+      at: string;
+      /** Non-null for a tournament (stroke play) match — routes to TournamentFinish instead of Recap, which assumes Kaki Match Play's pairwise structure. won/money aren't meaningful for this branch (see rounds.ts's summarizeMatch — a tournament round's viewerMoney is always null). */
+      tournamentId: string | null;
+    }
   | { type: 'kaki'; key: string; relationshipId: string; name: string; at: string };
 
 type RecentlyAcceptedKakiRow = {
@@ -49,7 +61,7 @@ export async function fetchEarlierActivity(viewerId: string): Promise<EarlierIte
   const [rounds, acceptedKaki] = await Promise.all([fetchRoundSummaries(viewerId, 'finished'), fetchRecentlyAcceptedKaki(viewerId)]);
 
   const results: EarlierItem[] = rounds
-    .filter((r): r is typeof r & { finishedAt: string; viewerMoney: number } => r.finishedAt !== null && r.viewerMoney !== null)
+    .filter((r): r is typeof r & { finishedAt: string } => r.finishedAt !== null && (r.tournamentId !== null || r.viewerMoney !== null))
     .slice(0, EARLIER_LIMIT)
     .map((r) => ({
       type: 'result',
@@ -58,9 +70,12 @@ export async function fetchEarlierActivity(viewerId: string): Promise<EarlierIte
       matchName: r.matchName,
       courseName: r.courseName,
       gameModeName: r.gameModeName,
-      won: r.viewerMoney > 0,
-      money: r.viewerMoney,
+      // won/money aren't meaningful for a tournament round (viewerMoney is
+      // always null there) — defaulted, unused by the tournament render path.
+      won: (r.viewerMoney ?? 0) > 0,
+      money: r.viewerMoney ?? 0,
       at: r.finishedAt,
+      tournamentId: r.tournamentId,
     }));
 
   const kakiItems: EarlierItem[] = acceptedKaki.map((k) => ({

@@ -30,6 +30,8 @@ export type RoundSummary = {
   players: RoundPlayer[];
   thru: number;
   hostId: string;
+  /** Non-null for a tournament (stroke play) match — routes to TournamentLobby/TournamentFinish instead of MatchLobby/Scorecard/Recap, which assume Kaki Match Play's pairwise structure. See tournaments.ts's module comment. */
+  tournamentId: string | null;
   /** Match-play "up" total against the whole field — null if the viewer isn't in this match's roster. */
   viewerUp: number | null;
   viewerMoney: number | null;
@@ -49,6 +51,7 @@ type MatchRow = {
   course_id: string;
   combo_id: string;
   host_id: string;
+  tournament_id: string | null;
   courses: { name: string } | null;
 };
 
@@ -93,11 +96,18 @@ async function summarizeMatch(match: MatchRow, roster: RoundPlayer[], viewerId: 
   const rosterIds = roster.map((p) => p.playerId);
   const allHoles: Hole[] = course ? getComboHoles(course, match.combo_id) : [];
   const holes = match.holes_to_play === 9 ? allHoles.slice(0, 9) : allHoles;
+  const isTournament = match.tournament_id !== null;
 
+  // A tournament roster has no pairwise stroke deals to seed (fetchMatchups/
+  // fetchLedgerStrokesForGroup would just return empty/irrelevant data for
+  // it either way) — skip the whole match-play engine below and leave
+  // viewerUp/viewerMoney null, same as a viewer who isn't in the roster at
+  // all. viewerGross still comes from the mode-agnostic grossTotal, since a
+  // tournament round's gross legitimately belongs in "best gross" stats.
   const [scoreMap, matchups, ledger] = await Promise.all([
     fetchScores(match.id),
-    fetchMatchups(match.id),
-    fetchLedgerStrokesForGroup(rosterIds),
+    isTournament ? Promise.resolve([]) : fetchMatchups(match.id),
+    isTournament ? Promise.resolve({}) : fetchLedgerStrokesForGroup(rosterIds),
   ]);
 
   const gross: GrossMap = {};
@@ -108,12 +118,16 @@ async function summarizeMatch(match: MatchRow, roster: RoundPlayer[], viewerId: 
   const schedule: RoundSchedule = { holesToPlay: match.holes_to_play, strokesBasis: match.strokes_basis, startHole: match.start_hole };
   const playOrder = buildPlayOrder(schedule.startHole).slice(0, holes.length);
   const thru = computeThru(rosterIds, scoreMap, playOrder);
-  const { frontNineDeals, backNineDeals } = buildDeals(rosterIds, matchups, ledger);
-
   const viewerInRoster = rosterIds.includes(viewerId);
-  const viewerUp = viewerInRoster ? runningUp(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder) : null;
-  const viewerMoney = viewerInRoster ? money(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, Number(match.stake_per_hole), playOrder) : null;
   const viewerGross = viewerInRoster ? grossTotal(viewerId, thru, gross, playOrder) : null;
+
+  let viewerUp: number | null = null;
+  let viewerMoney: number | null = null;
+  if (!isTournament && viewerInRoster) {
+    const { frontNineDeals, backNineDeals } = buildDeals(rosterIds, matchups, ledger);
+    viewerUp = runningUp(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder);
+    viewerMoney = money(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, Number(match.stake_per_hole), playOrder);
+  }
 
   return {
     matchId: match.id,
@@ -127,6 +141,7 @@ async function summarizeMatch(match: MatchRow, roster: RoundPlayer[], viewerId: 
     players: roster,
     thru,
     hostId: match.host_id,
+    tournamentId: match.tournament_id,
     viewerUp,
     viewerMoney,
     viewerGross,
@@ -176,7 +191,7 @@ async function fetchRoundSummariesOnce(viewerId: string, status: 'live' | 'finis
   const dateColumn = status === 'live' ? 'started_at' : 'finished_at';
   const { data: matchRows, error: matchError } = await supabase
     .from('matches')
-    .select('id, match_name, game_mode, holes_to_play, strokes_basis, start_hole, stake_per_hole, started_at, finished_at, course_id, combo_id, host_id, courses ( name )')
+    .select('id, match_name, game_mode, holes_to_play, strokes_basis, start_hole, stake_per_hole, started_at, finished_at, course_id, combo_id, host_id, tournament_id, courses ( name )')
     .in('id', matchIds)
     .eq('status', status)
     .order(dateColumn, { ascending: false });

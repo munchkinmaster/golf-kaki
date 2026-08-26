@@ -155,9 +155,14 @@ export function useLiveRound(matchId: string) {
     // client's mid-round back-9 re-strike value went stale and never
     // recovered). This bounds how long any client can stay out of sync
     // without the viewer having to notice and tap manual refresh themselves.
+    // 20s, not the original 6s — this is a rare-miss fallback, not the
+    // primary sync path (that's realtime, above), and every live-round
+    // screen runs its own copy of this loop with React Navigation keeping
+    // earlier stack screens mounted, so several can be ticking at once for
+    // the same match. 6s was a meaningful chunk of this project's egress.
     const pollTimer = setInterval(() => {
       load().catch(() => {});
-    }, 6000);
+    }, 20000);
 
     return () => {
       if (syncTimer) clearTimeout(syncTimer);

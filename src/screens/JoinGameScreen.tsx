@@ -159,6 +159,10 @@ export function JoinGameScreen({ navigation }: Props) {
       setJoinError(null);
       joinLiveMatch(selectedGame.matchId, viewerId, profile?.handicap ?? null)
         .then(() => {
+          if (selectedGame.tournamentId) {
+            navigation.navigate('TournamentLobby', { tournamentId: selectedGame.tournamentId, matchId: selectedGame.matchId });
+            return;
+          }
           navigation.navigate('InGameLobby', {
             matchId: selectedGame.matchId,
             matchName: selectedGame.matchName,
@@ -176,7 +180,9 @@ export function JoinGameScreen({ navigation }: Props) {
     setJoinError(null);
     joinMatchByCode(matchInfo.matchCode, viewerId, profile?.handicap ?? null)
       .then((joined) => {
-        if (joined.status === 'lobby') {
+        if (joined.tournamentId) {
+          navigation.navigate('TournamentLobby', { tournamentId: joined.tournamentId, matchId: joined.id });
+        } else if (joined.status === 'lobby') {
           navigation.navigate('MatchLobby', {
             matchId: joined.id,
             matchCode: joined.matchCode,

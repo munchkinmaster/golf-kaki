@@ -62,7 +62,12 @@ export function NotificationsScreen({ navigation }: Props) {
     setMatchInvites((prev) => prev.filter((i) => i.matchId !== invite.matchId));
     try {
       await acceptMatchInvite(invite.matchId, viewerId!);
-      if (invite.status === 'live') {
+      if (invite.tournamentId) {
+        // Tournament scoring/leaderboard screens don't exist yet (later phase) —
+        // TournamentLobby is the only tournament screen built so far, regardless
+        // of whether the round has technically gone live.
+        navigation.navigate('TournamentLobby', { tournamentId: invite.tournamentId, matchId: invite.matchId });
+      } else if (invite.status === 'live') {
         navigation.navigate('Scorecard', {
           matchId: invite.matchId,
           matchName: invite.matchName,
@@ -108,6 +113,10 @@ export function NotificationsScreen({ navigation }: Props) {
 
   function openEarlierItem(item: EarlierItem) {
     if (item.type === 'result') {
+      if (item.tournamentId) {
+        navigation.navigate('TournamentFinish', { tournamentId: item.tournamentId, matchId: item.matchId });
+        return;
+      }
       navigation.navigate('Recap', { matchId: item.matchId, matchName: item.matchName, courseName: item.courseName, gameModeName: item.gameModeName });
     } else {
       navigation.navigate('Kaki');

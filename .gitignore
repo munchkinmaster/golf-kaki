@@ -43,3 +43,6 @@ yarn-error.*
 
 .vercel
 .env*
+
+# local Claude Code agent state (skills, memory, session config)
+.claude/

@@ -70,6 +70,11 @@ export function computeCourseHandicap(handicapIndex: number, slopeRating: number
   return Math.round(handicapIndex * (slopeRating / 113) + (courseRating - coursePar));
 }
 
+/** Playing (tournament) handicap = Course Handicap × the round's handicap allowance — S3's "Index → course handicap (slope), then 95% allowance gives the Play HC" chain, used by the tournament flow's S4 roster. Never negative — mirrors strokesReceivedOnHole's stance of no bonus/negative allowance for a scratch-or-better player. */
+export function computePlayingHandicap(courseHandicap: number, allowancePct: number): number {
+  return Math.max(0, Math.round(courseHandicap * (allowancePct / 100)));
+}
+
 /**
  * Adjusted Gross Score: each hole's gross capped per WHS Rule 3.1. With an
  * established Handicap Index (Rule 3.1b), the cap is net double bogey —
@@ -153,7 +158,8 @@ async function isPlayerSeated(matchId: string, playerId: string): Promise<boolea
   return data !== null;
 }
 
-async function fetchComboRating(courseId: string, comboId: string, teeColor: TeeColor): Promise<{ courseRating: number; slopeRating: number } | null> {
+/** Exported for the tournament flow's course/tee screens (S2's rating info card, S4's per-player playing-handicap recompute) — previously only called internally for the recap's own handicap recalculation. */
+export async function fetchComboRating(courseId: string, comboId: string, teeColor: TeeColor): Promise<{ courseRating: number; slopeRating: number } | null> {
   const { data, error } = await supabase
     .from('course_combo_ratings')
     .select('course_rating, slope_rating')

@@ -67,6 +67,10 @@ export function RoundsScreen({ navigation, route }: Props) {
   );
 
   function openLiveRound(round: RoundSummary) {
+    if (round.tournamentId) {
+      navigation.navigate('TournamentLobby', { tournamentId: round.tournamentId, matchId: round.matchId });
+      return;
+    }
     navigation.navigate('Scorecard', {
       matchId: round.matchId,
       matchName: round.matchName,
@@ -77,6 +81,10 @@ export function RoundsScreen({ navigation, route }: Props) {
   }
 
   function openPastRound(round: RoundSummary) {
+    if (round.tournamentId) {
+      navigation.navigate('TournamentFinish', { tournamentId: round.tournamentId, matchId: round.matchId });
+      return;
+    }
     navigation.navigate('Recap', {
       matchId: round.matchId,
       matchName: round.matchName,

@@ -69,7 +69,97 @@ const status = {
   info: '#4E6E8E',
 } as const;
 
-export const palette = { green, orange, sand, ink, white, score, status } as const;
+// ---- Stroke-play scorecard grid cell notation ----
+// A deliberately separate palette from `score` above: `score` drives the
+// match-play ring badge (ScoreBadge — eagle/birdie only, no shape change),
+// while this drives the tournament flow's bordered circle/square grid cells
+// (ScoreCell — all four terms, each with its own shape). Values are the
+// literal inline styles in design_handoff_tournament_flow's .dc.html source,
+// not a re-derivation of the `score` set above — the two intentionally don't
+// match hue-for-hue (e.g. bogey here is blue-slate, not the ring badge's grey).
+const scoreCell = {
+  under: { text: '#D9772F', border: '#F4A46A' }, // birdie or better — circle
+  par: { text: '#1C2B22' }, // plain, no border
+  bogey: { text: '#3B6FB0', border: '#B9CBE4' }, // square
+  double: { text: '#C0392B', border: '#E6B4AE' }, // square — double bogey or worse
+  strokeDot: '#1E8A4C', // handicap-stroke dot(s), top-right of the cell
+} as const;
+
+// ---- Score reference chips (rules-explainer tables) ----
+// The soft fill/border/number swatches in the System 36 rules cards (SY1
+// format callout, SY3 points table, SY6 lobby) — one chip per score class,
+// spanning the full Stableford range (albatross → double+). Values are the
+// literal inline styles in design_handoff_system36's .dc.html. Deliberately
+// separate from `scoreCell` above: that palette drives the ACTUAL scorecard
+// grid cells (bordered circle/square notation over a real score), whereas
+// these are decorative reference swatches in a "how points work" table. The
+// S36 points table (2/1/0) uses only par/bogey/double; the Stableford table
+// (5/4/3/2/1/0) uses all six.
+const scoreChip = {
+  albatross: { fill: '#F3ECD5', border: '#DCC178', text: '#A87C10' },
+  eagle: { fill: '#FBF3DE', border: '#E7CE8E', text: '#C8971C' },
+  birdie: { fill: '#FFF3E9', border: '#F4C79B', text: '#D9772F' },
+  par: { fill: '#F0F6EE', border: '#AED4A9', text: '#134914' },
+  bogey: { fill: '#EEF3F9', border: '#C3D3E7', text: '#3B6FB0' },
+  double: { fill: '#FBEDEB', border: '#E6B4AE', text: '#C0392B' },
+} as const;
+
+// ---- System 36 settled-value tile ----
+// The warm-orange treatment for a System 36 number that has been finalised —
+// the "No handicaps to enter" callout on SY1, and the settled S36-handicap /
+// Stableford tiles on SY8b and SY9b. Named per design_handoff_system36's
+// token table (fill / border / value / label); `captionText` is the warmer
+// brown the callout uses for its supporting line (not in that table, kept in
+// this group so the whole treatment is one token cluster).
+const settledTile = {
+  fill: '#FFF3E9',
+  border: '#F4C79B',
+  value: '#D9772F',
+  label: '#B65A1E',
+  captionText: '#8A6A4A',
+} as const;
+
+// ---- Skins side-game result colors ----
+// Lost skins deliberately use burnt-orange, not red — red is reserved for
+// double-bogey-or-worse scores elsewhere on the same grid.
+const skins = {
+  wonText: '#1E6E16',
+  wonFill: '#F0F6EE',
+  lostText: '#C2691C',
+  lostFill: '#FDF0E3',
+  lostBorder: '#F2D2AC',
+} as const;
+
+// ---- Wizard progress / "soon" (disabled) treatment ----
+// One-off shades from the tournament flow's .dc.html that don't line up with
+// any existing sand/ink step closely enough to reuse (verified against the
+// inline styles, not eyeballed) — named for where they're used rather than
+// re-deriving a whole new neutral ramp for a handful of disabled-state spots.
+const soon = {
+  labelDone: '#7C8A7E', // wizard progress-rail label, a step already completed
+  labelUpcoming: '#A89B7C', // progress-rail label / muted helper text for a step not yet reached
+  surface: '#F2EEE2', // disabled option's icon tile + "Soon" badge background
+  radioOff: '#D8D0BC', // unselected radio-circle icon on a disabled/unselected option
+} as const;
+
+// ---- Tee-box swatch dots ---- (courses.ts's TeeColor union: black/blue/white/red)
+// First real UI use of tee color — course-admin/yardage modeling only used
+// TeeColor as data before this. White gets a fill+border pair since a plain
+// white dot would vanish against every card surface in this app.
+const tee = {
+  black: '#1C1C1C',
+  blue: '#3B6FB0',
+  white: '#E8E2D2',
+  whiteBorder: '#C9BF9E',
+  red: '#C0392B',
+} as const;
+
+// ---- Solid player-avatar cycle ---- (tournament flow's Field roster, S4/S6b/S6c/S9 —
+// solid-filled circle + white initials, distinct from the existing soft-tint
+// playerPalette below used by the invite-friend rows elsewhere in the app)
+const avatarSolid = [green[800], '#3B6FB0', '#C77E1E', '#7A8C4E'] as const;
+
+export const palette = { green, orange, sand, ink, white, score, status, scoreCell, scoreChip, settledTile, skins, soon, tee, avatarSolid } as const;
 
 /** Semantic color aliases — prefer these in components. */
 export const colors = {
@@ -89,6 +179,9 @@ export const colors = {
   surfaceInverse: green[800],
   surfaceAccentSoft: orange[100],
   surfaceBrandSoft: green[50],
+  // Soft cream — System 36's muted/suppressed tiles (dashed Proj Stbf on SY7,
+  // Nett/Stbf on SY8) and alternating rows. Named per design_handoff_system36.
+  surfaceMutedTile: '#FBF8F0',
 
   // Text
   textPrimary: ink[900],
@@ -119,6 +212,23 @@ export const colors = {
   statusWarning: status.warning,
   statusDanger: status.danger,
   statusInfo: status.info,
+
+  // Stroke-play scorecard grid cell notation (see palette.scoreCell)
+  scoreCellUnderText: scoreCell.under.text,
+  scoreCellUnderBorder: scoreCell.under.border,
+  scoreCellParText: scoreCell.par.text,
+  scoreCellBogeyText: scoreCell.bogey.text,
+  scoreCellBogeyBorder: scoreCell.bogey.border,
+  scoreCellDoubleText: scoreCell.double.text,
+  scoreCellDoubleBorder: scoreCell.double.border,
+  scoreCellStrokeDot: scoreCell.strokeDot,
+
+  // Skins side-game results (see palette.skins)
+  skinsWonText: skins.wonText,
+  skinsWonFill: skins.wonFill,
+  skinsLostText: skins.lostText,
+  skinsLostFill: skins.lostFill,
+  skinsLostBorder: skins.lostBorder,
 
   // Misc (RN can't render rgba() strings via shorthand, so spell them out)
   overlayScrim: 'rgba(14, 58, 40, 0.45)',
@@ -289,6 +399,11 @@ export function getPlayerColors(index: number) {
   return playerPalette[index % playerPalette.length];
 }
 
+/** Solid avatar-circle fill for the tournament flow's Field roster — see palette.avatarSolid. */
+export function getSolidAvatarColor(index: number): string {
+  return avatarSolid[index % avatarSolid.length]!;
+}
+
 export const tokens = {
   colors,
   palette,
@@ -309,6 +424,7 @@ export const tokens = {
   motion,
   playerPalette,
   getPlayerColors,
+  getSolidAvatarColor,
 } as const;
 
 export default tokens;

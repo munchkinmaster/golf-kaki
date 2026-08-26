@@ -96,8 +96,38 @@ type CourseRow = {
  * order otherwise (confirmed: defaults to alphabetical by id/combo_id),
  * which matters here since this drives the app's course picker order and
  * SelectCourseScreen's `combos[0]` default.
+ *
+ * This catalog is near-static (the course library only changes through the
+ * admin app) but gets called from 14+ places across the app, several of
+ * them inside 6-second poll loops (useLiveRound, useTournamentRound,
+ * TournamentLobbyScreen) — with no caching, every one of those ticks re-runs
+ * this full 4-table join from scratch. Module-level cache + in-flight-promise
+ * dedup fixes both the redundant polling AND simultaneous-mount bursts
+ * (several screens' hooks calling this within the same tick), the two
+ * biggest contributors to this project's egress. A short TTL rather than a
+ * permanent cache so an admin's course-library edit still shows up within a
+ * session without requiring an app restart.
  */
+const CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
+let catalogCache: { data: Course[]; expiresAt: number } | null = null;
+let catalogInFlight: Promise<Course[]> | null = null;
+
 export async function fetchCourseCatalog(): Promise<Course[]> {
+  if (catalogCache && catalogCache.expiresAt > Date.now()) return catalogCache.data;
+  if (catalogInFlight) return catalogInFlight;
+
+  catalogInFlight = fetchCourseCatalogUncached()
+    .then((data) => {
+      catalogCache = { data, expiresAt: Date.now() + CATALOG_CACHE_TTL_MS };
+      return data;
+    })
+    .finally(() => {
+      catalogInFlight = null;
+    });
+  return catalogInFlight;
+}
+
+async function fetchCourseCatalogUncached(): Promise<Course[]> {
   const { data, error } = await supabase
     .from('courses')
     .select(

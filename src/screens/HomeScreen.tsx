@@ -24,7 +24,7 @@ import type { RoundSummary } from '../data/rounds';
 import { fetchRoundSummaries, isIncompleteRound } from '../data/rounds';
 import type { RootStackParamList } from '../navigation/types';
 import { useProfile } from '../state/ProfileContext';
-import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
+import { colors, getFontFamily, getPlayerColors, layout, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
@@ -84,7 +84,12 @@ export function HomeScreen({ navigation }: Props) {
     setMatchInvites((prev) => prev.filter((i) => i.matchId !== invite.matchId));
     try {
       await acceptMatchInvite(invite.matchId, profile!.id);
-      if (invite.status === 'live') {
+      if (invite.tournamentId) {
+        // Tournament scoring/leaderboard screens don't exist yet (later phase) —
+        // TournamentLobby is the only tournament screen built so far, regardless
+        // of whether the round has technically gone live.
+        navigation.navigate('TournamentLobby', { tournamentId: invite.tournamentId, matchId: invite.matchId });
+      } else if (invite.status === 'live') {
         navigation.navigate('Scorecard', {
           matchId: invite.matchId,
           matchName: invite.matchName,
@@ -177,6 +182,14 @@ export function HomeScreen({ navigation }: Props) {
               icon={<Users size={20} color={colors.textInverse} />}
               onPress={() => navigation.navigate('JoinGame')}
             />
+            {/* Deliberately not the shared Button component — the spec styles this as a
+                quieter, de-emphasized tertiary link (muted outline, smaller type) distinct
+                from Button's variant set. Height kept at the 44px tap-target floor (the
+                .dc.html mock uses 38px, which undercuts CLAUDE.md's hard minimum). */}
+            <Pressable style={styles.tournamentCta} onPress={() => navigation.navigate('TournamentCreate')}>
+              <Trophy size={15} color={colors.textMuted} />
+              <Text style={styles.tournamentCtaLabel}>Create a tournament</Text>
+            </Pressable>
           </View>
 
           {notificationCount > 0 ? (
@@ -223,23 +236,33 @@ export function HomeScreen({ navigation }: Props) {
               <HomeLiveRoundCard
                 round={liveRounds[0]}
                 isHost={profile?.id === liveRounds[0]!.hostId}
-                onResume={() =>
+                onResume={() => {
+                  const round = liveRounds[0]!;
+                  if (round.tournamentId) {
+                    navigation.navigate('TournamentLobby', { tournamentId: round.tournamentId, matchId: round.matchId });
+                    return;
+                  }
                   navigation.navigate('Scorecard', {
-                    matchId: liveRounds[0]!.matchId,
-                    matchName: liveRounds[0]!.matchName,
-                    courseName: liveRounds[0]!.courseName,
-                    gameModeName: liveRounds[0]!.gameModeName,
+                    matchId: round.matchId,
+                    matchName: round.matchName,
+                    courseName: round.courseName,
+                    gameModeName: round.gameModeName,
                     isHost: false,
-                  })
-                }
-                onFinish={() =>
+                  });
+                }}
+                onFinish={() => {
+                  const round = liveRounds[0]!;
+                  if (round.tournamentId) {
+                    navigation.navigate('TournamentFinish', { tournamentId: round.tournamentId, matchId: round.matchId });
+                    return;
+                  }
                   navigation.navigate('Finish', {
-                    matchId: liveRounds[0]!.matchId,
-                    matchName: liveRounds[0]!.matchName,
-                    courseName: liveRounds[0]!.courseName,
-                    gameModeName: liveRounds[0]!.gameModeName,
-                  })
-                }
+                    matchId: round.matchId,
+                    matchName: round.matchName,
+                    courseName: round.courseName,
+                    gameModeName: round.gameModeName,
+                  });
+                }}
               />
             </>
           ) : null}
@@ -258,14 +281,18 @@ export function HomeScreen({ navigation }: Props) {
                   return (
                     <Pressable
                       key={round.matchId}
-                      onPress={() =>
+                      onPress={() => {
+                        if (round.tournamentId) {
+                          navigation.navigate('TournamentFinish', { tournamentId: round.tournamentId, matchId: round.matchId });
+                          return;
+                        }
                         navigation.navigate('Recap', {
                           matchId: round.matchId,
                           matchName: round.matchName,
                           courseName: round.courseName,
                           gameModeName: round.gameModeName,
-                        })
-                      }
+                        });
+                      }}
                     >
                       <Card style={[styles.pastGameRow, incomplete && styles.pastGameRowMuted]}>
                         <View style={[styles.pastGameIcon, incomplete && styles.pastGameIconMuted]}>
@@ -447,6 +474,22 @@ const styles = StyleSheet.create({
   ctaGroup: {
     gap: spacing[3],
     marginBottom: spacing[6],
+  },
+  tournamentCta: {
+    height: layout.controlMd,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2] - 1,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    borderRadius: radius.pill,
+  },
+  tournamentCtaLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 13,
+    color: colors.textMuted,
   },
   sectionLabel: {
     fontFamily: getFontFamily('body', '600'),

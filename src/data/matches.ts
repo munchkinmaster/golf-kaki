@@ -50,6 +50,7 @@ export function generateMatchCodePreview(): string {
 
 const GAME_MODE_NAMES: Record<string, string> = {
   kaki_match_play: 'Kaki Match Play',
+  stroke_play: 'Tournament',
 };
 
 /** Falls back to the raw slug for any mode not in the display-name map yet. */
@@ -227,6 +228,8 @@ export type MatchByCode = {
   holesToPlay: HolesCount;
   status: MatchStatus;
   playerCount: number;
+  /** Non-null for a tournament (stroke play) match — routes to TournamentLobby instead of MatchLobby/InGameLobby, which assume Kaki Match Play's pairwise structure. */
+  tournamentId: string | null;
 };
 
 type MatchByCodeRow = {
@@ -239,6 +242,7 @@ type MatchByCodeRow = {
   status: MatchStatus;
   course_id: string;
   combo_id: string;
+  tournament_id: string | null;
   courses: { name: string };
 };
 
@@ -250,7 +254,7 @@ export async function findMatchByCode(code: string): Promise<MatchByCode | null>
 async function findMatchByCodeOnce(code: string): Promise<MatchByCode | null> {
   const { data, error } = await supabase
     .from('matches')
-    .select('id, match_code, match_name, game_mode, golfer_count, holes_to_play, status, course_id, combo_id, courses ( name )')
+    .select('id, match_code, match_name, game_mode, golfer_count, holes_to_play, status, course_id, combo_id, tournament_id, courses ( name )')
     .eq('match_code', code.toUpperCase())
     .maybeSingle();
   if (error) throw error;
@@ -279,6 +283,7 @@ async function findMatchByCodeOnce(code: string): Promise<MatchByCode | null> {
     holesToPlay: row.holes_to_play,
     status: row.status,
     playerCount: playerCount ?? 0,
+    tournamentId: row.tournament_id,
   };
 }
 
@@ -424,6 +429,8 @@ export type MatchInvite = {
   holesToPlay: HolesCount;
   status: MatchStatus;
   hostName: string;
+  /** Set when this invite is for a tournament (stroke play) match — routes to TournamentLobby instead of MatchLobby/Scorecard, which assume Kaki Match Play's pairing structure. */
+  tournamentId: string | null;
 };
 
 type MatchInviteRow = {
@@ -436,6 +443,7 @@ type MatchInviteRow = {
     status: MatchStatus;
     course_id: string;
     combo_id: string;
+    tournament_id: string | null;
     courses: { name: string };
     host: { display_name: string };
   };
@@ -451,7 +459,7 @@ async function fetchMatchInvitesOnce(playerId: string): Promise<MatchInvite[]> {
     .from('match_players')
     .select(
       `matches (
-        id, match_code, match_name, game_mode, holes_to_play, status, course_id, combo_id,
+        id, match_code, match_name, game_mode, holes_to_play, status, course_id, combo_id, tournament_id,
         courses ( name ),
         host:profiles!matches_host_id_fkey ( display_name )
       )`,
@@ -484,6 +492,7 @@ async function fetchMatchInvitesOnce(playerId: string): Promise<MatchInvite[]> {
         holesToPlay: m.holes_to_play,
         status: m.status,
         hostName: m.host.display_name,
+        tournamentId: m.tournament_id,
       };
     }),
   );
@@ -519,6 +528,8 @@ export type LiveKakiGame = {
   golferCount: number;
   thru: number;
   stakePerHole: number;
+  /** Non-null for a tournament (stroke play) match — routes to TournamentLobby instead of InGameLobby, which assumes Kaki Match Play's pairwise structure. */
+  tournamentId: string | null;
 };
 
 type LiveMatchRow = {
@@ -528,6 +539,7 @@ type LiveMatchRow = {
   stake_per_hole: number;
   thru: number;
   golfer_count: number;
+  tournament_id: string | null;
   courses: { name: string };
   host: { display_name: string };
 };
@@ -564,7 +576,7 @@ async function fetchLiveKakiGamesOnce(viewerId: string): Promise<LiveKakiGame[]>
     .select(
       `match_id,
        matches!inner (
-         id, match_name, game_mode, stake_per_hole, thru, golfer_count,
+         id, match_name, game_mode, stake_per_hole, thru, golfer_count, tournament_id,
          courses ( name ),
          host:profiles!matches_host_id_fkey ( display_name )
        )`,
@@ -607,6 +619,7 @@ async function fetchLiveKakiGamesOnce(viewerId: string): Promise<LiveKakiGame[]>
     golferCount: m.golfer_count,
     thru: m.thru,
     stakePerHole: Number(m.stake_per_hole),
+    tournamentId: m.tournament_id,
   }));
 }
 

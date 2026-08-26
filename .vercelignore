@@ -1,0 +1,11 @@
+# Vercel CLI only honors .gitignore when no .vercelignore is present, but in
+# practice local dev-server state under .expo/ (which can grow into a
+# multi-hundred-MB log, as it did here) still got swept into the upload and
+# blew past Vercel's 100MB single-file limit. Explicit list, not a fallback.
+node_modules/
+.expo/
+.git/
+dist/
+web-build/
+design/
+supabase/
