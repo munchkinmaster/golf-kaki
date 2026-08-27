@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Award, ChevronRight, Coins, Crown, Flag, List, Medal, Trophy, Wallet, X } from 'lucide-react-native';
+import { Award, ChevronRight, Coins, Crown, Flag, GitCompare, List, Medal, Trophy, Wallet, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -101,6 +101,29 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
   // "To HCP" — points above/below the 36-over-18 mark that plays exactly to
   // handicap (per SB3's target callout).
   const viewerToHcp = viewerStableford ? viewerStableford.points - 36 : 0;
+  // Which rows got split apart by countback despite equal points — a plain
+  // "1st / 2nd" next to two equal point totals reads as a bug unless it's
+  // explained. playerIds who show up here get a small "Countback" tag next
+  // to their rank; countbackNotes spells out the actual numbers below the
+  // table. Adjacent-only check is enough: computeStablefordStandings sorts
+  // by points then countback, so any resolved pair is always neighbours.
+  const countbackDecidedIds = new Set<string>();
+  const countbackNotes: string[] = [];
+  if (isStableford && round.tieBreakRule === 'countback') {
+    const tierLabel = ['the back 9', 'the back 6', 'the back 3', 'the 18th hole'];
+    for (let i = 1; i < stablefordStandings.length; i++) {
+      const prev = stablefordStandings[i - 1]!;
+      const cur = stablefordStandings[i]!;
+      if (prev.points !== cur.points || prev.rank === cur.rank || !prev.finished || !cur.finished) continue;
+      const tier = prev.countback.findIndex((v, idx) => v !== cur.countback[idx]);
+      if (tier === -1) continue; // tied all the way down to the 18th hole alone — nothing to show
+      countbackDecidedIds.add(prev.playerId);
+      countbackDecidedIds.add(cur.playerId);
+      const prevName = roster.find((p) => p.id === prev.playerId)?.name.split(' ')[0] ?? 'Player';
+      const curName = roster.find((p) => p.id === cur.playerId)?.name.split(' ')[0] ?? 'Player';
+      countbackNotes.push(`${prevName} vs ${curName}, both ${prev.points} pts — ${prevName} took it on ${tierLabel[tier]}: ${prev.countback[tier]} to ${cur.countback[tier]}.`);
+    }
+  }
 
   const roundComplete = holes.length > 0 && thru === holes.length;
   const isFinished = matchStatus === 'finished';
@@ -368,13 +391,21 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                             <Text style={styles.tableAvatarLabel}>{player.name[0]?.toUpperCase()}</Text>
                           </View>
                           <View style={{ flex: 1, minWidth: 0 }}>
-                            <Text
-                              style={[styles.tableName, isLeader && { color: LEADER_GOLD }, isYou && !isLeader && { color: colors.primary }]}
-                              numberOfLines={1}
-                            >
-                              {player.name}
-                              {isYou ? ' (you)' : ''}
-                            </Text>
+                            <View style={styles.tableNameRow}>
+                              <Text
+                                style={[styles.tableName, isLeader && { color: LEADER_GOLD }, isYou && !isLeader && { color: colors.primary }]}
+                                numberOfLines={1}
+                              >
+                                {player.name}
+                                {isYou ? ' (you)' : ''}
+                              </Text>
+                              {countbackDecidedIds.has(row.playerId) ? (
+                                <View style={styles.countbackTag}>
+                                  <GitCompare size={9} color={colors.textSecondary} />
+                                  <Text style={styles.countbackTagLabel}>Countback</Text>
+                                </View>
+                              ) : null}
+                            </View>
                             <Text style={styles.tableHcp}>HCP {player.playingHandicap}</Text>
                           </View>
                         </View>
@@ -436,6 +467,22 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                 </View>
                 )}
               </View>
+
+              {countbackNotes.length > 0 ? (
+                <View style={styles.countbackCard}>
+                  <View style={styles.countbackIconTile}>
+                    <GitCompare size={16} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.countbackTitle}>Tie-break: countback</Text>
+                    {countbackNotes.map((note, i) => (
+                      <Text key={i} style={styles.countbackBody}>
+                        {note}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
 
               {!isSystem36 && displayBestGrossRow ? (
                 <Card variant="inverse" watermark watermarkSize={110} padding={spacing[3] + 1} style={styles.grossStrip}>
@@ -851,11 +898,64 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: palette.white,
   },
+  tableNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1] + 1,
+  },
   tableName: {
     fontFamily: getFontFamily('body', '700'),
     fontWeight: '700',
     fontSize: 13,
     color: colors.textPrimary,
+  },
+  countbackTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: palette.soon.surface,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing[1] + 2,
+    paddingVertical: 1,
+    flexShrink: 0,
+  },
+  countbackTagLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 8.5,
+    color: colors.textSecondary,
+  },
+  countbackCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[2] + 3,
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    borderRadius: radius.lg - 2,
+    padding: spacing[3] + 1,
+  },
+  countbackIconTile: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.md - 1,
+    backgroundColor: colors.surfaceBrandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  countbackTitle: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  countbackBody: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 3,
+    lineHeight: 15,
   },
   tableHcp: {
     fontFamily: getFontFamily('body', '400'),

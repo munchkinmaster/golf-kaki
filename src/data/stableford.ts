@@ -106,10 +106,12 @@ export type StablefordStandingRow = {
   points: number;
   /** 1-based; ties share a rank under 'shared_place' or an unresolved (not-both-finished) countback — standard sports-ranking skip, e.g. 1, 2, 2, 4. */
   rank: number;
+  /** Points over [back 9, back 6, back 3, 18th hole alone] — the exact countback tiers used to break a points tie, exposed so a screen can explain WHY two equal-points players ended up ranked differently (e.g. SB10's standings table). Meaningless (all zero-ish) for an unfinished card; only compare it between two rows that are both `finished`. */
+  countback: [number, number, number, number];
 };
 
 /** Countback comparison key for a finished (thru === holes.length) card — points over the back 9, back 6, back 3, then the 18th hole alone. Mirrors strokePlay.ts's countbackKey shape but over Stableford points rather than nett strokes, per SB3's "Most points over last 9, 6, 3, then 18th" tie-break description. */
-function countbackKey(pointsByN: Map<number, number>): number[] {
+function countbackKey(pointsByN: Map<number, number>): [number, number, number, number] {
   const sumRange = (start: number, end: number) => {
     let total = 0;
     for (let n = start; n <= end; n++) total += pointsByN.get(n) ?? 0;
@@ -183,7 +185,7 @@ export function computeStablefordStandings(
     const resolvedByCountback = tieBreakRule === 'countback' && row.finished && prev?.finished;
     const sharesRank = prev !== undefined && prev.points === row.points && !resolvedByCountback;
     const rank = sharesRank ? ranked[i - 1]!.rank : i + 1;
-    ranked.push({ playerId: row.playerId, thru: row.thru, finished: row.finished, gross: row.gross, nett: row.nett, points: row.points, rank });
+    ranked.push({ playerId: row.playerId, thru: row.thru, finished: row.finished, gross: row.gross, nett: row.nett, points: row.points, rank, countback: row.countback });
   });
   return ranked;
 }
