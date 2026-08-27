@@ -13,6 +13,7 @@ import type { Course as CatalogCourse } from '../data/courses';
 import { fetchCourseCatalog } from '../data/courses';
 import { computeThru } from '../data/round';
 import { computeSkinsStandings, resolveSkinsHoles } from '../data/skins';
+import { computeStablefordStandings } from '../data/stableford';
 import { computeTournamentStandings, parTotal } from '../data/strokePlay';
 import { SYSTEM36_TOTAL_HOLES, computeSystem36Standings, isLeaderboardUnlocked } from '../data/system36';
 import { useTournamentRound } from '../hooks/useTournamentRound';
@@ -29,6 +30,13 @@ const LEADER_GOLD_BG = '#FBF6E9';
 
 function toParLabel(value: number): string {
   return value === 0 ? 'E' : value > 0 ? `+${value}` : String(value);
+}
+
+/** "Daniel" / "Daniel and Marcus" / "Daniel, Marcus and Aisha" — the join used by the Stableford "plays to handicap" callout's list of names. */
+function joinNames(names: string[]): string {
+  if (names.length === 0) return '';
+  if (names.length === 1) return names[0]!;
+  return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
 export function TournamentLeaderboardScreen({ navigation, route }: Props) {
@@ -97,6 +105,36 @@ export function TournamentLeaderboardScreen({ navigation, route }: Props) {
     () => (isSystem36 ? computeSystem36Standings(rosterIds, perPlayerThru, gross, holes, playOrder) : []),
     [isSystem36, rosterIds, perPlayerThru, gross, holes, playOrder],
   );
+
+  // Stableford ranks by points, live throughout — no lock like System 36
+  // (points are derived from an ordinary upfront Playing Handicap, so
+  // there's nothing to wait on).
+  const isStableford = round.scoringFormat === 'stableford';
+  const stablefordStandings = useMemo(
+    () => (isStableford ? computeStablefordStandings(rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, tieBreakRule) : []),
+    [isStableford, rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, tieBreakRule],
+  );
+  const stablefordPrevRankByPlayer = useMemo(() => {
+    if (!isStableford) return {};
+    const prevThru = Object.fromEntries(rosterIds.map((id) => [id, Math.max(0, (perPlayerThru[id] ?? 0) - 1)]));
+    const prevStandings = computeStablefordStandings(rosterIds, prevThru, gross, holes, playingHandicaps, playOrder, tieBreakRule);
+    return Object.fromEntries(prevStandings.map((r) => [r.playerId, r.rank]));
+  }, [isStableford, rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, tieBreakRule]);
+  const stablefordBestGrossRow = useMemo(() => {
+    const started = stablefordStandings.filter((r) => r.thru > 0);
+    if (started.length === 0) return null;
+    return started.reduce((best, r) => (r.gross < best.gross ? r : best));
+  }, [stablefordStandings]);
+  // "36 pts plays to handicap" callout — names whoever's beaten that mark,
+  // once the round is fully in (mid-round totals aren't a fair comparison
+  // against a full-18 target).
+  const stablefordAllFinished = stablefordStandings.length > 0 && stablefordStandings.every((r) => r.finished);
+  const stablefordBeatMarkNames = stablefordAllFinished
+    ? stablefordStandings
+        .filter((r) => r.points > 36)
+        .map((r) => roster.find((p) => p.id === r.playerId)?.name.split(' ')[0])
+        .filter((n): n is string => n !== undefined)
+    : [];
 
   function handleTabNavigate(tab: InRoundTab) {
     if (tab === 'leaderboard') return;
@@ -232,6 +270,175 @@ export function TournamentLeaderboardScreen({ navigation, route }: Props) {
               <Text style={styles.s36ExplainerText}>System 36 points set each handicap; Stableford points decide the win.</Text>
             </View>
           </ScrollView>
+        ) : isStableford ? (
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          <View style={styles.captionRow}>
+            <CircleDot size={11} color={colors.statusSuccess} />
+            <Text style={styles.captionText}>
+              {stablefordAllFinished ? 'Final' : 'Live'} · {holes.length} holes · Stableford · nett {round.handicapAllowancePct}%
+            </Text>
+          </View>
+
+          {/* STANDINGS TABLE — ranked by points, descending */}
+          <View style={styles.tableCard}>
+            <View style={styles.tableHeaderRow}>
+              <View style={styles.posHeaderCell}>
+                <Text style={[styles.tableHeaderLabel, { width: 40 }]}>Pos</Text>
+                <Text style={styles.tableHeaderLabel}>Player</Text>
+              </View>
+              <Text style={[styles.tableHeaderLabel, styles.holeHeaderCell]}>Thru</Text>
+              <Text style={[styles.tableHeaderLabel, styles.statHeaderCell]}>Gross</Text>
+              <Text style={[styles.tableHeaderLabel, styles.statHeaderCell]}>Nett</Text>
+              <Text style={[styles.tableHeaderLabel, styles.statHeaderCell, styles.totalHeaderCell]}>Points</Text>
+            </View>
+            {stablefordStandings.map((row) => {
+              const player = roster.find((p) => p.id === row.playerId);
+              if (!player) return null;
+              const isYou = row.playerId === viewerId;
+              const isLeader = row.rank === 1;
+              const prevRank = stablefordPrevRankByPlayer[row.playerId] ?? row.rank;
+              const delta = row.thru > 0 ? prevRank - row.rank : 0;
+              const rowBg = isLeader ? LEADER_GOLD_BG : isYou ? colors.surfaceBrandSoft : colors.surfaceCard;
+              return (
+                <View key={row.playerId} style={[styles.tableRow, { backgroundColor: rowBg }]}>
+                  <View style={[styles.posCell, { backgroundColor: rowBg }]}>
+                    <View style={styles.posRankCol}>
+                      <Text style={[styles.posRankText, isLeader && { color: LEADER_GOLD }, isYou && !isLeader && { color: colors.primary }]}>
+                        {row.rank}
+                      </Text>
+                      {isLeader ? (
+                        <Crown size={14} color={LEADER_GOLD} />
+                      ) : delta > 0 ? (
+                        <View style={styles.deltaGroup}>
+                          <ChevronUp size={11} color={colors.statusSuccess} />
+                          <Text style={[styles.deltaText, { color: colors.statusSuccess }]}>{delta}</Text>
+                        </View>
+                      ) : delta < 0 ? (
+                        <View style={styles.deltaGroup}>
+                          <ChevronDown size={11} color={colors.statusDanger} />
+                          <Text style={[styles.deltaText, { color: colors.statusDanger }]}>{Math.abs(delta)}</Text>
+                        </View>
+                      ) : (
+                        <Minus size={11} color={palette.sand[400]} />
+                      )}
+                    </View>
+                    <View style={[styles.posAvatar, { backgroundColor: getSolidAvatarColor(roster.indexOf(player)) }]}>
+                      <Text style={styles.posAvatarLabel}>{player.name[0]?.toUpperCase()}</Text>
+                    </View>
+                    <View style={styles.posNameCol}>
+                      <Text style={[styles.posName, isLeader && { color: LEADER_GOLD }, isYou && !isLeader && { color: colors.primary }]} numberOfLines={1}>
+                        {player.name}
+                        {isYou ? ' (you)' : ''}
+                      </Text>
+                      <Text style={styles.posMeta}>HCP {player.playingHandicap}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.holeCell}>{row.finished ? 'F' : row.thru}</Text>
+                  <Text style={styles.statCell}>{row.gross}</Text>
+                  <Text style={styles.statCell}>{row.nett}</Text>
+                  <Text style={[styles.totalCell, { color: colors.primary }]}>{row.thru > 0 ? row.points : '–'}</Text>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* PLAYS TO HANDICAP */}
+          <View style={styles.playsToHcpCard}>
+            <View style={styles.playsToHcpIcon}>
+              <Trophy size={17} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.playsToHcpTitle}>36 pts plays to handicap</Text>
+              <Text style={styles.playsToHcpBody}>
+                {stablefordBeatMarkNames.length > 0
+                  ? `${joinNames(stablefordBeatMarkNames)} ${stablefordBeatMarkNames.length === 1 ? 'beats' : 'both beat'} their mark today.`
+                  : stablefordAllFinished
+                    ? 'No one beat their handicap mark today.'
+                    : '2 points a hole across 18 holes plays exactly to handicap.'}
+              </Text>
+            </View>
+          </View>
+
+          {/* BEST GROSS */}
+          {stablefordBestGrossRow ? (
+            <Card variant="inverse" watermark watermarkSize={110} padding={spacing[3] + 1} style={styles.grossStrip}>
+              <View style={styles.grossIconTile}>
+                <Award size={19} color={colors.accent} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.grossOverline}>Best gross</Text>
+                <Text style={styles.grossLine}>
+                  {roster.find((p) => p.id === stablefordBestGrossRow.playerId)?.name} · {stablefordBestGrossRow.gross} (
+                  {toParLabel(stablefordBestGrossRow.gross - parTotal(stablefordBestGrossRow.thru, holes, playOrder))})
+                </Text>
+              </View>
+            </Card>
+          ) : null}
+
+          {/* SKINS RESULTS */}
+          {skinsConfig && skinsRows.length > 0 ? (
+            <View>
+              <View style={styles.skinsHeaderRow}>
+                <View style={styles.skinsHeaderLeft}>
+                  <Coins size={15} color={colors.scoreBirdie} />
+                  <Text style={styles.skinsHeaderLabel}>Side game · Skins</Text>
+                </View>
+                <Text style={styles.skinsHeaderMeta}>${skinsConfig.stakePerHole}/hole · separate</Text>
+              </View>
+              <View style={styles.skinsCard}>
+                {skinsRows.map((playerId, index) => {
+                  const player = roster.find((p) => p.id === playerId);
+                  const result = skinsStandings[playerId];
+                  if (!player || !result) return null;
+                  const won = result.netDollars >= 0;
+                  const expanded = expandedSkinsPlayerId === playerId;
+                  const skinsWonLabel = Number.isInteger(result.skinsWon) ? result.skinsWon : result.skinsWon.toFixed(1);
+                  return (
+                    <View key={playerId} style={styles.skinsRowWrap}>
+                      <Pressable style={styles.skinsRow} onPress={() => setExpandedSkinsPlayerId(expanded ? null : playerId)}>
+                        <Text style={styles.skinsRank}>{index + 1}</Text>
+                        <View style={[styles.skinsAvatar, { backgroundColor: getSolidAvatarColor(roster.indexOf(player)) }]}>
+                          <Text style={styles.posAvatarLabel}>{player.name[0]?.toUpperCase()}</Text>
+                        </View>
+                        <Text style={styles.skinsName} numberOfLines={1}>
+                          {player.name}
+                        </Text>
+                        <Text style={styles.skinsCount}>{skinsWonLabel} skins</Text>
+                        <Text style={[styles.skinsNet, { color: won ? colors.skinsWonText : colors.skinsLostText }]}>
+                          {won ? '+$' : '-$'}
+                          {Math.abs(result.netDollars)}
+                        </Text>
+                        <ChevronRight size={14} color={palette.sand[400]} style={expanded && styles.chevronExpanded} />
+                      </Pressable>
+                      {expanded ? (
+                        <View style={styles.skinsDetail}>
+                          <View style={styles.skinsDetailHeaderRow}>
+                            <Text style={styles.skinsDetailLabel}>Hole by hole</Text>
+                            <Text style={styles.skinsDetailHint}>skins won/lost · 0 = no change</Text>
+                          </View>
+                          <View style={styles.skinsDetailRow}>
+                            {holes.slice(0, 9).map((h) => (
+                              <SkinsHoleCell key={h.n} holeN={h.n} delta={result.holeDeltas[h.n]} />
+                            ))}
+                          </View>
+                          <View style={styles.skinsDetailRow}>
+                            {holes.slice(9, 18).map((h) => (
+                              <SkinsHoleCell key={h.n} holeN={h.n} delta={result.holeDeltas[h.n]} />
+                            ))}
+                          </View>
+                        </View>
+                      ) : null}
+                    </View>
+                  );
+                })}
+                <View style={styles.skinsFooter}>
+                  <HandCoins size={13} color="#9A5A1E" />
+                  <Text style={styles.skinsFooterText}>Tap a player for the hole-by-hole breakdown</Text>
+                </View>
+              </View>
+            </View>
+          ) : null}
+        </ScrollView>
         ) : (
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           <View style={styles.captionRow}>
@@ -589,6 +796,39 @@ const styles = StyleSheet.create({
     fontFamily: getFontFamily('body', '400'),
     fontSize: 11,
     color: colors.textMuted,
+    lineHeight: 16,
+  },
+  // ---- SB9 "plays to handicap" callout ----
+  playsToHcpCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2] + 3,
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    borderRadius: radius.lg - 2,
+    padding: spacing[3] + 1,
+  },
+  playsToHcpIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.md - 1,
+    backgroundColor: colors.surfaceBrandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  playsToHcpTitle: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  playsToHcpBody: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 1,
     lineHeight: 16,
   },
   scroll: { flex: 1 },
