@@ -179,6 +179,10 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
   // Handicap — reuses sumStbf exactly as-is (it already takes an arbitrary
   // handicap; System 36 just happens to pass its derived one instead).
   const viewerStablefordPts = viewerId && viewer ? sumStbf(viewerId, viewer.playingHandicap) : 0;
+  // Clamps statMode (shared with the other two branches) to the 3 views
+  // Stableford's tiles actually offer — 's36pts' can never be reached here
+  // since only System 36's tiles ever set it.
+  const sbView: 'gross' | 'nett' | 'stbf' = statMode === 's36pts' ? 'gross' : statMode;
 
   // System 36 mid-round figures for the viewer (SY8): S36 points and the live
   // 36 − points handicap are true as of holes played; nett/Stableford stay
@@ -495,11 +499,11 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
           ) : isStableford ? (
             <>
               {/* TRANSPOSED GRID — holes as rows, players as columns (SB8),
-                  same layout System 36's SY8 uses. Unlike System 36 there's
-                  no points-view toggle: cells always show gross (per the
-                  handoff's "each score cell shows the gross number with dot
-                  markers"), and the single PTS summary row is Stableford
-                  points off the player's own ordinary Playing Handicap. */}
+                  same layout System 36's SY8 uses. The Gross/Nett/Points
+                  tiles below double as a view switch for these cells, same
+                  interaction as Stroke Play's Gross/Nett toggle and System
+                  36's 4-way one — just three views here since there's no
+                  settled/mid-round split to gate. */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tGridScrollContent}>
                 <View style={styles.tGridContent}>
                   {/* HEADER */}
@@ -531,15 +535,25 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
                         const isYou = player.id === viewerId;
                         const raw = scores[player.id]?.[h.n];
                         const received = strokesReceivedOnHole(player.playingHandicap, h.si);
+                        if (sbView === 'stbf') {
+                          const pts = raw === undefined ? undefined : stablefordPointsForHole(raw - received, h.par);
+                          const chip = pts === undefined ? undefined : STBF_POINT_CHIP[pts];
+                          return (
+                            <View key={player.id} style={[styles.tCellWrap, isYou && styles.tColYou]}>
+                              <PointCell points={pts} chip={chip} size={28} />
+                            </View>
+                          );
+                        }
+                        const value = raw === undefined ? undefined : sbView === 'nett' ? raw - received : raw;
                         return (
                           <View key={player.id} style={[styles.tCellWrap, isYou && styles.tColYou]}>
-                            <ScoreCell value={raw} par={h.par} strokesReceived={received} size={28} />
+                            <ScoreCell value={value} par={h.par} strokesReceived={received} size={28} />
                           </View>
                         );
                       })}
                     </View>
                   ))}
-                  {/* SUMMARY — Stableford points for this nine, the only footer row (no toggleable stroke-total row — see the header comment). */}
+                  {/* SUMMARY — Stableford points for this nine, the only footer row (Gross/Nett totals live in the tiles below, not a second in-grid row — see SB8's mock). */}
                   <View style={[styles.tRow, styles.tSummaryRow, styles.tSummaryRowLast]}>
                     <Text style={styles.tSummaryLabel}>PTS</Text>
                     {roster.map((player) => (
@@ -551,20 +565,20 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
                 </View>
               </ScrollView>
 
-              {/* YOUR TOTALS — passive (no view to toggle; the grid above is always gross) */}
+              {/* YOUR TOTALS — tap any tile to switch what the grid above shows */}
               <View style={styles.totalsRow}>
-                <View style={styles.totalTile}>
-                  <Text style={styles.totalTileLabel}>Gross</Text>
-                  <Text style={styles.totalTileValue}>{viewerGross}</Text>
-                </View>
-                <View style={styles.totalTile}>
-                  <Text style={styles.totalTileLabel}>Nett</Text>
-                  <Text style={styles.totalTileValue}>{viewerNett}</Text>
-                </View>
-                <View style={[styles.totalTile, styles.totalTileActive]}>
-                  <Text style={[styles.totalTileLabel, styles.totalTileLabelInverse]}>Points</Text>
-                  <Text style={[styles.totalTileValue, styles.totalTileValueInverse]}>{viewerStablefordPts}</Text>
-                </View>
+                <Pressable style={[styles.totalTile, sbView === 'gross' && styles.totalTileActive]} onPress={() => setStatMode('gross')}>
+                  <Text style={[styles.totalTileLabel, sbView === 'gross' && styles.totalTileLabelInverse]}>Gross</Text>
+                  <Text style={[styles.totalTileValue, sbView === 'gross' && styles.totalTileValueInverse]}>{viewerGross}</Text>
+                </Pressable>
+                <Pressable style={[styles.totalTile, sbView === 'nett' && styles.totalTileActive]} onPress={() => setStatMode('nett')}>
+                  <Text style={[styles.totalTileLabel, sbView === 'nett' && styles.totalTileLabelInverse]}>Nett</Text>
+                  <Text style={[styles.totalTileValue, sbView === 'nett' && styles.totalTileValueInverse]}>{viewerNett}</Text>
+                </Pressable>
+                <Pressable style={[styles.totalTile, sbView === 'stbf' && styles.totalTileActive]} onPress={() => setStatMode('stbf')}>
+                  <Text style={[styles.totalTileLabel, sbView === 'stbf' && styles.totalTileLabelInverse]}>Points</Text>
+                  <Text style={[styles.totalTileValue, sbView === 'stbf' && styles.totalTileValueInverse]}>{viewerStablefordPts}</Text>
+                </Pressable>
               </View>
 
               {/* LEGEND — same 4-shape vocabulary ScoreCell uses everywhere else in the app (it doesn't distinguish eagle from birdie, same simplification as System 36's own SY8 legend). */}
