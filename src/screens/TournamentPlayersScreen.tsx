@@ -1,7 +1,8 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Clipboard from 'expo-clipboard';
+import { useFocusEffect } from '@react-navigation/native';
 import { ArrowRight, Check, ChevronDown, CircleCheckBig, Copy, Info, Minus, Pencil, Plus, Search, Share2, Trophy, User, X } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -15,7 +16,7 @@ import { fetchCourseCatalog, getComboHoles } from '../data/courses';
 import { TEE_COLORS, teePresentation } from '../data/tees';
 import { computeCourseHandicap, computePlayingHandicap, fetchComboRating } from '../data/handicap';
 import { fetchKakiOverview } from '../data/kaki';
-import { createTournament, inviteTournamentPlayer, removeTournamentPlayer, updateTournamentPlayerSeat } from '../data/tournaments';
+import { createTournament, fetchTournamentLobby, inviteTournamentPlayer, removeTournamentPlayer, updateTournamentPlayerSeat } from '../data/tournaments';
 import type { TournamentStackParamList } from '../navigation/types';
 import { useAuth } from '../state/AuthContext';
 import { useProfile } from '../state/ProfileContext';
@@ -60,6 +61,37 @@ export function TournamentPlayersScreen({ navigation }: Props) {
       })
       .catch(() => setFriendsError(true));
   }, [viewerId]);
+
+  // Same reasoning as TournamentPreRoundScreen's identical effect: once the
+  // first invite has created the real tournament/match row, an invitee
+  // accepting on their own device never reaches this screen's local draft
+  // state on its own. Refetch live join status on every focus so a host who
+  // stays on this step (or backs out and back in) sees who's actually
+  // joined rather than the stale 'invited' snapshot from whenever they were
+  // added.
+  useFocusEffect(
+    useCallback(() => {
+      if (!draft.matchId || !draft.tournamentId) return;
+      fetchTournamentLobby(draft.tournamentId)
+        .then((lobby) => {
+          update({
+            players: lobby.players.map((p) => ({
+              id: p.id,
+              name: p.name,
+              handicapIndex: p.handicapIndex,
+              isHost: p.isHost,
+              status: p.status,
+              tee: p.teeColor,
+              playingHandicap: p.playingHandicap,
+              handicapOverride: p.handicapOverride,
+            })),
+            sideGames: lobby.sideGames,
+          });
+        })
+        .catch(() => {});
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- update is stable (Provider-scoped useCallback with [] deps)
+    }, [draft.matchId, draft.tournamentId]),
+  );
 
   const course = catalog.find((c) => c.id === draft.courseId);
   const combo = course?.combos.find((c) => c.id === draft.comboId);

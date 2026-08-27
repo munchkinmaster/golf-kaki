@@ -109,7 +109,12 @@ export async function createTournament(params: CreateTournamentParams): Promise<
 
     if (!error) {
       const tournamentId = (data as { id: string }).id;
-      const matchId = await createTournamentMatch(tournamentId, params);
+      // Pass the CODE THAT ACTUALLY GOT INSERTED, not params.tournamentCode —
+      // a collision retry above reassigns the local `code` var to a fresh
+      // value, but params (the caller's original argument) never sees that
+      // update, so using params.tournamentCode here could mint a match_code
+      // that doesn't match the tournament players were actually invited to.
+      const matchId = await createTournamentMatch(tournamentId, code, params);
       return { tournamentId, matchId, tournamentCode: code };
     }
 
@@ -129,7 +134,7 @@ export async function createTournament(params: CreateTournamentParams): Promise<
   throw new Error('Could not create tournament — please try again.');
 }
 
-async function createTournamentMatch(tournamentId: string, params: CreateTournamentParams): Promise<string> {
+async function createTournamentMatch(tournamentId: string, tournamentCode: string, params: CreateTournamentParams): Promise<string> {
   return withRetry(async () => {
     const gameSettings: SideGameSettings = { sideGames: params.sideGames };
     // Skins participation lives on match_players.skins_opt_in, not in this
@@ -161,6 +166,12 @@ async function createTournamentMatch(tournamentId: string, params: CreateTournam
         golfer_count: params.players.length,
         tournament_id: tournamentId,
         game_settings: gameSettings,
+        // Mirrors tournaments.tournament_code — findMatchByCode/joinMatchByCode
+        // (JoinGameScreen) only ever look up matches.match_code, so without this
+        // the match would get column's own random default (generate_match_code()),
+        // completely unrelated to the code actually shown/shared as the
+        // tournament's invite code, and "Join a game" would never find it.
+        match_code: tournamentCode,
       })
       .select('id')
       .single();
