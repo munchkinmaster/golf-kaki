@@ -207,54 +207,89 @@ export async function fetchHandicapRecordCount(playerId: string): Promise<number
 }
 
 /**
+ * The read-only half of a handicap recalc: works out this player's Score
+ * Differential for one finished 18-hole match, WITHOUT writing anything.
+ * Returns null wherever recalculateAndSaveHandicap would have silently
+ * no-op'd (not an eligible 18-hole finished match, player didn't actually
+ * play it, card isn't fully scored, or the course/combo has no rating data
+ * yet for the default tee) — same eligibility checks, just split out so a
+ * caller can compute a whole roster's differentials client-side (each
+ * player's own scores/ratings are all readable by any match participant —
+ * see `scores`' "Match participants can read scores" policy) and hand the
+ * results to a single privileged write, instead of every player having to
+ * write their own. See finishTournamentRoundAtomic in data/tournaments.ts,
+ * the first caller that needs this split.
+ */
+export async function computeDifferentialForPlayer(
+  playerId: string,
+  matchId: string,
+  opts: { requireFinished?: boolean } = {},
+): Promise<number | null> {
+  const requireFinished = opts.requireFinished ?? true;
+  const match = await fetchMatchForHandicap(matchId);
+  if (!match || match.holesToPlay !== 18) return null;
+  // finishTournamentRoundAtomic calls this WHILE finishing the round — the
+  // match's own status field hasn't flipped to 'finished' in the DB yet at
+  // that point, so it passes requireFinished:false rather than racing the
+  // write. Every other caller (the self-scoped recalcs) still needs this
+  // check: they can run at any time and must not fire for a still-live round.
+  if (requireFinished && (match.status !== 'finished' || !match.finishedAt)) return null;
+
+  const seated = await isPlayerSeated(matchId, playerId);
+  if (!seated) return null;
+
+  const scores = await fetchScores(matchId);
+  // Full-completeness check only (does this player have all 18 hole numbers
+  // scored, regardless of what order they played them in) — identity play
+  // order is fine here since a fully-scored round yields thru=18 either way.
+  if (computeThru([playerId], scores, buildPlayOrder(1)) !== 18) return null;
+
+  const catalog = await fetchCourseCatalog();
+  const course = catalog.find((c) => c.id === match.courseId);
+  if (!course) return null;
+  const comboHoles = getComboHoles(course, match.comboId);
+  if (comboHoles.length !== 18) return null;
+
+  const rating = await fetchComboRating(match.courseId, match.comboId, DEFAULT_TEE_COLOR);
+  if (!rating) return null;
+
+  const priorIndex = await fetchCurrentHandicap(playerId);
+  const coursePar = comboHoles.reduce((sum, h) => sum + h.par, 0);
+  const courseHandicap = priorIndex !== null ? computeCourseHandicap(priorIndex, rating.slopeRating, rating.courseRating, coursePar) : null;
+
+  const grossByHoleN: Record<number, number> = {};
+  comboHoles.forEach((h) => {
+    grossByHoleN[h.n] = scores[playerId]![h.n]!;
+  });
+
+  const holes: SiHole[] = comboHoles.map((h) => ({ n: h.n, par: h.par, si: h.si }));
+  const adjustedGross = computeAdjustedGrossScore(holes, grossByHoleN, courseHandicap);
+  return computeScoreDifferential(adjustedGross, rating.courseRating, rating.slopeRating);
+}
+
+/**
  * Computes and stores this player's Score Differential for one finished
  * 18-hole match, then recomputes and writes their Handicap Index from their
- * full recent history. No-ops silently if the match isn't an eligible
- * 18-hole finished match, the player didn't actually play it, their card
- * isn't fully scored, or the course/combo has no rating data yet for the
- * default tee.
+ * full recent history. No-ops silently if computeDifferentialForPlayer
+ * returned null (see its doc for the eligibility checks) or the match has
+ * no finishedAt yet.
  *
  * Safe to call twice for the same match — the differential upsert ignores
  * the duplicate and the index recompute is idempotent — so both of this
  * function's call sites (the host's own recalc in useLiveRound's
  * finishRound, and every viewer's own recalc on RecapScreen mount) can fire
- * for the same player without double-counting.
+ * for the same player without double-counting. Also safe to call for a
+ * round that finishTournamentRoundAtomic already recorded server-side —
+ * same idempotent upsert, so a player revisiting an old round is still a
+ * harmless no-op, not a double-count.
  */
 export async function recalculateAndSaveHandicap(playerId: string, matchId: string): Promise<void> {
   return withRetry(async () => {
+    const differential = await computeDifferentialForPlayer(playerId, matchId);
+    if (differential === null) return;
+
     const match = await fetchMatchForHandicap(matchId);
-    if (!match || match.status !== 'finished' || match.holesToPlay !== 18 || !match.finishedAt) return;
-
-    const seated = await isPlayerSeated(matchId, playerId);
-    if (!seated) return;
-
-    const scores = await fetchScores(matchId);
-    // Full-completeness check only (does this player have all 18 hole numbers
-    // scored, regardless of what order they played them in) — identity play
-    // order is fine here since a fully-scored round yields thru=18 either way.
-    if (computeThru([playerId], scores, buildPlayOrder(1)) !== 18) return;
-
-    const catalog = await fetchCourseCatalog();
-    const course = catalog.find((c) => c.id === match.courseId);
-    if (!course) return;
-    const comboHoles = getComboHoles(course, match.comboId);
-    if (comboHoles.length !== 18) return;
-
-    const rating = await fetchComboRating(match.courseId, match.comboId, DEFAULT_TEE_COLOR);
-    if (!rating) return;
-
-    const priorIndex = await fetchCurrentHandicap(playerId);
-    const coursePar = comboHoles.reduce((sum, h) => sum + h.par, 0);
-    const courseHandicap = priorIndex !== null ? computeCourseHandicap(priorIndex, rating.slopeRating, rating.courseRating, coursePar) : null;
-
-    const grossByHoleN: Record<number, number> = {};
-    comboHoles.forEach((h) => {
-      grossByHoleN[h.n] = scores[playerId]![h.n]!;
-    });
-
-    const holes: SiHole[] = comboHoles.map((h) => ({ n: h.n, par: h.par, si: h.si }));
-    const adjustedGross = computeAdjustedGrossScore(holes, grossByHoleN, courseHandicap);
-    const differential = computeScoreDifferential(adjustedGross, rating.courseRating, rating.slopeRating);
+    if (!match?.finishedAt) return;
 
     await upsertDifferential(playerId, matchId, differential, match.finishedAt);
 

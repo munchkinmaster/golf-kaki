@@ -21,6 +21,7 @@
  */
 
 import type { TeeColor } from './courses';
+import { computeDifferentialForPlayer } from './handicap';
 import { generateMatchCodePreview } from './matches';
 import type { MatchStatus } from './matches';
 import type { SideGameSettings, SkinsConfig } from './skins';
@@ -250,19 +251,53 @@ export async function setSkinsParticipant(matchId: string, playerId: string, opt
 }
 
 /**
- * Flips a tournament round to finished — a plain status update, NOT the
- * pairwise finish_match RPC Kaki Match Play uses (that RPC settles pairwise
- * StrokeDeals into kaki_relationships; a tournament's Skins pot is a 3+
- * player zero-sum side pot with no pairwise-deal shape, and per product
- * decision stays display-only — see skins.ts's computeSkinsStandings'
- * netDollars, rendered on S10 but never written to the ledger). Host-only
- * via the same matches UPDATE RLS every other round-settings edit in this
- * codebase rides. Idempotent — retrying just re-sets the same status/timestamp,
- * mirroring data/matches.ts's startMatch.
+ * Flips a tournament round to finished AND records every eligible player's
+ * handicap differential in the same server-side transaction, via the
+ * finish_tournament_round() RPC (20260827130000_atomic_finish_tournament_round.sql)
+ * — the tournament-flow sibling of Kaki Match Play's finish_match. Skins'
+ * pot still stays display-only (per product decision — see
+ * skins.ts's computeSkinsStandings' netDollars, rendered on S10 but never
+ * written to a ledger); this only closes the handicap gap.
+ *
+ * Previously a plain matches.status update, which meant a player's
+ * differential only ever got written by THEIR OWN client, self-scoped, the
+ * next time they personally opened a screen for that round
+ * (recalculateAndSaveHandicap) — silently never, if they never did. Now the
+ * finishing host's client computes every seated player's differential
+ * client-side (their scores/course/rating data are all readable by any
+ * match participant) and the RPC writes the whole roster's rows — and
+ * recomputes each affected player's Handicap Index — atomically. The
+ * self-scoped recalc on each of the 5 tournament screens (useTournamentRound)
+ * stays in place too, as a harmless idempotent backstop, not the primary path.
+ *
+ * Host-only via the RPC's own auth.uid() check (security definer, so RLS on
+ * matches/handicap_differentials/profiles doesn't gate this — see the
+ * migration's comment). Idempotent — retrying just re-sets the same
+ * status/timestamp and no-ops the differential upserts on conflict.
  */
 export async function finishTournamentRound(matchId: string): Promise<void> {
   return withRetry(async () => {
-    const { error } = await supabase.from('matches').update({ status: 'finished', finished_at: new Date().toISOString() }).eq('id', matchId);
+    const { data: seatedRows, error: seatedError } = await supabase
+      .from('match_players')
+      .select('player_id')
+      .eq('match_id', matchId)
+      .eq('status', 'joined');
+    if (seatedError) throw seatedError;
+    const playerIds = (seatedRows as { player_id: string }[]).map((r) => r.player_id);
+
+    // requireFinished:false — this runs WHILE finishing the round, before
+    // matches.status has flipped in the DB, so the usual "only recalc an
+    // already-finished match" gate would wrongly reject every player here.
+    const differentials = (
+      await Promise.all(
+        playerIds.map(async (playerId) => {
+          const differential = await computeDifferentialForPlayer(playerId, matchId, { requireFinished: false });
+          return differential === null ? null : { player_id: playerId, differential };
+        }),
+      )
+    ).filter((d): d is { player_id: string; differential: number } => d !== null);
+
+    const { error } = await supabase.rpc('finish_tournament_round', { p_match_id: matchId, p_differentials: differentials });
     if (error) throw error;
   });
 }
