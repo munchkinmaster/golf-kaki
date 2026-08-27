@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { BottomSheet } from '../components/BottomSheet';
 import { Button } from '../components/Button';
+import { StablefordPointsCard } from '../components/StablefordPointsCard';
 import { System36RuleCards } from '../components/System36RuleCards';
 import { TournamentLockedNotice } from '../components/TournamentLockedNotice';
 import { TournamentWizardHeader } from '../components/TournamentWizardHeader';
@@ -18,14 +19,14 @@ import { colors, getFontFamily, palette, radius, screenGutter, spacing } from '.
 type Props = NativeStackScreenProps<TournamentStackParamList, 'TournamentFormat'>;
 
 /**
- * The three scoring formats on S1/SY1, in display order. Only 'stroke_play'
- * and 'system_36' are buildable today — 'stableford' stays a SOON card (its
- * SY-equivalent flow isn't a scoped handoff yet). `description` copy matches
- * the SY1 format-card mock verbatim.
+ * The three scoring formats on S1/SY1/SB1, in display order. All three are
+ * buildable now that design_handoff_stableford_flow/README.md scoped
+ * Stableford's flow. `description` copy matches the SY1/SB1 format-card
+ * mocks verbatim.
  */
 const FORMAT_CARDS: { format: TournamentFormat; icon: typeof Hash; name: string; description: string; selectable: boolean }[] = [
   { format: 'stroke_play', icon: Hash, name: 'Stroke play (medal)', description: 'Count every stroke — lowest total wins', selectable: true },
-  { format: 'stableford', icon: ListChecks, name: 'Stableford', description: 'Points per hole — best total wins', selectable: false },
+  { format: 'stableford', icon: ListChecks, name: 'Stableford', description: 'Points per hole — best total wins', selectable: true },
   { format: 'system_36', icon: Calculator, name: 'System 36', description: 'Handicap worked out from the round itself', selectable: true },
 ];
 
@@ -130,6 +131,8 @@ export function TournamentFormatScreen({ navigation }: Props) {
               <System36RuleCards />
             </>
           ) : null}
+
+          {draft.format === 'stableford' ? <StablefordPointsCard /> : null}
 
           <View>
             <Text style={styles.fieldLabel}>Round structure</Text>
