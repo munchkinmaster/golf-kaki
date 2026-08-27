@@ -553,7 +553,24 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
                       })}
                     </View>
                   ))}
-                  {/* SUMMARY — Stableford points for this nine, the only footer row (Gross/Nett totals live in the tiles below, not a second in-grid row — see SB8's mock). */}
+                  {/* SUMMARY A — this nine's stroke total, following the same view family as the cells above (Nett once Points is active too, since points are nett-derived — same grouping System 36's own dual summary uses). */}
+                  <View style={[styles.tRow, styles.tSummaryRow]}>
+                    <Text style={styles.tSummaryLabel}>
+                      {sbView === 'gross' ? (nine === 'front' ? 'Out' : 'In') : nine === 'front' ? 'Nett out' : 'Nett in'}
+                    </Text>
+                    {roster.map((player) => {
+                      const val =
+                        sbView === 'gross'
+                          ? sumGross(player.id, rangeStart, rangeEnd)
+                          : sumNett(player.id, player.playingHandicap, rangeStart, rangeEnd);
+                      return (
+                        <Text key={player.id} style={styles.tSummaryCell}>
+                          {val}
+                        </Text>
+                      );
+                    })}
+                  </View>
+                  {/* SUMMARY B — Stableford points for this nine. */}
                   <View style={[styles.tRow, styles.tSummaryRow, styles.tSummaryRowLast]}>
                     <Text style={styles.tSummaryLabel}>PTS</Text>
                     {roster.map((player) => (
