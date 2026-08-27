@@ -142,6 +142,7 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
   const totalLabel = nine === 'front' ? 'OUT' : 'IN';
 
   const isSystem36 = round.scoringFormat === 'system_36';
+  const isStableford = round.scoringFormat === 'stableford';
 
   // Gap-tolerant totals: sum over the holes a player has ACTUALLY entered, not
   // computeThru's consecutive-from-start prefix. A player can leave a hole
@@ -174,6 +175,10 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
   const viewerGross = viewerId ? sumGross(viewerId) : 0;
   const viewerNett = viewerId && viewer ? sumNett(viewerId, viewer.playingHandicap) : 0;
   const viewerToPar = viewerId ? viewerNett - sumPar(viewerId) : 0;
+  // Stableford points off the viewer's own (ordinary, upfront) Playing
+  // Handicap — reuses sumStbf exactly as-is (it already takes an arbitrary
+  // handicap; System 36 just happens to pass its derived one instead).
+  const viewerStablefordPts = viewerId && viewer ? sumStbf(viewerId, viewer.playingHandicap) : 0;
 
   // System 36 mid-round figures for the viewer (SY8): S36 points and the live
   // 36 − points handicap are true as of holes played; nett/Stableford stay
@@ -221,7 +226,11 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
             <View style={styles.headerTitleGroup}>
               <Text style={styles.headerTitle}>Scorecard</Text>
               <Text style={styles.headerSubtitle}>
-                {isSystem36 ? (s36Finished ? 'System 36 · final card' : 'System 36 · in progress') : `Stroke play · Nett ${round.handicapAllowancePct}%`}
+                {isSystem36
+                  ? s36Finished
+                    ? 'System 36 · final card'
+                    : 'System 36 · in progress'
+                  : `${isStableford ? 'Stableford' : 'Stroke play'} · Nett ${round.handicapAllowancePct}%`}
               </Text>
             </View>
             <View style={styles.headerActions}>
@@ -580,10 +589,17 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
               <Text style={[styles.totalTileLabel, statMode === 'nett' && styles.totalTileLabelInverse]}>Nett</Text>
               <Text style={[styles.totalTileValue, statMode === 'nett' && styles.totalTileValueInverse]}>{viewerNett}</Text>
             </Pressable>
-            <View style={styles.totalTile}>
-              <Text style={styles.totalTileLabel}>To par</Text>
-              <Text style={styles.totalTileValue}>{viewerToPar === 0 ? 'E' : viewerToPar > 0 ? `+${viewerToPar}` : viewerToPar}</Text>
-            </View>
+            {isStableford ? (
+              <View style={[styles.totalTile, styles.totalTileActive]}>
+                <Text style={[styles.totalTileLabel, styles.totalTileLabelInverse]}>Points</Text>
+                <Text style={[styles.totalTileValue, styles.totalTileValueInverse]}>{viewerStablefordPts}</Text>
+              </View>
+            ) : (
+              <View style={styles.totalTile}>
+                <Text style={styles.totalTileLabel}>To par</Text>
+                <Text style={styles.totalTileValue}>{viewerToPar === 0 ? 'E' : viewerToPar > 0 ? `+${viewerToPar}` : viewerToPar}</Text>
+              </View>
+            )}
           </View>
 
           {/* LEGEND */}
