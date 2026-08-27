@@ -101,6 +101,7 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
   const invitedPlayers = draft.players.filter((p) => p.status === 'invited');
 
   const isSystem36 = draft.format === 'system_36';
+  const isStableford = draft.format === 'stableford';
   const holeCount = course && combo ? getComboHoles(course, combo.id).length : 18;
   const tieBreakLabel = draft.tieBreakRule === 'countback' ? 'Back-9 countback' : 'Shared place';
   // No scheduled-time field exists on the draft (a round starts the moment
@@ -176,10 +177,7 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
           name: draft.name,
           playAs: draft.playAs,
           roundStructure: draft.roundStructure,
-          // draft.format also allows 'stableford' (not yet buildable/selectable
-          // on S1) — narrow anything but 'system_36' to 'stroke_play' rather
-          // than let that value reach the scoring_format check constraint.
-          scoringFormat: draft.format === 'system_36' ? 'system_36' : 'stroke_play',
+          scoringFormat: draft.format,
           standingsBasis: draft.standingsBasis,
           handicapAllowancePct: draft.handicapAllowancePct,
           tieBreakRule: draft.tieBreakRule,
@@ -263,7 +261,9 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
               </Pressable>
               <View style={styles.headerTitleGroup}>
                 <Text style={styles.headerTitle}>{draft.name}</Text>
-                <Text style={styles.headerSubtitle}>Stroke play · Nett {draft.handicapAllowancePct}%</Text>
+                <Text style={styles.headerSubtitle}>
+                {isStableford ? 'Stableford' : 'Stroke play'} · Nett {draft.handicapAllowancePct}%
+              </Text>
               </View>
               <View style={styles.settingsButton}>
                 <Settings2 size={16} color={palette.white} />
@@ -454,7 +454,9 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
             <View style={styles.rulesCard}>
               <View style={styles.rulesRow}>
                 <Text style={styles.rulesRowLabel}>Format</Text>
-                <Text style={styles.rulesRowValue}>Stroke play · Nett {draft.handicapAllowancePct}%</Text>
+                <Text style={styles.rulesRowValue}>
+                  {isStableford ? 'Stableford' : 'Stroke play'} · Nett {draft.handicapAllowancePct}%
+                </Text>
               </View>
               {skins ? (
                 <View style={styles.rulesRow}>

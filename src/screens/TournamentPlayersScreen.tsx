@@ -183,10 +183,7 @@ export function TournamentPlayersScreen({ navigation }: Props) {
           name: draft.name,
           playAs: draft.playAs,
           roundStructure: draft.roundStructure,
-          // draft.format also allows 'stableford' (not yet buildable/selectable
-          // on S1) — narrow anything but 'system_36' to 'stroke_play' rather
-          // than let that value reach the scoring_format check constraint.
-          scoringFormat: draft.format === 'system_36' ? 'system_36' : 'stroke_play',
+          scoringFormat: draft.format,
           standingsBasis: draft.standingsBasis,
           handicapAllowancePct: draft.handicapAllowancePct,
           tieBreakRule: draft.tieBreakRule,

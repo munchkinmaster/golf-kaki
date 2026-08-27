@@ -245,6 +245,7 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
 
   const skins = lobby.sideGames.find((g) => g.type === 'skins');
   const isSystem36 = lobby.scoringFormat === 'system_36';
+  const isStableford = lobby.scoringFormat === 'stableford';
   const holeCount = course && combo ? getComboHoles(course, combo.id).length : 18;
   const tieBreakLabel = lobby.tieBreakRule === 'countback' ? 'Back-9 countback' : 'Shared place';
   const joinedPlayers = lobby.players.filter((p) => p.status === 'joined');
@@ -275,7 +276,9 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
             </Pressable>
             <View style={styles.headerTitleGroup}>
               <Text style={styles.headerTitle}>{lobby.name}</Text>
-              <Text style={styles.headerSubtitle}>{isSystem36 ? 'System 36 · Individual' : `Stroke play · Nett ${lobby.handicapAllowancePct}%`}</Text>
+              <Text style={styles.headerSubtitle}>
+                {isSystem36 ? 'System 36 · Individual' : `${isStableford ? 'Stableford' : 'Stroke play'} · Nett ${lobby.handicapAllowancePct}%`}
+              </Text>
             </View>
             <View style={styles.statusPill}>
               {isLive ? <View style={styles.statusDot} /> : null}
@@ -366,6 +369,34 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
               <View style={styles.noteCard}>
                 <Info size={14} color={colors.primary} style={styles.noteIcon} />
                 <Text style={styles.noteText}>Format is locked for this round. Handicaps are derived at the end, then Stableford points are settled.</Text>
+              </View>
+            </View>
+          ) : null}
+
+          {isStableford ? (
+            <View>
+              <Text style={styles.sectionLabel}>Format &amp; rules</Text>
+              <View style={styles.detailCard}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailKey}>Format</Text>
+                  <Text style={styles.detailValue}>Stableford · Nett {lobby.handicapAllowancePct}%</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailKey}>Winner</Text>
+                  <Text style={styles.detailValue}>Most points wins</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailKey}>Tie-break</Text>
+                  <Text style={styles.detailValue}>{tieBreakLabel}</Text>
+                </View>
+                <View style={[styles.detailRow, styles.detailRowLast]}>
+                  <Text style={styles.detailKey}>Scoring</Text>
+                  <Text style={styles.detailValue}>All {lobby.players.length} players enter own</Text>
+                </View>
+              </View>
+              <View style={styles.noteCard}>
+                <Info size={14} color={colors.primary} style={styles.noteIcon} />
+                <Text style={styles.noteText}>Handicaps and format lock once the round starts. Points are scored off each player's nett par.</Text>
               </View>
             </View>
           ) : null}

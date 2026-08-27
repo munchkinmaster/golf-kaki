@@ -32,12 +32,13 @@ export type TournamentRoundStructure = 'single' | 'multi';
 export type TournamentStandingsBasis = 'nett' | 'gross' | 'both';
 export type TournamentTieBreakRule = 'countback' | 'shared_place';
 /**
- * Mirrors tournaments.scoring_format (20260824120000_tournament_system36_format.sql).
- * Narrower than TournamentDraftContext's TournamentFormat ('stableford' isn't
- * a buildable/persistable value yet — S1 doesn't let it be selected) so a
- * draft.format has to be narrowed to this at the createTournament call site.
+ * Mirrors tournaments.scoring_format (widened to include 'stableford' by
+ * 20260827120000_tournament_stableford_format.sql). Now the SAME set of
+ * values as TournamentDraftContext's TournamentFormat, so draft.format can
+ * be passed straight through at the createTournament call site with no
+ * narrowing.
  */
-export type TournamentScoringFormat = 'stroke_play' | 'system_36';
+export type TournamentScoringFormat = 'stroke_play' | 'system_36' | 'stableford';
 
 export { generateMatchCodePreview as generateTournamentCodePreview };
 
