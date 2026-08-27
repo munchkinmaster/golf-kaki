@@ -11,6 +11,7 @@ import type { InRoundTab } from '../components/InRoundTabBar';
 import { SkinsHoleCell } from '../components/SkinsHoleCell';
 import { computeThru } from '../data/round';
 import { computeSkinsStandings, resolveSkinsHoles } from '../data/skins';
+import { computeStablefordStandings } from '../data/stableford';
 import { computeTournamentStandings, parTotal } from '../data/strokePlay';
 import { computeSystem36Standings } from '../data/system36';
 import { finishTournamentRound } from '../data/tournaments';
@@ -88,10 +89,29 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
   const viewerS36 = s36Standings.find((r) => r.playerId === viewerId);
   const s36Winner = s36Standings.find((r) => r.rank === 1);
 
+  // Stableford ranks by points off the player's own (ordinary, upfront)
+  // Playing Handicap — no derived-handicap settlement like System 36, so it
+  // reads standings the same "always available" way stroke play's do.
+  const isStableford = round.scoringFormat === 'stableford';
+  const stablefordStandings = isStableford
+    ? computeStablefordStandings(rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, round.tieBreakRule)
+    : [];
+  const viewerStableford = stablefordStandings.find((r) => r.playerId === viewerId);
+  const stablefordWinner = stablefordStandings.find((r) => r.rank === 1);
+  // "To HCP" — points above/below the 36-over-18 mark that plays exactly to
+  // handicap (per SB3's target callout).
+  const viewerToHcp = viewerStableford ? viewerStableford.points - 36 : 0;
+
   const roundComplete = holes.length > 0 && thru === holes.length;
   const isFinished = matchStatus === 'finished';
 
   const bestGrossRow = standings.filter((r) => r.thru > 0).reduce<(typeof standings)[number] | null>((best, r) => (!best || r.gross < best.gross ? r : best), null);
+  const stablefordBestGrossRow = stablefordStandings
+    .filter((r) => r.thru > 0)
+    .reduce<(typeof stablefordStandings)[number] | null>((best, r) => (!best || r.gross < best.gross ? r : best), null);
+  // Best-gross strip reads from whichever standings this format actually
+  // ranked — same {playerId, gross, thru} shape either way.
+  const displayBestGrossRow = isStableford ? stablefordBestGrossRow : bestGrossRow;
 
   const skinsConfig = sideGames.find((g) => g.type === 'skins');
   const skinsResults = skinsConfig ? resolveSkinsHoles(skinsConfig, scores, holes, playingHandicaps, playOrder) : [];
@@ -135,7 +155,9 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
           </View>
           <Text style={styles.heroTitle}>{round.matchName}</Text>
           <Text style={styles.heroSubtitle}>
-            {isSystem36 ? `System 36 · ${holes.length} holes` : `Stroke play · Nett ${round.handicapAllowancePct}% · ${holes.length} holes`}
+            {isSystem36
+              ? `System 36 · ${holes.length} holes`
+              : `${isStableford ? 'Stableford' : 'Stroke play'} · Nett ${round.handicapAllowancePct}% · ${holes.length} holes`}
           </Text>
           {isSystem36 ? (
             <View style={styles.heroStatsRow}>
@@ -154,6 +176,21 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
               <View style={[styles.heroTile, styles.heroTileStbf]}>
                 <Text style={styles.heroTileLabelStbf}>Stbf</Text>
                 <Text style={styles.heroTileValue}>{viewerS36?.stableford ?? 0}</Text>
+              </View>
+            </View>
+          ) : isStableford ? (
+            <View style={styles.heroStatsRow}>
+              <View style={styles.heroTile}>
+                <Text style={styles.heroTileLabel}>Gross</Text>
+                <Text style={styles.heroTileValue}>{viewerStableford?.gross ?? 0}</Text>
+              </View>
+              <View style={[styles.heroTile, styles.heroTileStbf]}>
+                <Text style={styles.heroTileLabelStbf}>Points</Text>
+                <Text style={styles.heroTileValue}>{viewerStableford?.points ?? 0}</Text>
+              </View>
+              <View style={styles.heroTile}>
+                <Text style={styles.heroTileLabel}>To HCP</Text>
+                <Text style={[styles.heroTileValue, styles.heroTileValueToPar]}>{viewerStableford && viewerStableford.thru > 0 ? toParLabel(viewerToHcp) : '–'}</Text>
               </View>
             </View>
           ) : (
@@ -220,6 +257,26 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                     </Card>
                   </>
                 ) : null
+              ) : isStableford ? (
+                viewerStableford ? (
+                  <View style={styles.finishedCard}>
+                    <View style={styles.finishedIconTile}>
+                      <Trophy size={20} color={colors.accent} />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.finishedTitle}>
+                        You finished {ordinal(viewerStableford.rank)} · {viewerStableford.points} pts
+                      </Text>
+                      <Text style={styles.finishedSubtitle}>
+                        {viewerStableford.rank === 1
+                          ? 'Top of the board — nicely played.'
+                          : stablefordWinner
+                            ? `${roster.find((p) => p.id === stablefordWinner.playerId)?.name.split(' ')[0]} took it with ${stablefordWinner.points} pts.`
+                            : 'Nice round out there.'}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null
               ) : viewerRow ? (
                 <View style={styles.finishedCard}>
                   <View style={styles.finishedIconTile}>
@@ -234,7 +291,7 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
 
               <View>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionLabel}>Final standings · {isSystem36 ? 'Stableford' : 'nett'}</Text>
+                  <Text style={styles.sectionLabel}>Final standings · {isSystem36 ? 'Stableford' : isStableford ? 'points' : 'nett'}</Text>
                   <Text style={styles.sectionCaption}>{roster.length} players</Text>
                 </View>
                 {isSystem36 ? (
@@ -281,6 +338,53 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                       );
                     })}
                   </View>
+                ) : isStableford ? (
+                <View style={styles.tableCard}>
+                  <View style={styles.tableHeaderRow}>
+                    <View style={styles.tableHeaderPosCell}>
+                      <Text style={[styles.tableHeaderLabel, { width: POS_COL_WIDTH }]}>Pos</Text>
+                      <Text style={styles.tableHeaderLabel}>Player</Text>
+                    </View>
+                    <Text style={[styles.tableHeaderLabel, styles.tableStatHeaderCell]}>Gross</Text>
+                    <Text style={[styles.tableHeaderLabel, styles.tableStatHeaderCell]}>Nett</Text>
+                    <Text style={[styles.tableHeaderLabel, styles.tableStatHeaderCell, styles.tableTotalHeaderCell]}>Points</Text>
+                  </View>
+                  {stablefordStandings.map((row) => {
+                    const player = roster.find((p) => p.id === row.playerId);
+                    if (!player) return null;
+                    const isYou = row.playerId === viewerId;
+                    const isLeader = row.rank === 1;
+                    const rowBg = isLeader ? LEADER_GOLD_BG : isYou ? colors.surfaceBrandSoft : colors.surfaceCard;
+                    return (
+                      <View key={row.playerId} style={[styles.tableRow, { backgroundColor: rowBg }]}>
+                        <View style={styles.tablePosCell}>
+                          <View style={styles.tableRankCol}>
+                            <Text style={[styles.tableRankText, isLeader && { color: LEADER_GOLD }, isYou && !isLeader && { color: colors.primary }]}>
+                              {row.rank}
+                            </Text>
+                            {isLeader ? <Crown size={12} color={LEADER_GOLD} /> : null}
+                          </View>
+                          <View style={[styles.tableAvatar, { backgroundColor: getSolidAvatarColor(roster.indexOf(player)) }]}>
+                            <Text style={styles.tableAvatarLabel}>{player.name[0]?.toUpperCase()}</Text>
+                          </View>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text
+                              style={[styles.tableName, isLeader && { color: LEADER_GOLD }, isYou && !isLeader && { color: colors.primary }]}
+                              numberOfLines={1}
+                            >
+                              {player.name}
+                              {isYou ? ' (you)' : ''}
+                            </Text>
+                            <Text style={styles.tableHcp}>HCP {player.playingHandicap}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.tableStatCell}>{row.gross}</Text>
+                        <Text style={styles.tableStatCell}>{row.nett}</Text>
+                        <Text style={[styles.tableTotalCell, { color: colors.primary }]}>{row.thru > 0 ? row.points : '–'}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
                 ) : (
                 <View style={styles.tableCard}>
                   <View style={styles.tableHeaderRow}>
@@ -333,7 +437,7 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                 )}
               </View>
 
-              {!isSystem36 && bestGrossRow ? (
+              {!isSystem36 && displayBestGrossRow ? (
                 <Card variant="inverse" watermark watermarkSize={110} padding={spacing[3] + 1} style={styles.grossStrip}>
                   <View style={styles.grossIconTile}>
                     <Award size={19} color={colors.accent} />
@@ -341,8 +445,8 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.grossLabel}>Best gross</Text>
                     <Text style={styles.grossValue}>
-                      {roster.find((p) => p.id === bestGrossRow.playerId)?.name.split(' ')[0]} · {bestGrossRow.gross} (
-                      {toParLabel(bestGrossRow.gross - parTotal(bestGrossRow.thru, holes, playOrder))})
+                      {roster.find((p) => p.id === displayBestGrossRow.playerId)?.name.split(' ')[0]} · {displayBestGrossRow.gross} (
+                      {toParLabel(displayBestGrossRow.gross - parTotal(displayBestGrossRow.thru, holes, playOrder))})
                     </Text>
                   </View>
                 </Card>
