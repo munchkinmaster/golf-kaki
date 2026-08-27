@@ -492,6 +492,105 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
                 </Text>
               </View>
             </>
+          ) : isStableford ? (
+            <>
+              {/* TRANSPOSED GRID — holes as rows, players as columns (SB8),
+                  same layout System 36's SY8 uses. Unlike System 36 there's
+                  no points-view toggle: cells always show gross (per the
+                  handoff's "each score cell shows the gross number with dot
+                  markers"), and the single PTS summary row is Stableford
+                  points off the player's own ordinary Playing Handicap. */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tGridScrollContent}>
+                <View style={styles.tGridContent}>
+                  {/* HEADER */}
+                  <View style={[styles.tRow, styles.tHeaderRow]}>
+                    <Text style={[styles.tHeadCell, styles.tHCol]}>H</Text>
+                    <Text style={[styles.tHeadCell, styles.tParCol]}>Par</Text>
+                    <Text style={[styles.tHeadCell, styles.tSiCol]}>SI</Text>
+                    {roster.map((player, index) => {
+                      const isYou = player.id === viewerId;
+                      return (
+                        <View key={player.id} style={[styles.tPlayerHead, isYou && styles.tColYou, isYou && styles.tColYouTop]}>
+                          <View style={[styles.tPlayerAvatar, { backgroundColor: getSolidAvatarColor(index) }]}>
+                            <Text style={styles.tPlayerAvatarLabel}>{player.name[0]?.toUpperCase()}</Text>
+                          </View>
+                          <Text style={[styles.tPlayerName, isYou && styles.tPlayerNameYou]} numberOfLines={1}>
+                            {isYou ? 'You' : firstName(player.name)}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                  {/* HOLE ROWS */}
+                  {displayHoles.map((h, rowIdx) => (
+                    <View key={h.n} style={[styles.tRow, styles.tHoleRow, rowIdx === displayHoles.length - 1 && styles.tHoleRowLast]}>
+                      <Text style={[styles.tNumCell, styles.tHCol]}>{h.n}</Text>
+                      <Text style={[styles.tMetaCell, styles.tParCol]}>{h.par}</Text>
+                      <Text style={[styles.tMetaCell, styles.tSiCol]}>{h.si}</Text>
+                      {roster.map((player) => {
+                        const isYou = player.id === viewerId;
+                        const raw = scores[player.id]?.[h.n];
+                        const received = strokesReceivedOnHole(player.playingHandicap, h.si);
+                        return (
+                          <View key={player.id} style={[styles.tCellWrap, isYou && styles.tColYou]}>
+                            <ScoreCell value={raw} par={h.par} strokesReceived={received} size={28} />
+                          </View>
+                        );
+                      })}
+                    </View>
+                  ))}
+                  {/* SUMMARY — Stableford points for this nine, the only footer row (no toggleable stroke-total row — see the header comment). */}
+                  <View style={[styles.tRow, styles.tSummaryRow, styles.tSummaryRowLast]}>
+                    <Text style={styles.tSummaryLabel}>PTS</Text>
+                    {roster.map((player) => (
+                      <Text key={player.id} style={[styles.tSummaryCell, styles.tSummaryCellAccent]}>
+                        {sumStbf(player.id, player.playingHandicap, rangeStart, rangeEnd)}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              </ScrollView>
+
+              {/* YOUR TOTALS — passive (no view to toggle; the grid above is always gross) */}
+              <View style={styles.totalsRow}>
+                <View style={styles.totalTile}>
+                  <Text style={styles.totalTileLabel}>Gross</Text>
+                  <Text style={styles.totalTileValue}>{viewerGross}</Text>
+                </View>
+                <View style={styles.totalTile}>
+                  <Text style={styles.totalTileLabel}>Nett</Text>
+                  <Text style={styles.totalTileValue}>{viewerNett}</Text>
+                </View>
+                <View style={[styles.totalTile, styles.totalTileActive]}>
+                  <Text style={[styles.totalTileLabel, styles.totalTileLabelInverse]}>Points</Text>
+                  <Text style={[styles.totalTileValue, styles.totalTileValueInverse]}>{viewerStablefordPts}</Text>
+                </View>
+              </View>
+
+              {/* LEGEND — same 4-shape vocabulary ScoreCell uses everywhere else in the app (it doesn't distinguish eagle from birdie, same simplification as System 36's own SY8 legend). */}
+              <View style={styles.legendRow}>
+                <View style={styles.legendItem}>
+                  <View style={styles.legendCircle} />
+                  <Text style={styles.legendText}>Birdie+</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={styles.legendParDot} />
+                  <Text style={styles.legendText}>Par</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={styles.legendSquareBogey} />
+                  <Text style={styles.legendText}>Bogey</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={styles.legendSquareDouble} />
+                  <Text style={styles.legendText}>Double+</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={styles.legendDot} />
+                  <Text style={styles.legendText}>Handicap stroke</Text>
+                </View>
+              </View>
+            </>
           ) : (
             <>
           {/* minWidth:'100%' on the scroller's own content + flexGrow on the row
@@ -589,17 +688,10 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
               <Text style={[styles.totalTileLabel, statMode === 'nett' && styles.totalTileLabelInverse]}>Nett</Text>
               <Text style={[styles.totalTileValue, statMode === 'nett' && styles.totalTileValueInverse]}>{viewerNett}</Text>
             </Pressable>
-            {isStableford ? (
-              <View style={[styles.totalTile, styles.totalTileActive]}>
-                <Text style={[styles.totalTileLabel, styles.totalTileLabelInverse]}>Points</Text>
-                <Text style={[styles.totalTileValue, styles.totalTileValueInverse]}>{viewerStablefordPts}</Text>
-              </View>
-            ) : (
-              <View style={styles.totalTile}>
-                <Text style={styles.totalTileLabel}>To par</Text>
-                <Text style={styles.totalTileValue}>{viewerToPar === 0 ? 'E' : viewerToPar > 0 ? `+${viewerToPar}` : viewerToPar}</Text>
-              </View>
-            )}
+            <View style={styles.totalTile}>
+              <Text style={styles.totalTileLabel}>To par</Text>
+              <Text style={styles.totalTileValue}>{viewerToPar === 0 ? 'E' : viewerToPar > 0 ? `+${viewerToPar}` : viewerToPar}</Text>
+            </View>
           </View>
 
           {/* LEGEND */}
