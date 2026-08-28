@@ -41,13 +41,18 @@ const DEFAULTS: Record<TeeColor, TeePresentation> = {
  *
  * The Els Club Teluk Datai: Black stays Black; blue→Silver, white→Copper,
  * red→Jade (dotBorder cleared since copper/silver read fine on their own).
+ * Same Els Club branding applies to the Desaru Ocean and Valley courses.
  */
+const ELS_CLUB_TEE_OVERRIDE: Partial<Record<TeeColor, Partial<TeePresentation>>> = {
+  blue: { label: 'Silver', dot: palette.tee.silver },
+  white: { label: 'Copper', dot: palette.tee.copper, dotBorder: undefined },
+  red: { label: 'Jade', dot: palette.tee.jade },
+};
+
 const COURSE_OVERRIDES: Record<string, Partial<Record<TeeColor, Partial<TeePresentation>>>> = {
-  'the-els-club-teluk-datai': {
-    blue: { label: 'Silver', dot: palette.tee.silver },
-    white: { label: 'Copper', dot: palette.tee.copper, dotBorder: undefined },
-    red: { label: 'Jade', dot: palette.tee.jade },
-  },
+  'the-els-club-teluk-datai': ELS_CLUB_TEE_OVERRIDE,
+  'the-els-club-desaru-ocean-course': ELS_CLUB_TEE_OVERRIDE,
+  'the-els-club-desaru-valley-course': ELS_CLUB_TEE_OVERRIDE,
 };
 
 /** Full presentation for one tee on one course (course id optional — falls back to the standard names/swatches). */
