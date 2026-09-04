@@ -15,7 +15,7 @@ import { colors, getFontFamily, palette, radius, shadows, spacing } from '../the
  * distinct — see the README's "The UI must never conflate them."
  */
 
-type Chip = { value: string; label: string; chip: (typeof palette.scoreChip)[keyof typeof palette.scoreChip] };
+export type Chip = { value: string; label: string; chip: (typeof palette.scoreChip)[keyof typeof palette.scoreChip] };
 
 const S36_POINT_CHIPS: Chip[] = [
   { value: '2', label: 'Par or better', chip: palette.scoreChip.par },
@@ -23,7 +23,12 @@ const S36_POINT_CHIPS: Chip[] = [
   { value: '0', label: 'Double+', chip: palette.scoreChip.double },
 ];
 
-const STABLEFORD_POINT_CHIPS: Chip[] = [
+// Exported so StablefordPointsCard.tsx (the SB1/SB3 points-per-hole
+// reference card in the Stableford tournament flow) can reuse this SAME
+// 6-value curve rather than a second copy that could drift — it's the
+// identical table this file already renders as the second of System 36's
+// two cards, just with different surrounding title/footer copy there.
+export const STABLEFORD_POINT_CHIPS: Chip[] = [
   { value: '5', label: 'Albatross', chip: palette.scoreChip.albatross },
   { value: '4', label: 'Eagle', chip: palette.scoreChip.eagle },
   { value: '3', label: 'Birdie', chip: palette.scoreChip.birdie },
@@ -61,7 +66,10 @@ export function System36RuleCards() {
   );
 }
 
-function RuleCard({
+// Exported so StablefordPointsCard.tsx can render the same card shell with
+// its own icon/title/footer — the visual piece (chip grid + footer row) has
+// no System-36-specific logic in it, only the two callers' copy differs.
+export function RuleCard({
   icon: Icon,
   title,
   chips,

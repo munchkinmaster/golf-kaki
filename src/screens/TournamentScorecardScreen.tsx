@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ArrowRight, Calculator, Check, ChevronLeft, ChevronRight, Coins, Lock, Minus, Plus, Repeat, Table2 } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -11,9 +11,12 @@ import { ScoreCell } from '../components/ScoreCell';
 import { strokesReceivedOnHole } from '../data/handicap';
 import { computeThru } from '../data/round';
 import { openHoleSkinsStake, resolveSkinsHoles } from '../data/skins';
+import { stablefordPointsForHole } from '../data/stableford';
 import { SCORE_CLASS_LABEL, classifyDiff, quickPickOptions } from '../data/strokePlay';
 import type { ScoreClass } from '../data/strokePlay';
 import { SYSTEM36_TOTAL_HOLES, s36Handicap, s36PointsForHole, stablefordTotal } from '../data/system36';
+import { confirmTournamentCard } from '../data/tournaments';
+import { useFinishRedirect } from '../hooks/useFinishRedirect';
 import { useTournamentRound } from '../hooks/useTournamentRound';
 import type { TournamentRoundPlayer } from '../hooks/useTournamentRound';
 import type { RootStackParamList } from '../navigation/types';
@@ -50,7 +53,13 @@ function initials(name: string): string {
 export function TournamentScorecardScreen({ navigation, route }: Props) {
   const { tournamentId, matchId } = route.params;
   const round = useTournamentRound(tournamentId, matchId);
-  const { loading, error, viewerId, roster, holes, playOrder, scores, gross, sideGames, canEditPlayer, adjustScore, setScore } = round;
+  const { loading, error, viewerId, roster, holes, playOrder, scores, gross, sideGames, canEditPlayer, adjustScore, setScore, matchStatus } = round;
+
+  useFinishRedirect(
+    matchStatus,
+    loading,
+    useCallback(() => navigation.navigate('TournamentFinish', { tournamentId, matchId }), [navigation, tournamentId, matchId]),
+  );
 
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [activeHoleN, setActiveHoleN] = useState<number | null>(null);
@@ -138,6 +147,7 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
 
   // ---- System 36 live figures (for the selected player) ----
   const isSystem36 = round.scoringFormat === 'system_36';
+  const isStableford = round.scoringFormat === 'stableford';
   // Gap-tolerant, same as the gross/nett tiles above: sum S36 points over
   // every entered hole, not just the consecutive prefix.
   const s36Pts = selectedPlayerId
@@ -162,6 +172,26 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
       })
     : [];
 
+  // ---- Stableford live figures (for the selected player) ----
+  // Unlike System 36, Stableford uses the player's ordinary (already-set)
+  // Playing Handicap, so points are derived from NETT the same hole they're
+  // played on — no "settled at 18" gate. Gap-tolerant, same convention as
+  // s36Pts/nettVal above: sums every entered hole, not just the prefix.
+  const stablefordPts =
+    selectedPlayerId && selectedPlayer
+      ? enteredHoleNs.reduce((sum, n) => {
+          const hole = holeByN.get(n);
+          if (!hole) return sum;
+          const nett = (scores[selectedPlayerId]![n] ?? 0) - strokesReceivedOnHole(selectedPlayer.playingHandicap, hole.si);
+          return sum + stablefordPointsForHole(nett, hole.par);
+        }, 0)
+      : 0;
+  // The gross currently in the stepper → its NETT score class and Stableford
+  // points, for the derived-points banner and the highlighted quick-pick chip.
+  const currentNett = currentValue - selectedReceived;
+  const currentNettClass: ScoreClass = activeHole ? classifyDiff(currentNett - activeHole.par) : 'par';
+  const currentStablefordPts = activeHole ? stablefordPointsForHole(currentNett, activeHole.par) : 0;
+
   function goHole(delta: number) {
     if (holePos < 0) return;
     const next = playOrder[Math.min(playOrder.length - 1, Math.max(0, holePos + delta))];
@@ -180,7 +210,11 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
     }
     // On the final hole there's no "next" — commit the score (above) and hand
     // off to the Finish/review step so an untouched par on 18 still saves.
+    // This tap IS "Save & review" (see the label below) — the one deliberate
+    // "I'm done" signal the Finish screen's Confirm scores list looks for,
+    // so it's recorded here rather than inferred from hole-completeness.
     if (holePos >= playOrder.length - 1) {
+      if (selectedPlayerId && canEditPlayer(selectedPlayerId)) confirmTournamentCard(matchId, selectedPlayerId).catch(() => {});
       navigation.navigate('TournamentFinish', { tournamentId, matchId });
     } else {
       goHole(1);
@@ -237,7 +271,9 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
             </Pressable>
             <View style={styles.headerTitleGroup}>
               <Text style={styles.headerTitle}>{round.matchName}</Text>
-              <Text style={styles.headerSubtitle}>{isSystem36 ? 'System 36 · no HCP entered' : `Stroke play · Nett ${round.handicapAllowancePct}%`}</Text>
+              <Text style={styles.headerSubtitle}>
+                {isSystem36 ? 'System 36 · no HCP entered' : `${isStableford ? 'Stableford' : 'Stroke play'} · Nett ${round.handicapAllowancePct}%`}
+              </Text>
             </View>
             <View style={styles.headerActions}>
               <Pressable style={styles.cardButton} onPress={() => navigation.navigate('TournamentScorecardGrid', { tournamentId, matchId })}>
@@ -347,6 +383,39 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
                   })}
                 </View>
               </>
+            ) : isStableford ? (
+              <>
+                <View style={[styles.s36DerivedCallout, { backgroundColor: palette.scoreChip[currentNettClass].fill, borderColor: palette.scoreChip[currentNettClass].border }]}>
+                  <Calculator size={15} color={palette.scoreChip[currentNettClass].text} />
+                  <Text style={styles.s36DerivedText}>
+                    Nett {SCORE_CLASS_LABEL[currentNettClass].toLowerCase()}
+                    {selectedReceived > 0 ? ` (${selectedReceived} stroke${selectedReceived > 1 ? 's' : ''} here)` : ''} =
+                  </Text>
+                  <Text style={[styles.s36DerivedPoints, { color: palette.scoreChip[currentNettClass].text }]}>
+                    {currentStablefordPts} pt{currentStablefordPts === 1 ? '' : 's'}
+                  </Text>
+                </View>
+                <View style={styles.chipRow}>
+                  {chips.map((chip) => {
+                    const selected = chip.grossValue === currentValue;
+                    const tier = palette.scoreChip[chip.scoreClass];
+                    const chipReceived = selectedReceived;
+                    const chipPts = stablefordPointsForHole(chip.grossValue - chipReceived, activeHole.par);
+                    return (
+                      <Pressable
+                        key={chip.scoreClass}
+                        style={[styles.chip, { backgroundColor: tier.fill, borderColor: tier.border }, selected && styles.s36ChipSelected]}
+                        onPress={() => handlePickChip(chip.grossValue)}
+                        disabled={!canEditPlayer(selectedPlayer.id)}
+                      >
+                        <Text style={[styles.s36ChipLabel, { color: tier.text }, selected && styles.s36ChipLabelSelected]}>
+                          {chip.grossValue} · {chipPts}pt
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
             ) : (
               <View style={styles.chipRow}>
                 {chips.map((chip) => {
@@ -397,6 +466,27 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
                 </Text>
               </View>
             </View>
+          ) : isStableford ? (
+            <View style={styles.totalsRow}>
+              <View style={[styles.totalTile, styles.totalTileNett]}>
+                <Text style={styles.totalTileLabelInverse}>Points</Text>
+                <Text style={styles.totalTileValueInverse}>{stablefordPts}</Text>
+              </View>
+              <View style={styles.totalTile}>
+                <Text style={styles.totalTileLabel}>Gross</Text>
+                <Text style={styles.totalTileValue}>{grossVal}</Text>
+              </View>
+              <View style={styles.totalTile}>
+                {/* "To par" — same nett-vs-par figure and +/positive-is-worse
+                    convention as the plain Stroke Play tile below, not the
+                    points-vs-pace number this used to show as "Pace": that
+                    read backwards next to every other to-par figure in the
+                    app (positive there meant AHEAD, i.e. better), and "to
+                    par" is the term golfers actually reach for. */}
+                <Text style={styles.totalTileLabel}>To par</Text>
+                <Text style={[styles.totalTileValue, toPar > 0 && styles.totalTileValueOver]}>{toPar > 0 ? `+${toPar}` : toPar}</Text>
+              </View>
+            </View>
           ) : (
             <View style={styles.totalsRow}>
               <View style={styles.totalTile}>
@@ -435,6 +525,7 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
                   grossValue={scores[player.id]?.[activeHole.n]}
                   editable={canEditPlayer(player.id)}
                   isSystem36={isSystem36}
+                  isStableford={isStableford}
                   onPress={() => setSelectedPlayerId(player.id)}
                 />
               ))}
@@ -496,6 +587,7 @@ function HoleRow({
   grossValue,
   editable,
   isSystem36,
+  isStableford,
   onPress,
 }: {
   player: TournamentRoundPlayer;
@@ -505,6 +597,7 @@ function HoleRow({
   grossValue: number | undefined;
   editable: boolean;
   isSystem36: boolean;
+  isStableford: boolean;
   onPress: () => void;
 }) {
   const entered = grossValue !== undefined;
@@ -513,13 +606,18 @@ function HoleRow({
   const nettClass = entered ? classifyDiff(grossValue - received - hole.par) : null;
 
   // System 36 applies no strokes during play, so the rail is purely gross →
-  // this hole's S36 points; stroke play shows the nett-adjusted notation.
+  // this hole's S36 points; Stableford shows the nett score-term first (it's
+  // what the points chip is actually derived from), then gross for context;
+  // plain stroke play shows the gross-term-led notation.
   const s36Pts = entered && isSystem36 ? s36PointsForHole(grossValue, hole.par) : 0;
+  const stablefordPts = entered && isStableford ? stablefordPointsForHole(grossValue - received, hole.par) : 0;
   const subtitle = !entered
     ? 'Waiting for score'
     : isSystem36
       ? `${SCORE_CLASS_LABEL[grossClass!]} · gross ${grossValue}`
-      : `${SCORE_CLASS_LABEL[grossClass!]} · nett ${SCORE_CLASS_LABEL[nettClass!].toLowerCase()}${isYou && received > 0 ? ` · ${received} stroke${received > 1 ? 's' : ''} here` : ''}`;
+      : isStableford
+        ? `${SCORE_CLASS_LABEL[nettClass!]} · gross ${grossValue}${isYou && received > 0 ? ` · ${received} stroke${received > 1 ? 's' : ''} here` : ''}`
+        : `${SCORE_CLASS_LABEL[grossClass!]} · nett ${SCORE_CLASS_LABEL[nettClass!].toLowerCase()}${isYou && received > 0 ? ` · ${received} stroke${received > 1 ? 's' : ''} here` : ''}`;
 
   return (
     <Pressable style={[styles.holeRow, !entered && styles.holeRowPending]} onPress={onPress} disabled={!editable}>
@@ -536,6 +634,7 @@ function HoleRow({
             styles.holeRowSubtitle,
             !entered && styles.holeRowSubtitlePending,
             entered && isSystem36 ? { color: CLASS_COLOR[grossClass!] } : null,
+            entered && isStableford ? { color: CLASS_COLOR[nettClass!] } : null,
           ]}
         >
           {subtitle}
@@ -545,6 +644,10 @@ function HoleRow({
         isSystem36 ? (
           <View style={[styles.s36PointPill, { backgroundColor: S36_POINT_CHIP[s36Pts].fill, borderColor: S36_POINT_CHIP[s36Pts].border }]}>
             <Text style={[styles.s36PointPillLabel, { color: S36_POINT_CHIP[s36Pts].text }]}>{s36Pts} pt</Text>
+          </View>
+        ) : isStableford ? (
+          <View style={[styles.s36PointPill, { backgroundColor: palette.scoreChip[nettClass!].fill, borderColor: palette.scoreChip[nettClass!].border }]}>
+            <Text style={[styles.s36PointPillLabel, { color: palette.scoreChip[nettClass!].text }]}>{stablefordPts} pt</Text>
           </View>
         ) : (
           <ScoreCell value={grossValue!} par={hole.par} strokesReceived={received} size={38} />

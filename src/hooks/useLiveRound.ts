@@ -1,10 +1,13 @@
 /**
  * The one live-round data source, called independently by each of the 5
  * live-round screens (Scorecard, Leaderboard, InGameLobby, Finish, Recap)
- * with their own `route.params.matchId` — mirrors MatchLobbyScreen's own
- * fetch-in-screen + realtime-channel pattern rather than a shared global
- * context, since a global context can't cleanly scope "one match's realtime
- * subscription" to just the screens currently showing that match.
+ * with their own `route.params.matchId`. Each hook instance keeps its own
+ * local state (so a screen's mutation functions can still do their own
+ * optimistic updates), but the actual network side — the realtime
+ * subscription and the fallback poll — is shared across every instance
+ * watching the same match via joinMatchSync (see lib/liveMatchSync.ts),
+ * which scopes "one match's subscription" to exactly the screens currently
+ * showing that match without needing a React context.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -22,9 +25,26 @@ import type { GrossMap, Hole, HoleScoreMap, RoundSchedule, StrokeDeal } from '..
 import { fetchScores, finishMatchAndSettleLedger, saveScore, upsertMatchupBackNine } from '../data/scores';
 import type { LedgerDeal } from '../data/scores';
 import { useAuth } from '../state/AuthContext';
-import { supabase } from '../lib/supabase';
+import { joinMatchSync } from '../lib/liveMatchSync';
 
 export type LiveRoundPlayer = MatchupEditorPlayer & { isHost: boolean };
+
+/** Everything a round's `load()` fetches, as one value — lets the fetch (shared across every screen watching this match, see liveMatchSync.ts) stay separate from applying it to any one screen's own state. */
+type RoundData = {
+  hostId: string | null;
+  matchCode: string;
+  matchStatus: MatchStatus;
+  finishedAt: string | null;
+  holesToPlay: 9 | 18;
+  strokesBasis: 9 | 18;
+  startHole: number;
+  stakePerHole: number;
+  roster: LiveRoundPlayer[];
+  holes: Hole[];
+  scores: HoleScoreMap;
+  matchupRows: MatchupPair[];
+  pairSettings: PairSetting[];
+};
 
 function seedPair(playerAId: string, playerBId: string, existing: MatchupPair | undefined, ledgerNet18: number): PairSetting {
   if (existing) return { playerAId, playerBId, strokes: Math.abs(existing.frontNineStrokes), aGives: existing.frontNineStrokes > 0 };
@@ -79,7 +99,7 @@ export function useLiveRound(matchId: string) {
   const playOrder = useMemo(() => buildPlayOrder(startHole).slice(0, holes.length), [startHole, holes.length]);
   const isHostViewer = hostId !== null && hostId === viewerId;
 
-  const load = useCallback(async () => {
+  const fetchRoundData = useCallback(async (): Promise<RoundData> => {
     const lobby = await fetchMatchLobby(matchId);
     const catalog = await fetchCourseCatalog();
     const course = catalog.find((c) => c.id === lobby.courseId);
@@ -100,76 +120,78 @@ export function useLiveRound(matchId: string) {
       return seedPair(a, b, existingByPair.get(key), ledger[key] ?? 0);
     });
 
-    setHostId(lobby.hostId);
-    setMatchCode(lobby.matchCode);
-    setMatchStatus(lobby.status);
-    setFinishedAt(lobby.finishedAt);
-    setHolesToPlay(lobby.holesToPlay);
-    setStrokesBasis(lobby.strokesBasis);
-    setStartHole(lobby.startHole);
-    setStakePerHole(lobby.stakePerHole);
-    setRoster(lobby.players.map((p) => ({ playerId: p.playerId, name: p.name, handicap: p.handicap, isHost: p.isHost })));
-    setHoles(nextHoles);
-    setScores(scoreMap);
-    setMatchupRows(matchups);
-    setPairSettings(nextPairSettings);
+    return {
+      hostId: lobby.hostId,
+      matchCode: lobby.matchCode,
+      matchStatus: lobby.status,
+      finishedAt: lobby.finishedAt,
+      holesToPlay: lobby.holesToPlay,
+      strokesBasis: lobby.strokesBasis,
+      startHole: lobby.startHole,
+      stakePerHole: lobby.stakePerHole,
+      roster: lobby.players.map((p) => ({ playerId: p.playerId, name: p.name, handicap: p.handicap, isHost: p.isHost })),
+      holes: nextHoles,
+      scores: scoreMap,
+      matchupRows: matchups,
+      pairSettings: nextPairSettings,
+    };
   }, [matchId]);
 
-  useEffect(() => {
-    load()
-      .catch((err) => setError(err instanceof Error ? err.message : "Couldn't load this round."))
-      .finally(() => setLoading(false));
-  }, [load]);
+  const applyRoundData = useCallback((data: RoundData) => {
+    setHostId(data.hostId);
+    setMatchCode(data.matchCode);
+    setMatchStatus(data.matchStatus);
+    setFinishedAt(data.finishedAt);
+    setHolesToPlay(data.holesToPlay);
+    setStrokesBasis(data.strokesBasis);
+    setStartHole(data.startHole);
+    setStakePerHole(data.stakePerHole);
+    setRoster(data.roster);
+    setHoles(data.holes);
+    setScores(data.scores);
+    setMatchupRows(data.matchupRows);
+    setPairSettings(data.pairSettings);
+  }, []);
 
-  // Realtime: another player's score entry, stroke edit, or the host finishing
-  // the round should show up without a manual refresh, mirroring
-  // MatchLobbyScreen's own debounced postgres_changes subscription.
+  const load = useCallback(async () => {
+    applyRoundData(await fetchRoundData());
+  }, [fetchRoundData, applyRoundData]);
+
+  // Realtime + fallback poll, shared across every screen currently watching
+  // this same match — see liveMatchSync.ts for the mechanics and why.
   //
   // Every live-round screen (Scorecard, Leaderboard, Lobby, Finish, Recap)
   // calls this hook independently, and React Navigation keeps earlier stack
-  // screens mounted underneath the current one — so two instances of this
-  // hook for the SAME match are routinely alive at once. Supabase reuses the
-  // channel object for an identical topic name, so a shared `round-${matchId}`
-  // topic meant the second mount's `.on(...)` calls landed on a channel the
-  // first mount had already subscribed, which throws. A per-mount suffix
-  // keeps every instance's channel independent.
-  const channelId = useRef(Math.random().toString(36).slice(2)).current;
+  // screens mounted underneath the current one — so several instances of
+  // this hook for the SAME match are routinely alive at once. This used to
+  // mean each instance opened its own realtime channel and ran its own 20s
+  // poll loop independently (one phone with 3 stack screens open = 3x the
+  // connections and 3x the reload traffic for identical data — a meaningful
+  // chunk of this project's egress). joinMatchSync collapses every instance
+  // down to one channel + one poll timer per match, ref-counted: the first
+  // instance to mount creates it, later ones just add a listener and get
+  // whatever's already loaded, and it only tears down once the last
+  // instance for this match unmounts.
   useEffect(() => {
-    let syncTimer: ReturnType<typeof setTimeout> | null = null;
-    const scheduleSync = () => {
-      if (syncTimer) clearTimeout(syncTimer);
-      syncTimer = setTimeout(() => {
-        load().catch(() => {});
-      }, 250);
-    };
-
-    const channel = supabase
-      .channel(`round-${matchId}-${channelId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'scores', filter: `match_id=eq.${matchId}` }, scheduleSync)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'game_matchups', filter: `match_id=eq.${matchId}` }, scheduleSync)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` }, scheduleSync)
-      .subscribe();
-
-    // postgres_changes isn't guaranteed delivery — a backgrounded tab or a
-    // brief websocket drop can silently miss an event (seen in practice: a
-    // client's mid-round back-9 re-strike value went stale and never
-    // recovered). This bounds how long any client can stay out of sync
-    // without the viewer having to notice and tap manual refresh themselves.
-    // 20s, not the original 6s — this is a rare-miss fallback, not the
-    // primary sync path (that's realtime, above), and every live-round
-    // screen runs its own copy of this loop with React Navigation keeping
-    // earlier stack screens mounted, so several can be ticking at once for
-    // the same match. 6s was a meaningful chunk of this project's egress.
-    const pollTimer = setInterval(() => {
-      load().catch(() => {});
-    }, 20000);
-
-    return () => {
-      if (syncTimer) clearTimeout(syncTimer);
-      clearInterval(pollTimer);
-      supabase.removeChannel(channel);
-    };
-  }, [matchId, load]);
+    return joinMatchSync(
+      `round-${matchId}`,
+      fetchRoundData,
+      [
+        { table: 'scores', filter: `match_id=eq.${matchId}` },
+        { table: 'game_matchups', filter: `match_id=eq.${matchId}` },
+        { table: 'matches', filter: `id=eq.${matchId}` },
+      ],
+      (data) => {
+        applyRoundData(data);
+        setError(null);
+        setLoading(false);
+      },
+      (err) => {
+        setError(err instanceof Error ? err.message : "Couldn't load this round.");
+        setLoading(false);
+      },
+    );
+  }, [matchId, fetchRoundData, applyRoundData]);
 
   const gross: GrossMap = useMemo(() => {
     const map: GrossMap = {};
@@ -184,11 +206,10 @@ export function useLiveRound(matchId: string) {
   const frontNineDeals = useMemo(() => pairSettingsToDeals(pairSettings), [pairSettings]);
   const backNineDeals = useMemo(() => buildBackNineDeals(rosterIds, matchupRows), [rosterIds, matchupRows]);
 
-  // The mid-round re-strike (18-hole/9-strokes-basis matches only): right at
-  // the turn (thru === 9, before anyone's back-9 card has a single hole on
-  // it), compute the back-9 deal and persist it for every pair this viewer
-  // can legally write (game_matchups RLS: either participant, or the host as
-  // admin override).
+  // The mid-round re-strike (18-hole/9-strokes-basis matches only): once the
+  // front 9 is complete (thru >= 9), compute the back-9 deal and persist it
+  // for every pair this viewer can legally write (game_matchups RLS: either
+  // participant, or the host as admin override).
   //
   // Filling all of a 4+ player roster's pairs usually takes more than one
   // client — each viewer only has write access to their own pairs (or all of
@@ -202,9 +223,22 @@ export function useLiveRound(matchId: string) {
   // depend on `matchupRows` directly: once every writable pair matches, the
   // diff is empty and the effect no-ops, so it can't loop forever chasing its
   // own `load()`.
+  //
+  // Deliberately `thru >= 9`, not `=== 9`: this used to only fire in the
+  // instant window between everyone finishing hole 9 and everyone finishing
+  // hole 10. If no client holding write access to some pair (that pair's own
+  // two players, or the host) had the round open in that exact window — e.g.
+  // off on the Leaderboard tab, or the app was briefly backgrounded — that
+  // pair's back_nine_strokes stayed null forever, and getFlags/dealsAndRankForHole
+  // falls back to zero strokes for the WHOLE match (not just that pair) for
+  // every hole from 10 on, until every pair resolves (round.ts's
+  // dealsAndRankForHole comment). `>= 9` lets any later client passing
+  // through — even mid-back-nine — catch and repair a still-missing pair;
+  // the diff-and-only-upsert-what-changed check above keeps this idempotent
+  // once every writable pair is already correct.
   useEffect(() => {
     if (schedule.holesToPlay !== 18 || schedule.strokesBasis !== 9) return;
-    if (thru !== 9) return;
+    if (thru < 9) return;
 
     const net = getBackNineNet(rosterIds, gross, frontNineDeals, holes, schedule);
     const rowByPair = new Map(matchupRows.map((m) => [pairKey(m.playerAId, m.playerBId), m]));
@@ -219,6 +253,14 @@ export function useLiveRound(matchId: string) {
   }, [schedule, thru, rosterIds, gross, frontNineDeals, holes, matchupRows, isHostViewer, viewerId, matchId, load]);
 
   function adjustScore(playerId: string, holeIndex: number, delta: number) {
+    // Mirrors scores' own RLS (20260827140000_lock_scores_after_finish.sql)
+    // — this hook had no editability guard at all before (ScorecardScreen's
+    // own canEdit() only ever checked host/self, never match status), so a
+    // player who lingered on the Scorecard after the host finished the round
+    // could keep tapping the stepper. The write would now just fail
+    // server-side; short-circuiting here avoids the optimistic local update
+    // flashing a "saved" score that never actually persists.
+    if (matchStatus === 'finished') return;
     const hole = holes[holeIndex];
     if (!hole) return;
     const current = scores[playerId]?.[hole.n] ?? hole.par;

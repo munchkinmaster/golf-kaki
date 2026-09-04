@@ -1,7 +1,8 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Clipboard from 'expo-clipboard';
+import { useFocusEffect } from '@react-navigation/native';
 import { ArrowRight, Check, ChevronDown, CircleCheckBig, Copy, Info, Minus, Pencil, Plus, Search, Share2, Trophy, User, X } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -15,13 +16,14 @@ import { fetchCourseCatalog, getComboHoles } from '../data/courses';
 import { TEE_COLORS, teePresentation } from '../data/tees';
 import { computeCourseHandicap, computePlayingHandicap, fetchComboRating } from '../data/handicap';
 import { fetchKakiOverview } from '../data/kaki';
-import { createTournament, inviteTournamentPlayer, removeTournamentPlayer, updateTournamentPlayerSeat } from '../data/tournaments';
+import { createTournament, fetchTournamentLobby, inviteTournamentPlayer, removeTournamentPlayer, updateTournamentPlayerSeat } from '../data/tournaments';
 import type { TournamentStackParamList } from '../navigation/types';
 import { useAuth } from '../state/AuthContext';
 import { useProfile } from '../state/ProfileContext';
 import type { TournamentPlayerDraft } from '../state/TournamentDraftContext';
 import { useTournamentDraft } from '../state/TournamentDraftContext';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
+import { supabase } from '../lib/supabase';
 
 type Props = NativeStackScreenProps<TournamentStackParamList, 'TournamentPlayers'>;
 
@@ -60,6 +62,74 @@ export function TournamentPlayersScreen({ navigation }: Props) {
       })
       .catch(() => setFriendsError(true));
   }, [viewerId]);
+
+  // Same reasoning as TournamentPreRoundScreen's identical effect: once the
+  // first invite has created the real tournament/match row, an invitee
+  // accepting (or joining by code, bypassing this screen's invite list
+  // entirely) on their own device never reaches this screen's local draft
+  // state on its own.
+  const loadLiveRoster = useCallback(() => {
+    if (!draft.matchId || !draft.tournamentId) return Promise.resolve();
+    return fetchTournamentLobby(draft.tournamentId)
+      .then((lobby) => {
+        update({
+          players: lobby.players.map((p) => ({
+            id: p.id,
+            name: p.name,
+            handicapIndex: p.handicapIndex,
+            isHost: p.isHost,
+            status: p.status,
+            tee: p.teeColor,
+            playingHandicap: p.playingHandicap,
+            handicapOverride: p.handicapOverride,
+          })),
+          sideGames: lobby.sideGames,
+        });
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- update is stable (Provider-scoped useCallback with [] deps)
+  }, [draft.matchId, draft.tournamentId]);
+
+  // Refetch on every focus (backing out and back in) — cheap and instant...
+  useFocusEffect(
+    useCallback(() => {
+      loadLiveRoster();
+    }, [loadLiveRoster]),
+  );
+
+  // ...but a host who just STAYS on this step waiting for people to accept
+  // never re-focuses at all, so focus alone left this screen frozen on
+  // whatever the roster looked like at mount forever — confirmed live: a
+  // host sitting here watched two different players join by code in other
+  // tabs and neither ever appeared. Every other live tournament screen
+  // (Lobby, Scorecard, Leaderboard) already covers this with a realtime
+  // channel + poll fallback; this is the one that was missing it.
+  const channelId = useRef(Math.random().toString(36).slice(2)).current;
+  useEffect(() => {
+    if (!draft.matchId) return;
+    let syncTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleSync = () => {
+      if (syncTimer) clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => {
+        loadLiveRoster();
+      }, 250);
+    };
+
+    const channel = supabase
+      .channel(`tournament-players-${draft.matchId}-${channelId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'match_players', filter: `match_id=eq.${draft.matchId}` }, scheduleSync)
+      .subscribe();
+
+    const pollTimer = setInterval(() => {
+      loadLiveRoster();
+    }, 20000);
+
+    return () => {
+      if (syncTimer) clearTimeout(syncTimer);
+      clearInterval(pollTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [draft.matchId, channelId, loadLiveRoster]);
 
   const course = catalog.find((c) => c.id === draft.courseId);
   const combo = course?.combos.find((c) => c.id === draft.comboId);
@@ -183,10 +253,7 @@ export function TournamentPlayersScreen({ navigation }: Props) {
           name: draft.name,
           playAs: draft.playAs,
           roundStructure: draft.roundStructure,
-          // draft.format also allows 'stableford' (not yet buildable/selectable
-          // on S1) — narrow anything but 'system_36' to 'stroke_play' rather
-          // than let that value reach the scoring_format check constraint.
-          scoringFormat: draft.format === 'system_36' ? 'system_36' : 'stroke_play',
+          scoringFormat: draft.format,
           standingsBasis: draft.standingsBasis,
           handicapAllowancePct: draft.handicapAllowancePct,
           tieBreakRule: draft.tieBreakRule,

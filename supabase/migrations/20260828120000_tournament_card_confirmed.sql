@@ -1,0 +1,19 @@
+-- The Finish screen's "Confirm scores" list previously approximated
+-- "confirmed" as "every hole has a stroke value" (computeThru reaching
+-- holes.length) — but that's just raw data completeness, not a deliberate
+-- signal from the player. Pre-finish, a card stays editable regardless, so
+-- treating "18 numbers are filled in" as "confirmed" overclaimed: a player
+-- could tap the hole-18 stepper (filling the last blank) and still be
+-- actively reviewing/adjusting other holes, with no intent to hand the card
+-- off yet. The host explicitly asked for the real signal instead: whether
+-- that player has tapped "Save & review" on hole 18 — TournamentScorecard-
+-- Screen's own terminal CTA, the one deliberate "I'm done" action that
+-- exists in this flow.
+--
+-- card_confirmed_at records exactly that moment. Nullable, no default (never
+-- confirmed until that tap happens) — already covered by match_players'
+-- existing "Players manage their own seat" (self) and "Host can update any
+-- player's seat in their match" policies, since confirming someone else's
+-- card rides the same self-or-host write boundary as editing their scores
+-- does (see canEditPlayer).
+alter table match_players add column card_confirmed_at timestamptz;

@@ -19,6 +19,7 @@ import { fetchCourseCatalog, getComboHoles } from '../data/courses';
 import { TEE_COLORS, teePresentation } from '../data/tees';
 import { computeCourseHandicap, computePlayingHandicap, fetchComboRating } from '../data/handicap';
 import { startMatch } from '../data/matches';
+import { useFinishRedirect } from '../hooks/useFinishRedirect';
 import type { TournamentLobby, TournamentLobbyPlayer, TournamentPlayerSeatPatch } from '../data/tournaments';
 import { fetchTournamentLobby, setSkinsParticipant, updateTournamentPlayerSeat } from '../data/tournaments';
 import type { RootStackParamList } from '../navigation/types';
@@ -167,6 +168,35 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
     };
   }, [matchId, channelId, load]);
 
+  // Previously the host's own "Start scoring" tap navigated THEM straight to
+  // S7, but everyone else just sat on the Lobby tab until they noticed the
+  // status pill flip to "THRU 0" and tapped "Continue scoring" themselves —
+  // the realtime channel above kept their view honest, it just never acted
+  // on it. wasLive tracks the edge (not-live -> live) so a joined player
+  // sitting here when the host starts gets pulled into the scorecard
+  // automatically, while someone who deliberately taps back to the Lobby
+  // tab mid-round (already live on mount) is left alone.
+  const wasLive = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (!lobby) return;
+    const nowLive = lobby.matchStatus !== 'lobby';
+    const justWentLive = wasLive.current === false && nowLive;
+    wasLive.current = nowLive;
+    if (!justWentLive) return;
+    const viewer = lobby.players.find((p) => p.id === viewerId);
+    if (viewer?.status !== 'joined') return;
+    navigation.navigate('TournamentScorecard', { tournamentId, matchId });
+  }, [lobby, viewerId, navigation, tournamentId, matchId]);
+
+  // Same gap, other end of the round: a joined player who's back on the
+  // Lobby tab (checking Format & rules, Skins) when the host finishes should
+  // land on the recap too, not be left reading "THRU 18" forever.
+  useFinishRedirect(
+    lobby?.matchStatus ?? 'lobby',
+    loading,
+    useCallback(() => navigation.navigate('TournamentFinish', { tournamentId, matchId }), [navigation, tournamentId, matchId]),
+  );
+
   async function copyCode() {
     if (!lobby) return;
     await Clipboard.setStringAsync(`GK-${lobby.tournamentCode}`);
@@ -245,6 +275,7 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
 
   const skins = lobby.sideGames.find((g) => g.type === 'skins');
   const isSystem36 = lobby.scoringFormat === 'system_36';
+  const isStableford = lobby.scoringFormat === 'stableford';
   const holeCount = course && combo ? getComboHoles(course, combo.id).length : 18;
   const tieBreakLabel = lobby.tieBreakRule === 'countback' ? 'Back-9 countback' : 'Shared place';
   const joinedPlayers = lobby.players.filter((p) => p.status === 'joined');
@@ -275,7 +306,9 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
             </Pressable>
             <View style={styles.headerTitleGroup}>
               <Text style={styles.headerTitle}>{lobby.name}</Text>
-              <Text style={styles.headerSubtitle}>{isSystem36 ? 'System 36 · Individual' : `Stroke play · Nett ${lobby.handicapAllowancePct}%`}</Text>
+              <Text style={styles.headerSubtitle}>
+                {isSystem36 ? 'System 36 · Individual' : `${isStableford ? 'Stableford' : 'Stroke play'} · Nett ${lobby.handicapAllowancePct}%`}
+              </Text>
             </View>
             <View style={styles.statusPill}>
               {isLive ? <View style={styles.statusDot} /> : null}
@@ -366,6 +399,34 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
               <View style={styles.noteCard}>
                 <Info size={14} color={colors.primary} style={styles.noteIcon} />
                 <Text style={styles.noteText}>Format is locked for this round. Handicaps are derived at the end, then Stableford points are settled.</Text>
+              </View>
+            </View>
+          ) : null}
+
+          {isStableford ? (
+            <View>
+              <Text style={styles.sectionLabel}>Format &amp; rules</Text>
+              <View style={styles.detailCard}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailKey}>Format</Text>
+                  <Text style={styles.detailValue}>Stableford · Nett {lobby.handicapAllowancePct}%</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailKey}>Winner</Text>
+                  <Text style={styles.detailValue}>Most points wins</Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailKey}>Tie-break</Text>
+                  <Text style={styles.detailValue}>{tieBreakLabel}</Text>
+                </View>
+                <View style={[styles.detailRow, styles.detailRowLast]}>
+                  <Text style={styles.detailKey}>Scoring</Text>
+                  <Text style={styles.detailValue}>All {lobby.players.length} players enter own</Text>
+                </View>
+              </View>
+              <View style={styles.noteCard}>
+                <Info size={14} color={colors.primary} style={styles.noteIcon} />
+                <Text style={styles.noteText}>Handicaps and format lock once the round starts. Points are scored off each player's nett par.</Text>
               </View>
             </View>
           ) : null}

@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ArrowRight, CircleSlash, GitCompare, Handshake, Info, ShieldCheck } from 'lucide-react-native';
+import { ArrowRight, CircleSlash, GitCompare, Handshake, Info, ShieldCheck, Target } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
@@ -9,12 +9,23 @@ import { StatusBar } from 'expo-status-bar';
 import { BottomSheet } from '../components/BottomSheet';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { STABLEFORD_POINT_CHIPS } from '../components/System36RuleCards';
 import { TournamentLockedNotice } from '../components/TournamentLockedNotice';
 import { TournamentWizardHeader } from '../components/TournamentWizardHeader';
 import type { StandingsBasis, TieBreakRule } from '../state/TournamentDraftContext';
 import type { TournamentStackParamList } from '../navigation/types';
 import { useTournamentDraft } from '../state/TournamentDraftContext';
 import { colors, getFontFamily, palette, radius, screenGutter, spacing } from '../theme/tokens';
+
+/** SB3's points table needs 6 chips on one row (vs. the format screen's 3-per-row grid), so labels are abbreviated to fit — same values/colors as STABLEFORD_POINT_CHIPS, just shorter text for this dense layout. */
+const SB_SHORT_LABEL: Record<string, string> = {
+  Albatross: 'Alba',
+  Eagle: 'Eagle',
+  Birdie: 'Birdie',
+  Par: 'Par',
+  Bogey: 'Bogey',
+  'Double+': 'Dbl+',
+};
 
 type Props = NativeStackScreenProps<TournamentStackParamList, 'TournamentRules'>;
 
@@ -52,11 +63,16 @@ export function TournamentRulesScreen({ navigation }: Props) {
   const [infoOpen, setInfoOpen] = useState(false);
   const locked = draft.tournamentId !== null;
   const isSystem36 = draft.format === 'system_36';
+  const isStableford = draft.format === 'stableford';
+  /** Both points-ranked formats share the same countback description ("most points", not "compare nett") — see SB3/SY3. */
+  const ranksByPoints = isSystem36 || isStableford;
 
-  // The tie-break selector is the one control both formats share — System 36
-  // still lets the host pick countback vs. shared place (see SY3), it just
-  // replaces stroke play's standings-basis + handicap-allowance controls with
-  // the fixed 36−points explainer above it.
+  // The tie-break selector is the one control all three formats share —
+  // System 36 and Stableford still let the host pick countback vs. shared
+  // place (see SY3/SB3), they just replace stroke play's standings-basis +
+  // handicap-allowance controls with their own points-table explainer above
+  // it (Stableford keeps the handicap-allowance slider too, since unlike
+  // System 36 it uses an ordinary upfront Playing Handicap — see SB3).
   const tieBreakSection = (
     <View>
       <View style={styles.labelWithInfoRow}>
@@ -81,7 +97,7 @@ export function TournamentRulesScreen({ navigation }: Props) {
                 <Text style={styles.tieBreakDesc}>
                   {rule.id !== 'countback'
                     ? 'Ties split the position'
-                    : isSystem36
+                    : ranksByPoints
                       ? 'Most points over last 9, 6, 3, then 18th'
                       : 'Compare last 9, 6, 3, then 18th hole'}
                 </Text>
@@ -159,6 +175,55 @@ export function TournamentRulesScreen({ navigation }: Props) {
                   </View>
                 </View>
               </Card>
+
+              {tieBreakSection}
+            </>
+          ) : isStableford ? (
+            <>
+              <Text style={styles.s36Subtitle}>{draft.name} · Stableford · Individual</Text>
+
+              <View>
+                <Text style={styles.fieldLabel}>Points table</Text>
+                <View style={styles.s36PointsCard}>
+                  <View style={styles.s36PointsHeader}>
+                    <Text style={styles.s36PointsHeaderTitle}>Standard</Text>
+                    <View style={styles.selectedTag}>
+                      <Text style={styles.selectedTagLabel}>Selected</Text>
+                    </View>
+                  </View>
+                  <View style={styles.sbPointsBody}>
+                    {STABLEFORD_POINT_CHIPS.map((c) => (
+                      <View key={c.label} style={[styles.sbChip, { backgroundColor: c.chip.fill, borderColor: c.chip.border }]}>
+                        <Text style={[styles.sbChipValue, { color: c.chip.text }]}>{c.value}</Text>
+                        <Text style={styles.sbChipLabel}>{SB_SHORT_LABEL[c.label] ?? c.label}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+                <Text style={styles.s36PointsNote}>Points are worked out against your nett score on each hole.</Text>
+              </View>
+
+              <View>
+                <View style={styles.allowanceHeaderRow}>
+                  <Text style={styles.fieldLabel}>Handicap allowance</Text>
+                  <Text style={styles.allowanceValue}>{draft.handicapAllowancePct}%</Text>
+                </View>
+                <HandicapAllowanceSlider value={draft.handicapAllowancePct} onChange={(pct) => update({ handicapAllowancePct: pct })} />
+                <View style={styles.allowanceCaptionRow}>
+                  <Text style={styles.allowanceCaption}>Scratch (0%)</Text>
+                  <Text style={styles.allowanceCaption}>Full (100%)</Text>
+                </View>
+              </View>
+
+              <View style={styles.sbTargetCard}>
+                <View style={styles.sbTargetIcon}>
+                  <Target size={18} color={colors.primary} />
+                </View>
+                <View style={styles.sbTargetBody}>
+                  <Text style={styles.sbTargetTitle}>Playing to handicap = 36 pts</Text>
+                  <Text style={styles.sbTargetCaption}>2 points a hole across 18 holes</Text>
+                </View>
+              </View>
 
               {tieBreakSection}
             </>
@@ -411,6 +476,66 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     lineHeight: 15,
     marginTop: spacing[2] - 1,
+  },
+  // ---- Stableford (SB3) — points table is 6 chips on one row (vs. System
+  // 36's 3), and a target callout replaces S36's two-step hero card.
+  sbPointsBody: {
+    flexDirection: 'row',
+    gap: spacing[1] + 1,
+    padding: spacing[3] + 1,
+  },
+  sbChip: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderRadius: radius.sm,
+    paddingVertical: spacing[2],
+    alignItems: 'center',
+  },
+  sbChipValue: {
+    fontFamily: getFontFamily('numeric', '700'),
+    fontWeight: '700',
+    fontSize: 17,
+    lineHeight: 19,
+  },
+  sbChipLabel: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 9,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  sbTargetCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    borderRadius: radius.lg - 2,
+    padding: spacing[3],
+  },
+  sbTargetIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceBrandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sbTargetBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  sbTargetTitle: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  sbTargetCaption: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 1,
   },
   s36Hero: {
     gap: spacing[3],

@@ -7,6 +7,7 @@
  * isn't touched here.
  */
 
+import type { TeeColor } from './courses';
 import { isTransientError, sleep, withRetry } from '../lib/retry';
 import { supabase } from '../lib/supabase';
 
@@ -287,16 +288,25 @@ async function findMatchByCodeOnce(code: string): Promise<MatchByCode | null> {
   };
 }
 
-async function isSeated(matchId: string, playerId: string): Promise<boolean> {
+async function fetchExistingSeat(matchId: string, playerId: string): Promise<{ teeColor: TeeColor | null } | null> {
   return withRetry(async () => {
     const { data, error } = await supabase
       .from('match_players')
-      .select('player_id')
+      .select('tee_color')
       .eq('match_id', matchId)
       .eq('player_id', playerId)
       .maybeSingle();
     if (error) throw error;
-    return data !== null;
+    return data ? { teeColor: (data as { tee_color: TeeColor | null }).tee_color } : null;
+  });
+}
+
+/** The host's own tee — what a brand-new code-joiner (see joinMatchByCode) inherits as a starting default, same idea as inviteTournamentPlayer seeding a host-added player from draft.defaultTee. */
+async function fetchHostTeeColor(matchId: string): Promise<TeeColor | null> {
+  return withRetry(async () => {
+    const { data, error } = await supabase.from('match_players').select('tee_color').eq('match_id', matchId).eq('is_host', true).maybeSingle();
+    if (error) throw error;
+    return (data as { tee_color: TeeColor | null } | null)?.tee_color ?? null;
   });
 }
 
@@ -311,18 +321,38 @@ export async function joinMatchByCode(code: string, playerId: string, handicap: 
   if (!match) throw new Error("We couldn't find a match with that code.");
   if (match.status === 'finished') throw new Error('This match has already finished.');
 
+  const existingSeat = await fetchExistingSeat(match.id, playerId);
+
   // "Full" only applies to someone with no existing row — an already-seated (or
   // already-invited) player re-entering the code isn't taking a NEW seat.
   if (match.status === 'lobby' && match.playerCount >= match.golferCount) {
-    const seated = await isSeated(match.id, playerId);
-    if (!seated) throw new Error('This match is full.');
+    if (!existingSeat) throw new Error('This match is full.');
   }
+
+  // A brand-new join-by-code (no prior invite row — the host never added
+  // them through the wizard, they just typed the code) had nothing to
+  // inherit a tee from and previously landed on tee_color = null, which
+  // every screen quietly rendered as "White" (fetchTournamentLobby's
+  // `row.tee_color ?? 'white'` fallback) — indistinguishable from an actual
+  // choice, and wrong whenever the group is actually playing Blue or
+  // anything else. Default to the host's own tee instead — still editable
+  // from the Lobby afterward — same as an invited player already gets via
+  // inviteTournamentPlayer/draft.defaultTee. A no-op for a plain Kaki Match
+  // Play join (no tee concept there — the host row simply has none to find).
+  const teeColor = existingSeat?.teeColor ?? (await fetchHostTeeColor(match.id));
 
   await withRetry(async () => {
     const { error } = await supabase
       .from('match_players')
       .upsert(
-        { match_id: match.id, player_id: playerId, is_host: false, handicap_at_time: handicap, status: 'joined' },
+        {
+          match_id: match.id,
+          player_id: playerId,
+          is_host: false,
+          handicap_at_time: handicap,
+          status: 'joined',
+          ...(teeColor ? { tee_color: teeColor } : {}),
+        },
         { onConflict: 'match_id,player_id' },
       );
     if (error) throw error;

@@ -15,7 +15,7 @@ import {
   Trophy,
   Users,
 } from 'lucide-react-native';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -33,6 +33,7 @@ import {
   crossedNewMilestone,
   previewLiveStreaks,
 } from '../data/streaks';
+import { useFinishRedirect } from '../hooks/useFinishRedirect';
 import { useLiveRound } from '../hooks/useLiveRound';
 import type { RootStackParamList } from '../navigation/types';
 import { useProfile } from '../state/ProfileContext';
@@ -107,8 +108,15 @@ export function ScorecardScreen({ navigation, route }: Props) {
     frontNineDeals,
     backNineDeals,
     adjustScore,
+    matchStatus,
     refresh: refreshRound,
   } = useLiveRound(matchId);
+
+  useFinishRedirect(
+    matchStatus,
+    loading,
+    useCallback(() => navigation.navigate('Finish', { matchId, matchName, courseName, gameModeName }), [navigation, matchId, matchName, courseName, gameModeName]),
+  );
 
   // Live "just crossed a streak threshold" detection, scoped to the viewer's
   // own card only (matches the self-only RLS on profiles.birdie/par_streak_best
@@ -192,8 +200,12 @@ export function ScorecardScreen({ navigation, route }: Props) {
     });
   }
 
+  // Mirrors scores' own RLS (20260827140000_lock_scores_after_finish.sql) —
+  // once the round is finished, nobody (host included) can keep editing a
+  // card the way FinishScreen's own copy already promises ("Once finished,
+  // scores lock and the round moves to everyone's history").
   function canEdit(playerId: string) {
-    return isHost || playerId === viewerId;
+    return (isHost || playerId === viewerId) && matchStatus !== 'finished';
   }
 
   function selectCell(playerId: string, holeN: number) {

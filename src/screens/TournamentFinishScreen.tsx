@@ -1,16 +1,18 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Award, ChevronRight, Coins, Crown, Flag, List, Medal, Trophy, Wallet, X } from 'lucide-react-native';
+import { Award, ChevronRight, CircleCheckBig, Coins, Crown, Flag, GitCompare, List, Medal, Trophy, Wallet, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { Card } from '../components/Card';
+import { FinishEarlySheet } from '../components/FinishEarlySheet';
 import { InRoundTabBar } from '../components/InRoundTabBar';
 import type { InRoundTab } from '../components/InRoundTabBar';
 import { SkinsHoleCell } from '../components/SkinsHoleCell';
 import { computeThru } from '../data/round';
 import { computeSkinsStandings, resolveSkinsHoles } from '../data/skins';
+import { computeStablefordStandings } from '../data/stableford';
 import { computeTournamentStandings, parTotal } from '../data/strokePlay';
 import { computeSystem36Standings } from '../data/system36';
 import { finishTournamentRound } from '../data/tournaments';
@@ -53,6 +55,7 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
   const [expandedSkinsPlayerId, setExpandedSkinsPlayerId] = useState<string | null>(null);
+  const [earlyFinishSheetOpen, setEarlyFinishSheetOpen] = useState(false);
 
   if (loading) {
     return (
@@ -88,10 +91,86 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
   const viewerS36 = s36Standings.find((r) => r.playerId === viewerId);
   const s36Winner = s36Standings.find((r) => r.rank === 1);
 
+  // Stableford ranks by points off the player's own (ordinary, upfront)
+  // Playing Handicap — no derived-handicap settlement like System 36, so it
+  // reads standings the same "always available" way stroke play's do.
+  const isStableford = round.scoringFormat === 'stableford';
+  const stablefordStandings = isStableford
+    ? computeStablefordStandings(rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, round.tieBreakRule)
+    : [];
+  const viewerStableford = stablefordStandings.find((r) => r.playerId === viewerId);
+  const stablefordWinner = stablefordStandings.find((r) => r.rank === 1);
+  // "To HCP" — strokes-equivalent above/below the 36-over-18 mark that plays
+  // exactly to handicap (per SB3's target callout), in the SAME sign
+  // convention as every other "to par" figure in this app (positive =
+  // worse, negative = better — see toParLabel/TournamentScorecardScreen's
+  // toPar). 36 − points, not points − 36: fewer points than 36 means you
+  // played worse than your handicap, which should read as a POSITIVE
+  // number (e.g. nett 5 over course par → 31 pts → "+5"), not negative.
+  const viewerToHcp = viewerStableford ? 36 - viewerStableford.points : 0;
+  // Which rows got split apart by countback despite equal points — a plain
+  // "1st / 2nd" next to two equal point totals reads as a bug unless it's
+  // explained. playerIds who show up here get a small "Countback" tag next
+  // to their rank; countbackNotes spells out the actual numbers below the
+  // table. Adjacent-only check is enough: computeStablefordStandings sorts
+  // by points then countback, so any resolved pair is always neighbours.
+  const countbackDecidedIds = new Set<string>();
+  const countbackNotes: string[] = [];
+  if (isStableford && round.tieBreakRule === 'countback') {
+    const tierLabel = ['the back 9', 'the back 6', 'the back 3', 'the 18th hole'];
+    for (let i = 1; i < stablefordStandings.length; i++) {
+      const prev = stablefordStandings[i - 1]!;
+      const cur = stablefordStandings[i]!;
+      if (prev.points !== cur.points || prev.rank === cur.rank || !prev.finished || !cur.finished) continue;
+      const tier = prev.countback.findIndex((v, idx) => v !== cur.countback[idx]);
+      if (tier === -1) continue; // tied all the way down to the 18th hole alone — nothing to show
+      countbackDecidedIds.add(prev.playerId);
+      countbackDecidedIds.add(cur.playerId);
+      const prevName = roster.find((p) => p.id === prev.playerId)?.name.split(' ')[0] ?? 'Player';
+      const curName = roster.find((p) => p.id === cur.playerId)?.name.split(' ')[0] ?? 'Player';
+      countbackNotes.push(`${prevName} vs ${curName}, both ${prev.points} pts — ${prevName} took it on ${tierLabel[tier]}: ${prev.countback[tier]} to ${cur.countback[tier]}.`);
+    }
+  }
+
   const roundComplete = holes.length > 0 && thru === holes.length;
   const isFinished = matchStatus === 'finished';
+  // Who the "finish anyway" warning names — this stays tied to actual data
+  // completeness (every hole has a stroke value), since that's what
+  // determines whether finishing now actually costs them a differential —
+  // NOT whether they've tapped "Save & review" (a still-complete-but-
+  // unconfirmed card finishes just fine). perPlayerThru (already computed
+  // above for the standings) is per-player, so this correctly lists
+  // everyone short of a full card, not just the field's single slowest
+  // (thru is the min across the roster).
+  const notFinishedNames = roster.filter((p) => (perPlayerThru[p.id] ?? 0) < holes.length).map((p) => p.name.split(' ')[0]!);
+  // The always-visible Confirm scores list below is a DIFFERENT question —
+  // not "is the data complete" but "has this player deliberately said
+  // they're done" (tapped Save & review on hole 18 — see
+  // confirmTournamentCard/TournamentScorecardScreen's handleNextHole).
+  // A card can have all 18 holes filled and still read Pending here if
+  // nobody's tapped through yet — that's the point: it lets the host
+  // actually go ask, rather than assume "has a number in every box" means
+  // "done reviewing."
+  const confirmRows = roster.map((p) => {
+    const playerThru = perPlayerThru[p.id] ?? 0;
+    return {
+      playerId: p.id,
+      name: p.name,
+      confirmed: p.cardConfirmedAt !== null,
+      allHolesIn: holes.length > 0 && playerThru >= holes.length,
+      thru: playerThru,
+      gross: standings.find((r) => r.playerId === p.id)?.gross ?? 0,
+    };
+  });
+  const confirmedCount = confirmRows.filter((r) => r.confirmed).length;
 
   const bestGrossRow = standings.filter((r) => r.thru > 0).reduce<(typeof standings)[number] | null>((best, r) => (!best || r.gross < best.gross ? r : best), null);
+  const stablefordBestGrossRow = stablefordStandings
+    .filter((r) => r.thru > 0)
+    .reduce<(typeof stablefordStandings)[number] | null>((best, r) => (!best || r.gross < best.gross ? r : best), null);
+  // Best-gross strip reads from whichever standings this format actually
+  // ranked — same {playerId, gross, thru} shape either way.
+  const displayBestGrossRow = isStableford ? stablefordBestGrossRow : bestGrossRow;
 
   const skinsConfig = sideGames.find((g) => g.type === 'skins');
   const skinsResults = skinsConfig ? resolveSkinsHoles(skinsConfig, scores, holes, playingHandicaps, playOrder) : [];
@@ -101,12 +180,28 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
     : [];
   const viewerSkins = viewerId ? skinsStandings[viewerId] : undefined;
 
-  async function handleFinish() {
-    if (!isHostViewer || finishing || !roundComplete) return;
+  // Tapping "Finish round" mid-round used to be simply impossible (the CTA
+  // was hard-disabled until roundComplete) — meaning one straggler card
+  // could block the whole group forever. Now an incomplete round routes
+  // through a confirm sheet naming who isn't through instead of a silent
+  // block; that player's differential/streaks/badges just won't be part of
+  // finish_tournament_round's write (see computeDifferentialForPlayer's own
+  // thru gate) if the host proceeds anyway.
+  function handleFinish() {
+    if (!isHostViewer || finishing) return;
+    if (!roundComplete) {
+      setEarlyFinishSheetOpen(true);
+      return;
+    }
+    doFinish();
+  }
+
+  async function doFinish() {
     setFinishing(true);
     setFinishError(null);
     try {
       await finishTournamentRound(matchId);
+      setEarlyFinishSheetOpen(false);
       round.refresh();
     } catch {
       setFinishError("Couldn't finish the round — please try again.");
@@ -135,7 +230,9 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
           </View>
           <Text style={styles.heroTitle}>{round.matchName}</Text>
           <Text style={styles.heroSubtitle}>
-            {isSystem36 ? `System 36 · ${holes.length} holes` : `Stroke play · Nett ${round.handicapAllowancePct}% · ${holes.length} holes`}
+            {isSystem36
+              ? `System 36 · ${holes.length} holes`
+              : `${isStableford ? 'Stableford' : 'Stroke play'} · Nett ${round.handicapAllowancePct}% · ${holes.length} holes`}
           </Text>
           {isSystem36 ? (
             <View style={styles.heroStatsRow}>
@@ -154,6 +251,21 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
               <View style={[styles.heroTile, styles.heroTileStbf]}>
                 <Text style={styles.heroTileLabelStbf}>Stbf</Text>
                 <Text style={styles.heroTileValue}>{viewerS36?.stableford ?? 0}</Text>
+              </View>
+            </View>
+          ) : isStableford ? (
+            <View style={styles.heroStatsRow}>
+              <View style={styles.heroTile}>
+                <Text style={styles.heroTileLabel}>Gross</Text>
+                <Text style={styles.heroTileValue}>{viewerStableford?.gross ?? 0}</Text>
+              </View>
+              <View style={[styles.heroTile, styles.heroTileStbf]}>
+                <Text style={styles.heroTileLabelStbf}>Points</Text>
+                <Text style={styles.heroTileValue}>{viewerStableford?.points ?? 0}</Text>
+              </View>
+              <View style={styles.heroTile}>
+                <Text style={styles.heroTileLabel}>To HCP</Text>
+                <Text style={[styles.heroTileValue, styles.heroTileValueToPar]}>{viewerStableford && viewerStableford.thru > 0 ? toParLabel(viewerToHcp) : '–'}</Text>
               </View>
             </View>
           ) : (
@@ -175,6 +287,49 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          {/* Lets the host see exactly WHO to check on before finishing early,
+              instead of just a "17 of 18" number — hidden once the round's
+              actually finished, since by then it's moot either way. */}
+          {!isFinished && roster.length > 1 ? (
+            <>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionLabel}>Confirm scores</Text>
+                <Text style={styles.confirmCountLabel}>
+                  {confirmedCount} of {roster.length} confirmed
+                </Text>
+              </View>
+              <View style={styles.confirmList}>
+                {confirmRows.map((row, index) => (
+                  <View key={row.playerId} style={styles.confirmRow}>
+                    <View style={[styles.tableAvatar, { backgroundColor: getSolidAvatarColor(index) }]}>
+                      <Text style={styles.tableAvatarLabel}>{row.name.charAt(0)}</Text>
+                    </View>
+                    <View style={styles.confirmBody}>
+                      <Text style={styles.confirmName}>
+                        {row.name}
+                        {row.playerId === viewerId ? <Text style={styles.confirmYou}> (You)</Text> : null}
+                      </Text>
+                      <Text style={[styles.confirmSubtitle, row.confirmed ? styles.confirmSubtitleDone : styles.confirmSubtitlePending]}>
+                        {row.confirmed
+                          ? `Card confirmed · ${row.gross} gross`
+                          : row.allHolesIn
+                            ? "All holes in · hasn't tapped Save & review"
+                            : `Still entering · thru ${row.thru} of ${holes.length}`}
+                      </Text>
+                    </View>
+                    {row.confirmed ? (
+                      <CircleCheckBig size={20} color={colors.statusSuccess} />
+                    ) : (
+                      <View style={styles.confirmPendingPill}>
+                        <Text style={styles.confirmPendingLabel}>Pending</Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : null}
+
           {!roundComplete ? (
             <View style={styles.gateCard}>
               <View style={styles.gateIconTile}>
@@ -185,7 +340,9 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                   {thru} of {holes.length} holes in
                 </Text>
                 <Text style={styles.gateSubtitle}>
-                  Final standings and the Skins settlement show up here once every card is complete.
+                  {isHostViewer
+                    ? 'Final standings and the Skins settlement show up here once every card is complete — or finish early below if you need to.'
+                    : 'Final standings and the Skins settlement show up here once every card is complete.'}
                 </Text>
               </View>
             </View>
@@ -220,6 +377,26 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                     </Card>
                   </>
                 ) : null
+              ) : isStableford ? (
+                viewerStableford ? (
+                  <View style={styles.finishedCard}>
+                    <View style={styles.finishedIconTile}>
+                      <Trophy size={20} color={colors.accent} />
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.finishedTitle}>
+                        You finished {ordinal(viewerStableford.rank)} · {viewerStableford.points} pts
+                      </Text>
+                      <Text style={styles.finishedSubtitle}>
+                        {viewerStableford.rank === 1
+                          ? 'Top of the board — nicely played.'
+                          : stablefordWinner
+                            ? `${roster.find((p) => p.id === stablefordWinner.playerId)?.name.split(' ')[0]} took it with ${stablefordWinner.points} pts.`
+                            : 'Nice round out there.'}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null
               ) : viewerRow ? (
                 <View style={styles.finishedCard}>
                   <View style={styles.finishedIconTile}>
@@ -234,7 +411,7 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
 
               <View>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionLabel}>Final standings · {isSystem36 ? 'Stableford' : 'nett'}</Text>
+                  <Text style={styles.sectionLabel}>Final standings · {isSystem36 ? 'Stableford' : isStableford ? 'points' : 'nett'}</Text>
                   <Text style={styles.sectionCaption}>{roster.length} players</Text>
                 </View>
                 {isSystem36 ? (
@@ -281,6 +458,61 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                       );
                     })}
                   </View>
+                ) : isStableford ? (
+                <View style={styles.tableCard}>
+                  <View style={styles.tableHeaderRow}>
+                    <View style={styles.tableHeaderPosCell}>
+                      <Text style={[styles.tableHeaderLabel, { width: POS_COL_WIDTH }]}>Pos</Text>
+                      <Text style={styles.tableHeaderLabel}>Player</Text>
+                    </View>
+                    <Text style={[styles.tableHeaderLabel, styles.tableStatHeaderCell]}>Gross</Text>
+                    <Text style={[styles.tableHeaderLabel, styles.tableStatHeaderCell]}>Nett</Text>
+                    <Text style={[styles.tableHeaderLabel, styles.tableStatHeaderCell, styles.tableTotalHeaderCell]}>Points</Text>
+                  </View>
+                  {stablefordStandings.map((row) => {
+                    const player = roster.find((p) => p.id === row.playerId);
+                    if (!player) return null;
+                    const isYou = row.playerId === viewerId;
+                    const isLeader = row.rank === 1;
+                    const rowBg = isLeader ? LEADER_GOLD_BG : isYou ? colors.surfaceBrandSoft : colors.surfaceCard;
+                    return (
+                      <View key={row.playerId} style={[styles.tableRow, { backgroundColor: rowBg }]}>
+                        <View style={styles.tablePosCell}>
+                          <View style={styles.tableRankCol}>
+                            <Text style={[styles.tableRankText, isLeader && { color: LEADER_GOLD }, isYou && !isLeader && { color: colors.primary }]}>
+                              {row.rank}
+                            </Text>
+                            {isLeader ? <Crown size={12} color={LEADER_GOLD} /> : null}
+                          </View>
+                          <View style={[styles.tableAvatar, { backgroundColor: getSolidAvatarColor(roster.indexOf(player)) }]}>
+                            <Text style={styles.tableAvatarLabel}>{player.name[0]?.toUpperCase()}</Text>
+                          </View>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <View style={styles.tableNameRow}>
+                              <Text
+                                style={[styles.tableName, isLeader && { color: LEADER_GOLD }, isYou && !isLeader && { color: colors.primary }]}
+                                numberOfLines={1}
+                              >
+                                {player.name}
+                                {isYou ? ' (you)' : ''}
+                              </Text>
+                              {countbackDecidedIds.has(row.playerId) ? (
+                                <View style={styles.countbackTag}>
+                                  <GitCompare size={9} color={colors.textSecondary} />
+                                  <Text style={styles.countbackTagLabel}>Countback</Text>
+                                </View>
+                              ) : null}
+                            </View>
+                            <Text style={styles.tableHcp}>HCP {player.playingHandicap}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.tableStatCell}>{row.gross}</Text>
+                        <Text style={styles.tableStatCell}>{row.nett}</Text>
+                        <Text style={[styles.tableTotalCell, { color: colors.primary }]}>{row.thru > 0 ? row.points : '–'}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
                 ) : (
                 <View style={styles.tableCard}>
                   <View style={styles.tableHeaderRow}>
@@ -333,7 +565,23 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                 )}
               </View>
 
-              {!isSystem36 && bestGrossRow ? (
+              {countbackNotes.length > 0 ? (
+                <View style={styles.countbackCard}>
+                  <View style={styles.countbackIconTile}>
+                    <GitCompare size={16} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.countbackTitle}>Tie-break: countback</Text>
+                    {countbackNotes.map((note, i) => (
+                      <Text key={i} style={styles.countbackBody}>
+                        {note}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
+              {!isSystem36 && displayBestGrossRow ? (
                 <Card variant="inverse" watermark watermarkSize={110} padding={spacing[3] + 1} style={styles.grossStrip}>
                   <View style={styles.grossIconTile}>
                     <Award size={19} color={colors.accent} />
@@ -341,8 +589,8 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.grossLabel}>Best gross</Text>
                     <Text style={styles.grossValue}>
-                      {roster.find((p) => p.id === bestGrossRow.playerId)?.name.split(' ')[0]} · {bestGrossRow.gross} (
-                      {toParLabel(bestGrossRow.gross - parTotal(bestGrossRow.thru, holes, playOrder))})
+                      {roster.find((p) => p.id === displayBestGrossRow.playerId)?.name.split(' ')[0]} · {displayBestGrossRow.gross} (
+                      {toParLabel(displayBestGrossRow.gross - parTotal(displayBestGrossRow.thru, holes, playOrder))})
                     </Text>
                   </View>
                 </Card>
@@ -442,15 +690,23 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
               </Pressable>
             ) : (
               <Pressable
-                style={[styles.doneButton, (!isHostViewer || !roundComplete || finishing) && styles.doneButtonDisabled]}
+                style={[styles.doneButton, (!isHostViewer || finishing) && styles.doneButtonDisabled]}
                 onPress={handleFinish}
-                disabled={!isHostViewer || !roundComplete || finishing}
+                disabled={!isHostViewer || finishing}
               >
-                <Text style={styles.doneButtonLabel}>{finishing ? 'Finishing…' : isHostViewer ? 'Finish round' : 'Waiting for cards'}</Text>
+                <Text style={styles.doneButtonLabel}>{finishing ? 'Finishing…' : isHostViewer ? 'Finish round' : 'Waiting for host'}</Text>
               </Pressable>
             )}
           </View>
         </View>
+
+        <FinishEarlySheet
+          visible={earlyFinishSheetOpen}
+          names={notFinishedNames}
+          finishing={finishing}
+          onCancel={() => setEarlyFinishSheetOpen(false)}
+          onConfirm={doFinish}
+        />
 
         {/* Once the round is finished this screen becomes the permanent past-round
             recap (reachable later from Home/Rounds/Notifications) — no tab bar, so
@@ -669,6 +925,63 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textDisabled,
   },
+  confirmCountLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 12,
+    color: colors.statusWarning,
+  },
+  confirmList: {
+    gap: spacing[2],
+    marginBottom: spacing[5],
+  },
+  confirmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2] + 1,
+    backgroundColor: colors.surfaceCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing[3],
+    ...shadows.xs,
+  },
+  confirmBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  confirmName: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  confirmYou: {
+    color: colors.textMuted,
+  },
+  confirmSubtitle: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    marginTop: 2,
+  },
+  confirmSubtitleDone: {
+    color: colors.statusSuccess,
+  },
+  confirmSubtitlePending: {
+    color: colors.statusWarning,
+  },
+  confirmPendingPill: {
+    backgroundColor: palette.orange[100],
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing[2] + 2,
+    paddingVertical: spacing[1] + 1,
+  },
+  confirmPendingLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 11,
+    color: palette.orange[700],
+  },
   tableCard: {
     backgroundColor: colors.surfaceCard,
     borderWidth: 1.5,
@@ -747,11 +1060,64 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: palette.white,
   },
+  tableNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1] + 1,
+  },
   tableName: {
     fontFamily: getFontFamily('body', '700'),
     fontWeight: '700',
     fontSize: 13,
     color: colors.textPrimary,
+  },
+  countbackTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: palette.soon.surface,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing[1] + 2,
+    paddingVertical: 1,
+    flexShrink: 0,
+  },
+  countbackTagLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 8.5,
+    color: colors.textSecondary,
+  },
+  countbackCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[2] + 3,
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    borderRadius: radius.lg - 2,
+    padding: spacing[3] + 1,
+  },
+  countbackIconTile: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.md - 1,
+    backgroundColor: colors.surfaceBrandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  countbackTitle: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  countbackBody: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 3,
+    lineHeight: 15,
   },
   tableHcp: {
     fontFamily: getFontFamily('body', '400'),

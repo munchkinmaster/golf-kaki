@@ -21,6 +21,7 @@
  */
 
 import type { TeeColor } from './courses';
+import { computeDifferentialForPlayer } from './handicap';
 import { generateMatchCodePreview } from './matches';
 import type { MatchStatus } from './matches';
 import type { SideGameSettings, SkinsConfig } from './skins';
@@ -32,12 +33,13 @@ export type TournamentRoundStructure = 'single' | 'multi';
 export type TournamentStandingsBasis = 'nett' | 'gross' | 'both';
 export type TournamentTieBreakRule = 'countback' | 'shared_place';
 /**
- * Mirrors tournaments.scoring_format (20260824120000_tournament_system36_format.sql).
- * Narrower than TournamentDraftContext's TournamentFormat ('stableford' isn't
- * a buildable/persistable value yet — S1 doesn't let it be selected) so a
- * draft.format has to be narrowed to this at the createTournament call site.
+ * Mirrors tournaments.scoring_format (widened to include 'stableford' by
+ * 20260827120000_tournament_stableford_format.sql). Now the SAME set of
+ * values as TournamentDraftContext's TournamentFormat, so draft.format can
+ * be passed straight through at the createTournament call site with no
+ * narrowing.
  */
-export type TournamentScoringFormat = 'stroke_play' | 'system_36';
+export type TournamentScoringFormat = 'stroke_play' | 'system_36' | 'stableford';
 
 export { generateMatchCodePreview as generateTournamentCodePreview };
 
@@ -108,7 +110,12 @@ export async function createTournament(params: CreateTournamentParams): Promise<
 
     if (!error) {
       const tournamentId = (data as { id: string }).id;
-      const matchId = await createTournamentMatch(tournamentId, params);
+      // Pass the CODE THAT ACTUALLY GOT INSERTED, not params.tournamentCode —
+      // a collision retry above reassigns the local `code` var to a fresh
+      // value, but params (the caller's original argument) never sees that
+      // update, so using params.tournamentCode here could mint a match_code
+      // that doesn't match the tournament players were actually invited to.
+      const matchId = await createTournamentMatch(tournamentId, code, params);
       return { tournamentId, matchId, tournamentCode: code };
     }
 
@@ -128,7 +135,7 @@ export async function createTournament(params: CreateTournamentParams): Promise<
   throw new Error('Could not create tournament — please try again.');
 }
 
-async function createTournamentMatch(tournamentId: string, params: CreateTournamentParams): Promise<string> {
+async function createTournamentMatch(tournamentId: string, tournamentCode: string, params: CreateTournamentParams): Promise<string> {
   return withRetry(async () => {
     const gameSettings: SideGameSettings = { sideGames: params.sideGames };
     // Skins participation lives on match_players.skins_opt_in, not in this
@@ -160,6 +167,12 @@ async function createTournamentMatch(tournamentId: string, params: CreateTournam
         golfer_count: params.players.length,
         tournament_id: tournamentId,
         game_settings: gameSettings,
+        // Mirrors tournaments.tournament_code — findMatchByCode/joinMatchByCode
+        // (JoinGameScreen) only ever look up matches.match_code, so without this
+        // the match would get column's own random default (generate_match_code()),
+        // completely unrelated to the code actually shown/shared as the
+        // tournament's invite code, and "Join a game" would never find it.
+        match_code: tournamentCode,
       })
       .select('id')
       .single();
@@ -186,6 +199,34 @@ async function createTournamentMatch(tournamentId: string, params: CreateTournam
   });
 }
 
+/**
+ * matches.golfer_count is set once at createTournamentMatch time, from
+ * whatever the roster size happened to be when the FIRST invite went out
+ * (host + that one friend = 2). Every invite after that is a live insert
+ * (inviteTournamentPlayer below) that never touched golfer_count — so a
+ * host who invites a 3rd, 4th friend keeps growing match_players while the
+ * capacity column stays stuck at 2. joinMatchByCode/findMatchByCode's "is
+ * this match full" check reads golfer_count as the seat cap, so once the
+ * stale cap is reached, a genuinely-invited player (or anyone joining by
+ * code) gets a spurious "This match is full." even though the host clearly
+ * meant to seat more people. Confirmed live: a 2-cap tournament ended up
+ * with 3 match_players rows and the 3rd join threw exactly that error.
+ * Re-synced to the live match_players count after every invite/remove so
+ * the cap always matches the actual roster, not a stale creation-time snapshot.
+ */
+async function syncTournamentGolferCount(matchId: string): Promise<void> {
+  const { count, error: countError } = await supabase
+    .from('match_players')
+    .select('*', { count: 'exact', head: true })
+    .eq('match_id', matchId);
+  if (countError) throw countError;
+  const { error } = await supabase
+    .from('matches')
+    .update({ golfer_count: count ?? 0 })
+    .eq('id', matchId);
+  if (error) throw error;
+}
+
 /** Invites one more player to an already-created tournament — TournamentPlayersScreen's 2nd+ Add, once the first invite already created the shell. A real live insert, not local draft state, so the invitee sees it immediately. */
 export async function inviteTournamentPlayer(matchId: string, player: CreateTournamentPlayer): Promise<void> {
   return withRetry(async () => {
@@ -202,6 +243,7 @@ export async function inviteTournamentPlayer(matchId: string, player: CreateTour
       // S5's "who's in" list or the lobby's Skins sheet afterward.
     });
     if (error) throw error;
+    await syncTournamentGolferCount(matchId);
   });
 }
 
@@ -216,6 +258,14 @@ export async function updateTournamentPlayerSeat(matchId: string, playerId: stri
     if (patch.handicapOverride !== undefined) dbPatch.handicap_override = patch.handicapOverride;
     if (Object.keys(dbPatch).length === 0) return;
     const { error } = await supabase.from('match_players').update(dbPatch).eq('match_id', matchId).eq('player_id', playerId);
+    if (error) throw error;
+  });
+}
+
+/** Records the moment a player tapped "Save & review" on hole 18 (TournamentScorecardScreen's terminal CTA) — the one deliberate "I'm done" signal in this flow, and what the Finish screen's "Confirm scores" list actually keys off (not raw hole-completeness, which stays true even while a player is still tinkering with earlier holes). Idempotent — re-tapping (e.g. navigating back to hole 18 and forward again) just re-sets the same-shaped timestamp. Rides the same self-or-host write boundary as editing scores (match_players' existing self/host update policies), so the host confirming a card on someone else's behalf while entering it for them works the same way. */
+export async function confirmTournamentCard(matchId: string, playerId: string): Promise<void> {
+  return withRetry(async () => {
+    const { error } = await supabase.from('match_players').update({ card_confirmed_at: new Date().toISOString() }).eq('match_id', matchId).eq('player_id', playerId);
     if (error) throw error;
   });
 }
@@ -238,19 +288,53 @@ export async function setSkinsParticipant(matchId: string, playerId: string, opt
 }
 
 /**
- * Flips a tournament round to finished — a plain status update, NOT the
- * pairwise finish_match RPC Kaki Match Play uses (that RPC settles pairwise
- * StrokeDeals into kaki_relationships; a tournament's Skins pot is a 3+
- * player zero-sum side pot with no pairwise-deal shape, and per product
- * decision stays display-only — see skins.ts's computeSkinsStandings'
- * netDollars, rendered on S10 but never written to the ledger). Host-only
- * via the same matches UPDATE RLS every other round-settings edit in this
- * codebase rides. Idempotent — retrying just re-sets the same status/timestamp,
- * mirroring data/matches.ts's startMatch.
+ * Flips a tournament round to finished AND records every eligible player's
+ * handicap differential in the same server-side transaction, via the
+ * finish_tournament_round() RPC (20260827130000_atomic_finish_tournament_round.sql)
+ * — the tournament-flow sibling of Kaki Match Play's finish_match. Skins'
+ * pot still stays display-only (per product decision — see
+ * skins.ts's computeSkinsStandings' netDollars, rendered on S10 but never
+ * written to a ledger); this only closes the handicap gap.
+ *
+ * Previously a plain matches.status update, which meant a player's
+ * differential only ever got written by THEIR OWN client, self-scoped, the
+ * next time they personally opened a screen for that round
+ * (recalculateAndSaveHandicap) — silently never, if they never did. Now the
+ * finishing host's client computes every seated player's differential
+ * client-side (their scores/course/rating data are all readable by any
+ * match participant) and the RPC writes the whole roster's rows — and
+ * recomputes each affected player's Handicap Index — atomically. The
+ * self-scoped recalc on each of the 5 tournament screens (useTournamentRound)
+ * stays in place too, as a harmless idempotent backstop, not the primary path.
+ *
+ * Host-only via the RPC's own auth.uid() check (security definer, so RLS on
+ * matches/handicap_differentials/profiles doesn't gate this — see the
+ * migration's comment). Idempotent — retrying just re-sets the same
+ * status/timestamp and no-ops the differential upserts on conflict.
  */
 export async function finishTournamentRound(matchId: string): Promise<void> {
   return withRetry(async () => {
-    const { error } = await supabase.from('matches').update({ status: 'finished', finished_at: new Date().toISOString() }).eq('id', matchId);
+    const { data: seatedRows, error: seatedError } = await supabase
+      .from('match_players')
+      .select('player_id')
+      .eq('match_id', matchId)
+      .eq('status', 'joined');
+    if (seatedError) throw seatedError;
+    const playerIds = (seatedRows as { player_id: string }[]).map((r) => r.player_id);
+
+    // requireFinished:false — this runs WHILE finishing the round, before
+    // matches.status has flipped in the DB, so the usual "only recalc an
+    // already-finished match" gate would wrongly reject every player here.
+    const differentials = (
+      await Promise.all(
+        playerIds.map(async (playerId) => {
+          const differential = await computeDifferentialForPlayer(playerId, matchId, { requireFinished: false });
+          return differential === null ? null : { player_id: playerId, differential };
+        }),
+      )
+    ).filter((d): d is { player_id: string; differential: number } => d !== null);
+
+    const { error } = await supabase.rpc('finish_tournament_round', { p_match_id: matchId, p_differentials: differentials });
     if (error) throw error;
   });
 }
@@ -264,6 +348,8 @@ export type TournamentLobbyPlayer = {
   teeColor: TeeColor;
   playingHandicap: number;
   handicapOverride: boolean;
+  /** Set the moment this player tapped "Save & review" on hole 18 (see confirmTournamentCard) — the Finish screen's "Confirm scores" list keys off this, not raw hole-completeness, since a card stays editable pre-finish regardless of whether every hole happens to have a value. Null = not yet confirmed. */
+  cardConfirmedAt: string | null;
 };
 
 export type TournamentLobby = {
@@ -316,6 +402,7 @@ type PlayerRow = {
   playing_handicap: number | null;
   handicap_override: boolean;
   skins_opt_in: boolean;
+  card_confirmed_at: string | null;
   profiles: { display_name: string };
 };
 
@@ -340,7 +427,7 @@ export async function fetchTournamentLobby(tournamentId: string): Promise<Tourna
 
     const { data: playerRows, error: pError } = await supabase
       .from('match_players')
-      .select('player_id, is_host, handicap_at_time, status, tee_color, playing_handicap, handicap_override, skins_opt_in, profiles ( display_name )')
+      .select('player_id, is_host, handicap_at_time, status, tee_color, playing_handicap, handicap_override, skins_opt_in, card_confirmed_at, profiles ( display_name )')
       .eq('match_id', match.id)
       .order('joined_at');
     if (pError) throw pError;
@@ -355,6 +442,7 @@ export async function fetchTournamentLobby(tournamentId: string): Promise<Tourna
       teeColor: row.tee_color ?? 'white',
       playingHandicap: row.playing_handicap ?? 0,
       handicapOverride: row.handicap_override,
+      cardConfirmedAt: row.card_confirmed_at,
     }));
 
     // participantIds is authoritative from match_players.skins_opt_in, not
@@ -391,5 +479,8 @@ export async function removeTournamentPlayer(matchId: string, playerId: string):
   return withRetry(async () => {
     const { error } = await supabase.from('match_players').delete().eq('match_id', matchId).eq('player_id', playerId);
     if (error) throw error;
+    // Frees the seat back up — see syncTournamentGolferCount's comment above
+    // inviteTournamentPlayer for why this can't be left at its creation-time value.
+    await syncTournamentGolferCount(matchId);
   });
 }

@@ -5,7 +5,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
-import { money, moneyLabel, pairwiseTotal, playerName, runningUp } from '../data/round';
+import { FinishEarlySheet } from '../components/FinishEarlySheet';
+import { computeThru, money, moneyLabel, pairwiseTotal, playerName, runningUp } from '../data/round';
 import { useLiveRound } from '../hooks/useLiveRound';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
@@ -14,14 +15,47 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Finish'>;
 
 export function FinishScreen({ navigation, route }: Props) {
   const { matchId, matchName, courseName, gameModeName } = route.params;
-  const { loading, viewerId, isHostViewer, matchStatus, roster, holes, schedule, playOrder, gross, thru, frontNineDeals, backNineDeals, stakePerHole, finishRound } =
-    useLiveRound(matchId);
+  const {
+    loading,
+    viewerId,
+    isHostViewer,
+    matchStatus,
+    roster,
+    holes,
+    schedule,
+    playOrder,
+    gross,
+    scores,
+    thru,
+    frontNineDeals,
+    backNineDeals,
+    stakePerHole,
+    finishRound,
+  } = useLiveRound(matchId);
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
+  const [earlyFinishSheetOpen, setEarlyFinishSheetOpen] = useState(false);
 
   const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
   const opponents = rosterIds.filter((id) => id !== viewerId);
   const roundComplete = holes.length > 0 && thru === holes.length;
+  // Per-player card status — thru is the FIELD's min, so at 2+ laggards it'd
+  // only ever surface one name. This is what both the "finish anyway"
+  // warning and the always-visible Confirm scores list below are built from,
+  // so a host deciding whether to wait or finish early can see exactly who
+  // to go check on in person, not just a number.
+  const confirmRows = useMemo(
+    () =>
+      roster.map((p) => {
+        const playerThru = computeThru([p.playerId], scores, playOrder);
+        const confirmed = holes.length > 0 && playerThru >= holes.length;
+        const grossSoFar = playOrder.slice(0, playerThru).reduce((sum, n) => sum + (scores[p.playerId]?.[n] ?? 0), 0);
+        return { playerId: p.playerId, name: p.name, confirmed, thru: playerThru, gross: grossSoFar };
+      }),
+    [roster, scores, playOrder, holes.length],
+  );
+  const confirmedCount = confirmRows.filter((r) => r.confirmed).length;
+  const notFinishedNames = useMemo(() => confirmRows.filter((r) => !r.confirmed).map((r) => r.name.split(' ')[0]!), [confirmRows]);
 
   const matchTotal = viewerId ? runningUp(rosterIds, viewerId, thru, gross, holes, frontNineDeals, schedule, backNineDeals, playOrder) : 0;
 
@@ -59,12 +93,25 @@ export function FinishScreen({ navigation, route }: Props) {
         ? `Finished ${Math.abs(matchTotal)} down overall — ${dominantOpponentId ? playerName(dominantOpponentId, roster.map((p) => ({ id: p.playerId, name: p.name }))) : 'your opponent'} had the edge.`
         : `Tied it up after ${holes.length} — no clear winner today.`;
 
-  async function handleFinish() {
-    if (!isHostViewer || finishing || !roundComplete) return;
+  // Tapping "Finish" mid-round used to be simply impossible (the CTA was
+  // hard-disabled until roundComplete) — meaning one AFK player could block
+  // the whole group forever. Now an incomplete card routes through a
+  // confirm sheet naming who isn't through instead of a silent block.
+  function handleFinish() {
+    if (!isHostViewer || finishing) return;
+    if (!roundComplete) {
+      setEarlyFinishSheetOpen(true);
+      return;
+    }
+    doFinish();
+  }
+
+  async function doFinish() {
     setFinishing(true);
     setFinishError(null);
     try {
       await finishRound();
+      setEarlyFinishSheetOpen(false);
       navigation.navigate('Recap', { matchId, matchName, courseName, gameModeName });
     } catch (err) {
       setFinishError(err instanceof Error ? err.message : 'Could not finish the round — try again.');
@@ -129,6 +176,51 @@ export function FinishScreen({ navigation, route }: Props) {
           {loading ? <Text style={styles.loadingText}>Loading round…</Text> : null}
           {finishError ? <Text style={styles.loadErrorText}>{finishError}</Text> : null}
 
+          {/* Lets the host see exactly WHO to check on before finishing early,
+              instead of just a "17 of 18" number — go ask Dinesh in person
+              rather than guess whether he's still playing or just forgot to
+              come back to the app. Stays visible once the round's finished
+              too (everyone shows confirmed by definition then), so it never
+              needs its own separate show/hide condition. */}
+          {matchStatus !== 'finished' && roster.length > 1 ? (
+            <>
+              <View style={styles.confirmHeaderRow}>
+                <Text style={styles.sectionLabel}>Confirm scores</Text>
+                <Text style={styles.confirmCountLabel}>
+                  {confirmedCount} of {roster.length} complete
+                </Text>
+              </View>
+              <View style={styles.confirmList}>
+                {confirmRows.map((row, index) => {
+                  const playerColor = getPlayerColors(index);
+                  return (
+                    <View key={row.playerId} style={styles.confirmRow}>
+                      <View style={[styles.confirmAvatar, { backgroundColor: playerColor.background }]}>
+                        <Text style={[styles.confirmAvatarLabel, { color: playerColor.color }]}>{row.name.charAt(0)}</Text>
+                      </View>
+                      <View style={styles.confirmBody}>
+                        <Text style={styles.confirmName}>
+                          {row.name}
+                          {row.playerId === viewerId ? <Text style={styles.settlementYou}> (You)</Text> : null}
+                        </Text>
+                        <Text style={[styles.confirmSubtitle, row.confirmed ? styles.confirmSubtitleDone : styles.confirmSubtitlePending]}>
+                          {row.confirmed ? `All 18 holes in · ${row.gross} gross` : `Still entering · thru ${row.thru} of ${holes.length}`}
+                        </Text>
+                      </View>
+                      {row.confirmed ? (
+                        <CircleCheckBig size={20} color={colors.statusSuccess} />
+                      ) : (
+                        <View style={styles.confirmPendingPill}>
+                          <Text style={styles.confirmPendingLabel}>Pending</Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            </>
+          ) : null}
+
           {roundComplete ? (
             <>
               <Text style={styles.sectionLabel}>Settlement</Text>
@@ -177,7 +269,9 @@ export function FinishScreen({ navigation, route }: Props) {
             <Lock size={13} color={colors.textDisabled} />
             <Text style={styles.lockNoteText}>
               {!roundComplete
-                ? 'Everyone needs to finish entering their scores before the round can be finished.'
+                ? isHostViewer
+                  ? 'Not everyone’s entered every hole yet — you can still finish early, but you’ll be asked to confirm first.'
+                  : 'Waiting on everyone’s scores — the host can finish once your card’s in, or finish early if needed.'
                 : isHostViewer
                   ? 'Once finished, scores lock and the round moves to everyone’s history.'
                   : 'Only the host can finish the round — you’ll see the recap once they do.'}
@@ -186,24 +280,30 @@ export function FinishScreen({ navigation, route }: Props) {
         </ScrollView>
 
         <View style={styles.ctaWrap}>
-          {isHostViewer && roundComplete ? (
+          {isHostViewer && matchStatus !== 'finished' ? (
             <Pressable style={styles.ctaButton} onPress={handleFinish} disabled={finishing || loading}>
               <Flag size={18} color={palette.white} />
               <Text style={styles.ctaLabel}>{finishing ? 'Finishing…' : 'Finish & save round'}</Text>
             </Pressable>
-          ) : !isHostViewer && matchStatus === 'finished' ? (
+          ) : matchStatus === 'finished' ? (
             <Pressable style={styles.ctaButton} onPress={viewRecap}>
               <Flag size={18} color={palette.white} />
               <Text style={styles.ctaLabel}>View recap</Text>
             </Pressable>
           ) : (
             <View style={[styles.ctaButton, styles.ctaButtonDisabled]}>
-              <Text style={styles.ctaLabel}>
-                {!roundComplete ? 'Waiting for everyone’s scores' : 'Waiting for host to finish'}
-              </Text>
+              <Text style={styles.ctaLabel}>Waiting for host to finish</Text>
             </View>
           )}
         </View>
+
+        <FinishEarlySheet
+          visible={earlyFinishSheetOpen}
+          names={notFinishedNames}
+          finishing={finishing}
+          onCancel={() => setEarlyFinishSheetOpen(false)}
+          onConfirm={doFinish}
+        />
 
         <View style={styles.inRoundNav}>
           <Pressable
@@ -370,6 +470,79 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.statusDanger,
     marginBottom: spacing[2],
+  },
+  confirmHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  confirmCountLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 12,
+    color: colors.statusWarning,
+    marginBottom: spacing[2] + 2,
+  },
+  confirmList: {
+    gap: spacing[2],
+    marginBottom: spacing[4],
+  },
+  confirmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2] + 1,
+    backgroundColor: colors.surfaceCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing[3],
+    ...shadows.xs,
+  },
+  confirmAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  confirmAvatarLabel: {
+    fontFamily: getFontFamily('display', '700'),
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  confirmBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  confirmName: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  confirmSubtitle: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    marginTop: 2,
+  },
+  confirmSubtitleDone: {
+    color: colors.statusSuccess,
+  },
+  confirmSubtitlePending: {
+    color: colors.statusWarning,
+  },
+  confirmPendingPill: {
+    backgroundColor: palette.orange[100],
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing[2] + 2,
+    paddingVertical: spacing[1] + 1,
+  },
+  confirmPendingLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 11,
+    color: palette.orange[700],
   },
   settlementCard: {
     backgroundColor: palette.orange[100],

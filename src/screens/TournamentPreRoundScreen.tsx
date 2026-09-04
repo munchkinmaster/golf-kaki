@@ -19,6 +19,7 @@ import { useAuth } from '../state/AuthContext';
 import type { TournamentPlayerDraft } from '../state/TournamentDraftContext';
 import { useTournamentDraft } from '../state/TournamentDraftContext';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
+import { supabase } from '../lib/supabase';
 
 type Props = NativeStackScreenProps<TournamentStackParamList, 'TournamentPreRound'>;
 
@@ -62,36 +63,68 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
 
   // The draft is a local, client-only snapshot from when the wizard last
   // touched it — once the real tournament/match row exists (matchId set),
-  // other players joining or toggling Skins from their own device never
-  // reaches this screen's state on its own (no realtime subscription here,
-  // and this screen isn't navigated through on their end at all). Refetch
-  // live join/Skins state on every focus so a host revisiting this review
-  // step (e.g. after inviting someone, backing out and back in) sees who's
-  // actually confirmed rather than the stale invited/joined snapshot from
-  // whenever the draft was first built.
+  // other players joining (or joining by code, bypassing this wizard
+  // entirely) or toggling Skins from their own device never reaches this
+  // screen's state on its own.
+  const loadLiveRoster = useCallback(() => {
+    if (!draft.matchId || !draft.tournamentId) return Promise.resolve();
+    return fetchTournamentLobby(draft.tournamentId)
+      .then((lobby) => {
+        update({
+          players: lobby.players.map((p) => ({
+            id: p.id,
+            name: p.name,
+            handicapIndex: p.handicapIndex,
+            isHost: p.isHost,
+            status: p.status,
+            tee: p.teeColor,
+            playingHandicap: p.playingHandicap,
+            handicapOverride: p.handicapOverride,
+          })),
+          sideGames: lobby.sideGames,
+        });
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- update is stable (Provider-scoped useCallback with [] deps)
+  }, [draft.matchId, draft.tournamentId]);
+
+  // Refetch on every focus (backing out and back in)...
   useFocusEffect(
     useCallback(() => {
-      if (!draft.matchId || !draft.tournamentId) return;
-      fetchTournamentLobby(draft.tournamentId)
-        .then((lobby) => {
-          update({
-            players: lobby.players.map((p) => ({
-              id: p.id,
-              name: p.name,
-              handicapIndex: p.handicapIndex,
-              isHost: p.isHost,
-              status: p.status,
-              tee: p.teeColor,
-              playingHandicap: p.playingHandicap,
-              handicapOverride: p.handicapOverride,
-            })),
-            sideGames: lobby.sideGames,
-          });
-        })
-        .catch(() => {});
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- update is stable (Provider-scoped useCallback with [] deps)
-    }, [draft.matchId, draft.tournamentId]),
+      loadLiveRoster();
+    }, [loadLiveRoster]),
   );
+
+  // ...plus a realtime channel + poll fallback for a host who just STAYS on
+  // this review step waiting for people to accept — focus alone never
+  // refires for them. Same gap TournamentPlayersScreen had (see its own
+  // identical fix) — every other live tournament screen already covers this.
+  const channelId = useRef(Math.random().toString(36).slice(2)).current;
+  useEffect(() => {
+    if (!draft.matchId) return;
+    let syncTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleSync = () => {
+      if (syncTimer) clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => {
+        loadLiveRoster();
+      }, 250);
+    };
+
+    const channel = supabase
+      .channel(`tournament-preround-${draft.matchId}-${channelId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'match_players', filter: `match_id=eq.${draft.matchId}` }, scheduleSync)
+      .subscribe();
+
+    const pollTimer = setInterval(() => {
+      loadLiveRoster();
+    }, 20000);
+
+    return () => {
+      if (syncTimer) clearTimeout(syncTimer);
+      clearInterval(pollTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [draft.matchId, channelId, loadLiveRoster]);
 
   const course = catalog.find((c) => c.id === draft.courseId);
   const combo = course?.combos.find((c) => c.id === draft.comboId);
@@ -101,6 +134,7 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
   const invitedPlayers = draft.players.filter((p) => p.status === 'invited');
 
   const isSystem36 = draft.format === 'system_36';
+  const isStableford = draft.format === 'stableford';
   const holeCount = course && combo ? getComboHoles(course, combo.id).length : 18;
   const tieBreakLabel = draft.tieBreakRule === 'countback' ? 'Back-9 countback' : 'Shared place';
   // No scheduled-time field exists on the draft (a round starts the moment
@@ -176,10 +210,7 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
           name: draft.name,
           playAs: draft.playAs,
           roundStructure: draft.roundStructure,
-          // draft.format also allows 'stableford' (not yet buildable/selectable
-          // on S1) — narrow anything but 'system_36' to 'stroke_play' rather
-          // than let that value reach the scoring_format check constraint.
-          scoringFormat: draft.format === 'system_36' ? 'system_36' : 'stroke_play',
+          scoringFormat: draft.format,
           standingsBasis: draft.standingsBasis,
           handicapAllowancePct: draft.handicapAllowancePct,
           tieBreakRule: draft.tieBreakRule,
@@ -263,7 +294,9 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
               </Pressable>
               <View style={styles.headerTitleGroup}>
                 <Text style={styles.headerTitle}>{draft.name}</Text>
-                <Text style={styles.headerSubtitle}>Stroke play · Nett {draft.handicapAllowancePct}%</Text>
+                <Text style={styles.headerSubtitle}>
+                {isStableford ? 'Stableford' : 'Stroke play'} · Nett {draft.handicapAllowancePct}%
+              </Text>
               </View>
               <View style={styles.settingsButton}>
                 <Settings2 size={16} color={palette.white} />
@@ -372,6 +405,50 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
                     <Text style={styles.detailKey}>Tie-break</Text>
                     <Text style={styles.detailValue}>{tieBreakLabel}</Text>
                   </View>
+                  {/* System 36's own review previously dropped Skins entirely once it
+                      diverged from the stroke-play branch below — a host reviewing a
+                      System 36 round before starting couldn't see or toggle who's in
+                      the side game at all, even though they'd just configured it on S5
+                      and the Lobby screen shows it fine once the round exists. Mirrors
+                      the stroke-play branch's identical block. */}
+                  {skins ? (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailKey}>Side game</Text>
+                      <View style={styles.rulesRowValueGroup}>
+                        <Text style={styles.detailValue}>
+                          Skins · ${skins.stakePerHole}/hole · {TIE_RULE_SUMMARY[skins.tiedHoleRule]?.label}
+                        </Text>
+                        <Text style={styles.rulesRowSub}>{TIE_RULE_SUMMARY[skins.tiedHoleRule]?.sub}</Text>
+                      </View>
+                    </View>
+                  ) : null}
+                  {skins ? (
+                    <View style={styles.playingSkinsBlock}>
+                      <View style={styles.playingSkinsHeader}>
+                        <Text style={styles.detailKey}>Playing skins</Text>
+                        <Text style={styles.tapToToggle}>tap to toggle</Text>
+                      </View>
+                      <View style={styles.pillRow}>
+                        {joinedPlayers.map((p, i) => {
+                          const on = skins.participantIds.includes(p.id);
+                          return (
+                            <Pressable key={p.id} style={[styles.pill, on ? styles.pillOn : styles.pillOff]} onPress={() => toggleSkinsParticipant(p.id)}>
+                              <View style={[styles.pillAvatar, { backgroundColor: on ? getSolidAvatarColor(i) : palette.ink[300] }]}>
+                                <Text style={styles.pillAvatarLabel}>{p.name[0]?.toUpperCase()}</Text>
+                              </View>
+                              <Text style={[styles.pillLabel, on ? styles.pillLabelOn : styles.pillLabelOff]}>{p.name.split(' ')[0]}</Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                      {invitedPlayers.length > 0 ? (
+                        <Text style={styles.playingSkinsNote}>
+                          {invitedPlayers.map((p) => p.name.split(' ')[0]).join(' and ')} pick{invitedPlayers.length === 1 ? 's' : ''} when they accept.
+                          Anyone left out still plays the round.
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
                   <View style={[styles.detailRow, styles.detailRowLast]}>
                     <Text style={styles.detailKey}>Scoring</Text>
                     <Text style={styles.detailValue}>All {draft.players.length} players enter own</Text>
@@ -454,7 +531,9 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
             <View style={styles.rulesCard}>
               <View style={styles.rulesRow}>
                 <Text style={styles.rulesRowLabel}>Format</Text>
-                <Text style={styles.rulesRowValue}>Stroke play · Nett {draft.handicapAllowancePct}%</Text>
+                <Text style={styles.rulesRowValue}>
+                  {isStableford ? 'Stableford' : 'Stroke play'} · Nett {draft.handicapAllowancePct}%
+                </Text>
               </View>
               {skins ? (
                 <View style={styles.rulesRow}>

@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Activity, CircleCheckBig, Info, ListOrdered, Lock, Table2 } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -10,6 +10,7 @@ import type { InRoundTab } from '../components/InRoundTabBar';
 import { ScoreCell } from '../components/ScoreCell';
 import { strokesReceivedOnHole } from '../data/handicap';
 import { SYSTEM36_TOTAL_HOLES, s36Handicap, s36PointsForHole, stablefordPointsForHole } from '../data/system36';
+import { useFinishRedirect } from '../hooks/useFinishRedirect';
 import { useTournamentRound } from '../hooks/useTournamentRound';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
@@ -96,6 +97,12 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
   const round = useTournamentRound(tournamentId, matchId);
   const { loading, error, viewerId, roster, holes, playOrder, scores, thru, standingsBasis, matchStatus } = round;
 
+  useFinishRedirect(
+    matchStatus,
+    loading,
+    useCallback(() => navigation.navigate('TournamentFinish', { tournamentId, matchId }), [navigation, tournamentId, matchId]),
+  );
+
   const [nineOverride, setNineOverride] = useState<NineSide | null>(null);
   const [statMode, setStatMode] = useState<GridView>('nett');
 
@@ -142,6 +149,7 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
   const totalLabel = nine === 'front' ? 'OUT' : 'IN';
 
   const isSystem36 = round.scoringFormat === 'system_36';
+  const isStableford = round.scoringFormat === 'stableford';
 
   // Gap-tolerant totals: sum over the holes a player has ACTUALLY entered, not
   // computeThru's consecutive-from-start prefix. A player can leave a hole
@@ -174,6 +182,14 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
   const viewerGross = viewerId ? sumGross(viewerId) : 0;
   const viewerNett = viewerId && viewer ? sumNett(viewerId, viewer.playingHandicap) : 0;
   const viewerToPar = viewerId ? viewerNett - sumPar(viewerId) : 0;
+  // Stableford points off the viewer's own (ordinary, upfront) Playing
+  // Handicap — reuses sumStbf exactly as-is (it already takes an arbitrary
+  // handicap; System 36 just happens to pass its derived one instead).
+  const viewerStablefordPts = viewerId && viewer ? sumStbf(viewerId, viewer.playingHandicap) : 0;
+  // Clamps statMode (shared with the other two branches) to the 3 views
+  // Stableford's tiles actually offer — 's36pts' can never be reached here
+  // since only System 36's tiles ever set it.
+  const sbView: 'gross' | 'nett' | 'stbf' = statMode === 's36pts' ? 'gross' : statMode;
 
   // System 36 mid-round figures for the viewer (SY8): S36 points and the live
   // 36 − points handicap are true as of holes played; nett/Stableford stay
@@ -221,7 +237,11 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
             <View style={styles.headerTitleGroup}>
               <Text style={styles.headerTitle}>Scorecard</Text>
               <Text style={styles.headerSubtitle}>
-                {isSystem36 ? (s36Finished ? 'System 36 · final card' : 'System 36 · in progress') : `Stroke play · Nett ${round.handicapAllowancePct}%`}
+                {isSystem36
+                  ? s36Finished
+                    ? 'System 36 · final card'
+                    : 'System 36 · in progress'
+                  : `${isStableford ? 'Stableford' : 'Stroke play'} · Nett ${round.handicapAllowancePct}%`}
               </Text>
             </View>
             <View style={styles.headerActions}>
@@ -481,6 +501,132 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
                       ? `Handicap ${viewerS36Hcp} spends by stroke index across the round. Nett ${viewerNettS36} → ${viewerStbf} Stableford pts, and those pts decide the win.`
                       : `${viewerS36Pts} S36 pts → handicap ${viewerS36Hcp} (36 − ${viewerS36Pts}). Stableford points off that handicap decide the win.`}
                 </Text>
+              </View>
+            </>
+          ) : isStableford ? (
+            <>
+              {/* TRANSPOSED GRID — holes as rows, players as columns (SB8),
+                  same layout System 36's SY8 uses. The Gross/Nett/Points
+                  tiles below double as a view switch for these cells, same
+                  interaction as Stroke Play's Gross/Nett toggle and System
+                  36's 4-way one — just three views here since there's no
+                  settled/mid-round split to gate. */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tGridScrollContent}>
+                <View style={styles.tGridContent}>
+                  {/* HEADER */}
+                  <View style={[styles.tRow, styles.tHeaderRow]}>
+                    <Text style={[styles.tHeadCell, styles.tHCol]}>H</Text>
+                    <Text style={[styles.tHeadCell, styles.tParCol]}>Par</Text>
+                    <Text style={[styles.tHeadCell, styles.tSiCol]}>SI</Text>
+                    {roster.map((player, index) => {
+                      const isYou = player.id === viewerId;
+                      return (
+                        <View key={player.id} style={[styles.tPlayerHead, isYou && styles.tColYou, isYou && styles.tColYouTop]}>
+                          <View style={[styles.tPlayerAvatar, { backgroundColor: getSolidAvatarColor(index) }]}>
+                            <Text style={styles.tPlayerAvatarLabel}>{player.name[0]?.toUpperCase()}</Text>
+                          </View>
+                          <Text style={[styles.tPlayerName, isYou && styles.tPlayerNameYou]} numberOfLines={1}>
+                            {isYou ? 'You' : firstName(player.name)}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                  {/* HOLE ROWS */}
+                  {displayHoles.map((h, rowIdx) => (
+                    <View key={h.n} style={[styles.tRow, styles.tHoleRow, rowIdx === displayHoles.length - 1 && styles.tHoleRowLast]}>
+                      <Text style={[styles.tNumCell, styles.tHCol]}>{h.n}</Text>
+                      <Text style={[styles.tMetaCell, styles.tParCol]}>{h.par}</Text>
+                      <Text style={[styles.tMetaCell, styles.tSiCol]}>{h.si}</Text>
+                      {roster.map((player) => {
+                        const isYou = player.id === viewerId;
+                        const raw = scores[player.id]?.[h.n];
+                        const received = strokesReceivedOnHole(player.playingHandicap, h.si);
+                        if (sbView === 'stbf') {
+                          const pts = raw === undefined ? undefined : stablefordPointsForHole(raw - received, h.par);
+                          const chip = pts === undefined ? undefined : STBF_POINT_CHIP[pts];
+                          return (
+                            <View key={player.id} style={[styles.tCellWrap, isYou && styles.tColYou]}>
+                              <PointCell points={pts} chip={chip} size={28} />
+                            </View>
+                          );
+                        }
+                        const value = raw === undefined ? undefined : sbView === 'nett' ? raw - received : raw;
+                        return (
+                          <View key={player.id} style={[styles.tCellWrap, isYou && styles.tColYou]}>
+                            <ScoreCell value={value} par={h.par} strokesReceived={received} size={28} />
+                          </View>
+                        );
+                      })}
+                    </View>
+                  ))}
+                  {/* SUMMARY A — this nine's stroke total, following the same view family as the cells above (Nett once Points is active too, since points are nett-derived — same grouping System 36's own dual summary uses). */}
+                  <View style={[styles.tRow, styles.tSummaryRow]}>
+                    <Text style={styles.tSummaryLabel}>
+                      {sbView === 'gross' ? (nine === 'front' ? 'Out' : 'In') : nine === 'front' ? 'Nett out' : 'Nett in'}
+                    </Text>
+                    {roster.map((player) => {
+                      const val =
+                        sbView === 'gross'
+                          ? sumGross(player.id, rangeStart, rangeEnd)
+                          : sumNett(player.id, player.playingHandicap, rangeStart, rangeEnd);
+                      return (
+                        <Text key={player.id} style={styles.tSummaryCell}>
+                          {val}
+                        </Text>
+                      );
+                    })}
+                  </View>
+                  {/* SUMMARY B — Stableford points for this nine. */}
+                  <View style={[styles.tRow, styles.tSummaryRow, styles.tSummaryRowLast]}>
+                    <Text style={styles.tSummaryLabel}>PTS</Text>
+                    {roster.map((player) => (
+                      <Text key={player.id} style={[styles.tSummaryCell, styles.tSummaryCellAccent]}>
+                        {sumStbf(player.id, player.playingHandicap, rangeStart, rangeEnd)}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              </ScrollView>
+
+              {/* YOUR TOTALS — tap any tile to switch what the grid above shows */}
+              <View style={styles.totalsRow}>
+                <Pressable style={[styles.totalTile, sbView === 'gross' && styles.totalTileActive]} onPress={() => setStatMode('gross')}>
+                  <Text style={[styles.totalTileLabel, sbView === 'gross' && styles.totalTileLabelInverse]}>Gross</Text>
+                  <Text style={[styles.totalTileValue, sbView === 'gross' && styles.totalTileValueInverse]}>{viewerGross}</Text>
+                </Pressable>
+                <Pressable style={[styles.totalTile, sbView === 'nett' && styles.totalTileActive]} onPress={() => setStatMode('nett')}>
+                  <Text style={[styles.totalTileLabel, sbView === 'nett' && styles.totalTileLabelInverse]}>Nett</Text>
+                  <Text style={[styles.totalTileValue, sbView === 'nett' && styles.totalTileValueInverse]}>{viewerNett}</Text>
+                </Pressable>
+                <Pressable style={[styles.totalTile, sbView === 'stbf' && styles.totalTileActive]} onPress={() => setStatMode('stbf')}>
+                  <Text style={[styles.totalTileLabel, sbView === 'stbf' && styles.totalTileLabelInverse]}>Points</Text>
+                  <Text style={[styles.totalTileValue, sbView === 'stbf' && styles.totalTileValueInverse]}>{viewerStablefordPts}</Text>
+                </Pressable>
+              </View>
+
+              {/* LEGEND — same 4-shape vocabulary ScoreCell uses everywhere else in the app (it doesn't distinguish eagle from birdie, same simplification as System 36's own SY8 legend). */}
+              <View style={styles.legendRow}>
+                <View style={styles.legendItem}>
+                  <View style={styles.legendCircle} />
+                  <Text style={styles.legendText}>Birdie+</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={styles.legendParDot} />
+                  <Text style={styles.legendText}>Par</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={styles.legendSquareBogey} />
+                  <Text style={styles.legendText}>Bogey</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={styles.legendSquareDouble} />
+                  <Text style={styles.legendText}>Double+</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={styles.legendDot} />
+                  <Text style={styles.legendText}>Handicap stroke</Text>
+                </View>
               </View>
             </>
           ) : (
