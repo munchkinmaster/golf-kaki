@@ -100,9 +100,14 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
     : [];
   const viewerStableford = stablefordStandings.find((r) => r.playerId === viewerId);
   const stablefordWinner = stablefordStandings.find((r) => r.rank === 1);
-  // "To HCP" — points above/below the 36-over-18 mark that plays exactly to
-  // handicap (per SB3's target callout).
-  const viewerToHcp = viewerStableford ? viewerStableford.points - 36 : 0;
+  // "To HCP" — strokes-equivalent above/below the 36-over-18 mark that plays
+  // exactly to handicap (per SB3's target callout), in the SAME sign
+  // convention as every other "to par" figure in this app (positive =
+  // worse, negative = better — see toParLabel/TournamentScorecardScreen's
+  // toPar). 36 − points, not points − 36: fewer points than 36 means you
+  // played worse than your handicap, which should read as a POSITIVE
+  // number (e.g. nett 5 over course par → 31 pts → "+5"), not negative.
+  const viewerToHcp = viewerStableford ? 36 - viewerStableford.points : 0;
   // Which rows got split apart by countback despite equal points — a plain
   // "1st / 2nd" next to two equal point totals reads as a bug unless it's
   // explained. playerIds who show up here get a small "Countback" tag next
@@ -685,15 +690,23 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
               </Pressable>
             ) : (
               <Pressable
-                style={[styles.doneButton, (!isHostViewer || !roundComplete || finishing) && styles.doneButtonDisabled]}
+                style={[styles.doneButton, (!isHostViewer || finishing) && styles.doneButtonDisabled]}
                 onPress={handleFinish}
-                disabled={!isHostViewer || !roundComplete || finishing}
+                disabled={!isHostViewer || finishing}
               >
-                <Text style={styles.doneButtonLabel}>{finishing ? 'Finishing…' : isHostViewer ? 'Finish round' : 'Waiting for cards'}</Text>
+                <Text style={styles.doneButtonLabel}>{finishing ? 'Finishing…' : isHostViewer ? 'Finish round' : 'Waiting for host'}</Text>
               </Pressable>
             )}
           </View>
         </View>
+
+        <FinishEarlySheet
+          visible={earlyFinishSheetOpen}
+          names={notFinishedNames}
+          finishing={finishing}
+          onCancel={() => setEarlyFinishSheetOpen(false)}
+          onConfirm={doFinish}
+        />
 
         {/* Once the round is finished this screen becomes the permanent past-round
             recap (reachable later from Home/Rounds/Notifications) — no tab bar, so

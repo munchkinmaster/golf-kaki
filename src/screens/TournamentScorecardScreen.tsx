@@ -186,10 +186,6 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
           return sum + stablefordPointsForHole(nett, hole.par);
         }, 0)
       : 0;
-  // "Pace" — points banked so far vs. the 2-pts/hole pace that plays exactly
-  // to handicap (36 over 18, per SB3's target callout): positive means
-  // ahead of that pace, negative means behind.
-  const stablefordPace = stablefordPts - 2 * enteredCountForPlayer;
   // The gross currently in the stepper → its NETT score class and Stableford
   // points, for the derived-points banner and the highlighted quick-pick chip.
   const currentNett = currentValue - selectedReceived;
@@ -481,10 +477,14 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
                 <Text style={styles.totalTileValue}>{grossVal}</Text>
               </View>
               <View style={styles.totalTile}>
-                <Text style={styles.totalTileLabel}>Pace</Text>
-                <Text style={[styles.totalTileValue, stablefordPace > 0 && styles.totalTileValueAhead, stablefordPace < 0 && styles.totalTileValueOver]}>
-                  {stablefordPace > 0 ? `+${stablefordPace}` : stablefordPace}
-                </Text>
+                {/* "To par" — same nett-vs-par figure and +/positive-is-worse
+                    convention as the plain Stroke Play tile below, not the
+                    points-vs-pace number this used to show as "Pace": that
+                    read backwards next to every other to-par figure in the
+                    app (positive there meant AHEAD, i.e. better), and "to
+                    par" is the term golfers actually reach for. */}
+                <Text style={styles.totalTileLabel}>To par</Text>
+                <Text style={[styles.totalTileValue, toPar > 0 && styles.totalTileValueOver]}>{toPar > 0 ? `+${toPar}` : toPar}</Text>
               </View>
             </View>
           ) : (
@@ -972,9 +972,6 @@ const styles = StyleSheet.create({
   },
   totalTileValueOver: {
     color: colors.scoreDouble,
-  },
-  totalTileValueAhead: {
-    color: colors.statusSuccess,
   },
   totalTileValueInverse: {
     fontFamily: getFontFamily('numeric', '700'),

@@ -199,6 +199,34 @@ async function createTournamentMatch(tournamentId: string, tournamentCode: strin
   });
 }
 
+/**
+ * matches.golfer_count is set once at createTournamentMatch time, from
+ * whatever the roster size happened to be when the FIRST invite went out
+ * (host + that one friend = 2). Every invite after that is a live insert
+ * (inviteTournamentPlayer below) that never touched golfer_count — so a
+ * host who invites a 3rd, 4th friend keeps growing match_players while the
+ * capacity column stays stuck at 2. joinMatchByCode/findMatchByCode's "is
+ * this match full" check reads golfer_count as the seat cap, so once the
+ * stale cap is reached, a genuinely-invited player (or anyone joining by
+ * code) gets a spurious "This match is full." even though the host clearly
+ * meant to seat more people. Confirmed live: a 2-cap tournament ended up
+ * with 3 match_players rows and the 3rd join threw exactly that error.
+ * Re-synced to the live match_players count after every invite/remove so
+ * the cap always matches the actual roster, not a stale creation-time snapshot.
+ */
+async function syncTournamentGolferCount(matchId: string): Promise<void> {
+  const { count, error: countError } = await supabase
+    .from('match_players')
+    .select('*', { count: 'exact', head: true })
+    .eq('match_id', matchId);
+  if (countError) throw countError;
+  const { error } = await supabase
+    .from('matches')
+    .update({ golfer_count: count ?? 0 })
+    .eq('id', matchId);
+  if (error) throw error;
+}
+
 /** Invites one more player to an already-created tournament — TournamentPlayersScreen's 2nd+ Add, once the first invite already created the shell. A real live insert, not local draft state, so the invitee sees it immediately. */
 export async function inviteTournamentPlayer(matchId: string, player: CreateTournamentPlayer): Promise<void> {
   return withRetry(async () => {
@@ -215,6 +243,7 @@ export async function inviteTournamentPlayer(matchId: string, player: CreateTour
       // S5's "who's in" list or the lobby's Skins sheet afterward.
     });
     if (error) throw error;
+    await syncTournamentGolferCount(matchId);
   });
 }
 
@@ -450,5 +479,8 @@ export async function removeTournamentPlayer(matchId: string, playerId: string):
   return withRetry(async () => {
     const { error } = await supabase.from('match_players').delete().eq('match_id', matchId).eq('player_id', playerId);
     if (error) throw error;
+    // Frees the seat back up — see syncTournamentGolferCount's comment above
+    // inviteTournamentPlayer for why this can't be left at its creation-time value.
+    await syncTournamentGolferCount(matchId);
   });
 }

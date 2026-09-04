@@ -405,6 +405,50 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
                     <Text style={styles.detailKey}>Tie-break</Text>
                     <Text style={styles.detailValue}>{tieBreakLabel}</Text>
                   </View>
+                  {/* System 36's own review previously dropped Skins entirely once it
+                      diverged from the stroke-play branch below — a host reviewing a
+                      System 36 round before starting couldn't see or toggle who's in
+                      the side game at all, even though they'd just configured it on S5
+                      and the Lobby screen shows it fine once the round exists. Mirrors
+                      the stroke-play branch's identical block. */}
+                  {skins ? (
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailKey}>Side game</Text>
+                      <View style={styles.rulesRowValueGroup}>
+                        <Text style={styles.detailValue}>
+                          Skins · ${skins.stakePerHole}/hole · {TIE_RULE_SUMMARY[skins.tiedHoleRule]?.label}
+                        </Text>
+                        <Text style={styles.rulesRowSub}>{TIE_RULE_SUMMARY[skins.tiedHoleRule]?.sub}</Text>
+                      </View>
+                    </View>
+                  ) : null}
+                  {skins ? (
+                    <View style={styles.playingSkinsBlock}>
+                      <View style={styles.playingSkinsHeader}>
+                        <Text style={styles.detailKey}>Playing skins</Text>
+                        <Text style={styles.tapToToggle}>tap to toggle</Text>
+                      </View>
+                      <View style={styles.pillRow}>
+                        {joinedPlayers.map((p, i) => {
+                          const on = skins.participantIds.includes(p.id);
+                          return (
+                            <Pressable key={p.id} style={[styles.pill, on ? styles.pillOn : styles.pillOff]} onPress={() => toggleSkinsParticipant(p.id)}>
+                              <View style={[styles.pillAvatar, { backgroundColor: on ? getSolidAvatarColor(i) : palette.ink[300] }]}>
+                                <Text style={styles.pillAvatarLabel}>{p.name[0]?.toUpperCase()}</Text>
+                              </View>
+                              <Text style={[styles.pillLabel, on ? styles.pillLabelOn : styles.pillLabelOff]}>{p.name.split(' ')[0]}</Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                      {invitedPlayers.length > 0 ? (
+                        <Text style={styles.playingSkinsNote}>
+                          {invitedPlayers.map((p) => p.name.split(' ')[0]).join(' and ')} pick{invitedPlayers.length === 1 ? 's' : ''} when they accept.
+                          Anyone left out still plays the round.
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
                   <View style={[styles.detailRow, styles.detailRowLast]}>
                     <Text style={styles.detailKey}>Scoring</Text>
                     <Text style={styles.detailValue}>All {draft.players.length} players enter own</Text>
