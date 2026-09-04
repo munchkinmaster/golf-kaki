@@ -184,11 +184,10 @@ export function useLiveRound(matchId: string) {
   const frontNineDeals = useMemo(() => pairSettingsToDeals(pairSettings), [pairSettings]);
   const backNineDeals = useMemo(() => buildBackNineDeals(rosterIds, matchupRows), [rosterIds, matchupRows]);
 
-  // The mid-round re-strike (18-hole/9-strokes-basis matches only): right at
-  // the turn (thru === 9, before anyone's back-9 card has a single hole on
-  // it), compute the back-9 deal and persist it for every pair this viewer
-  // can legally write (game_matchups RLS: either participant, or the host as
-  // admin override).
+  // The mid-round re-strike (18-hole/9-strokes-basis matches only): once the
+  // front 9 is complete (thru >= 9), compute the back-9 deal and persist it
+  // for every pair this viewer can legally write (game_matchups RLS: either
+  // participant, or the host as admin override).
   //
   // Filling all of a 4+ player roster's pairs usually takes more than one
   // client — each viewer only has write access to their own pairs (or all of
@@ -202,9 +201,22 @@ export function useLiveRound(matchId: string) {
   // depend on `matchupRows` directly: once every writable pair matches, the
   // diff is empty and the effect no-ops, so it can't loop forever chasing its
   // own `load()`.
+  //
+  // Deliberately `thru >= 9`, not `=== 9`: this used to only fire in the
+  // instant window between everyone finishing hole 9 and everyone finishing
+  // hole 10. If no client holding write access to some pair (that pair's own
+  // two players, or the host) had the round open in that exact window — e.g.
+  // off on the Leaderboard tab, or the app was briefly backgrounded — that
+  // pair's back_nine_strokes stayed null forever, and getFlags/dealsAndRankForHole
+  // falls back to zero strokes for the WHOLE match (not just that pair) for
+  // every hole from 10 on, until every pair resolves (round.ts's
+  // dealsAndRankForHole comment). `>= 9` lets any later client passing
+  // through — even mid-back-nine — catch and repair a still-missing pair;
+  // the diff-and-only-upsert-what-changed check above keeps this idempotent
+  // once every writable pair is already correct.
   useEffect(() => {
     if (schedule.holesToPlay !== 18 || schedule.strokesBasis !== 9) return;
-    if (thru !== 9) return;
+    if (thru < 9) return;
 
     const net = getBackNineNet(rosterIds, gross, frontNineDeals, holes, schedule);
     const rowByPair = new Map(matchupRows.map((m) => [pairKey(m.playerAId, m.playerBId), m]));
