@@ -233,6 +233,14 @@ export async function updateTournamentPlayerSeat(matchId: string, playerId: stri
   });
 }
 
+/** Records the moment a player tapped "Save & review" on hole 18 (TournamentScorecardScreen's terminal CTA) — the one deliberate "I'm done" signal in this flow, and what the Finish screen's "Confirm scores" list actually keys off (not raw hole-completeness, which stays true even while a player is still tinkering with earlier holes). Idempotent — re-tapping (e.g. navigating back to hole 18 and forward again) just re-sets the same-shaped timestamp. Rides the same self-or-host write boundary as editing scores (match_players' existing self/host update policies), so the host confirming a card on someone else's behalf while entering it for them works the same way. */
+export async function confirmTournamentCard(matchId: string, playerId: string): Promise<void> {
+  return withRetry(async () => {
+    const { error } = await supabase.from('match_players').update({ card_confirmed_at: new Date().toISOString() }).eq('match_id', matchId).eq('player_id', playerId);
+    if (error) throw error;
+  });
+}
+
 /** Replaces matches.game_settings.sideGames wholesale — used once the tournament shell already exists and the host edits/removes a side game from S5. Skins' participantIds rides along for SkinsConfig shape-compatibility, but match_players.skins_opt_in (see setSkinsParticipant) is what fetchTournamentLobby actually reads back for who's in. */
 export async function updateTournamentSideGames(matchId: string, sideGames: SkinsConfig[]): Promise<void> {
   return withRetry(async () => {
@@ -311,6 +319,8 @@ export type TournamentLobbyPlayer = {
   teeColor: TeeColor;
   playingHandicap: number;
   handicapOverride: boolean;
+  /** Set the moment this player tapped "Save & review" on hole 18 (see confirmTournamentCard) — the Finish screen's "Confirm scores" list keys off this, not raw hole-completeness, since a card stays editable pre-finish regardless of whether every hole happens to have a value. Null = not yet confirmed. */
+  cardConfirmedAt: string | null;
 };
 
 export type TournamentLobby = {
@@ -363,6 +373,7 @@ type PlayerRow = {
   playing_handicap: number | null;
   handicap_override: boolean;
   skins_opt_in: boolean;
+  card_confirmed_at: string | null;
   profiles: { display_name: string };
 };
 
@@ -387,7 +398,7 @@ export async function fetchTournamentLobby(tournamentId: string): Promise<Tourna
 
     const { data: playerRows, error: pError } = await supabase
       .from('match_players')
-      .select('player_id, is_host, handicap_at_time, status, tee_color, playing_handicap, handicap_override, skins_opt_in, profiles ( display_name )')
+      .select('player_id, is_host, handicap_at_time, status, tee_color, playing_handicap, handicap_override, skins_opt_in, card_confirmed_at, profiles ( display_name )')
       .eq('match_id', match.id)
       .order('joined_at');
     if (pError) throw pError;
@@ -402,6 +413,7 @@ export async function fetchTournamentLobby(tournamentId: string): Promise<Tourna
       teeColor: row.tee_color ?? 'white',
       playingHandicap: row.playing_handicap ?? 0,
       handicapOverride: row.handicap_override,
+      cardConfirmedAt: row.card_confirmed_at,
     }));
 
     // participantIds is authoritative from match_players.skins_opt_in, not

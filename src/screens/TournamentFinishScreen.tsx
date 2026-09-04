@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Award, ChevronRight, Coins, Crown, Flag, GitCompare, List, Medal, Trophy, Wallet, X } from 'lucide-react-native';
+import { Award, ChevronRight, CircleCheckBig, Coins, Crown, Flag, GitCompare, List, Medal, Trophy, Wallet, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -127,6 +127,26 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
 
   const roundComplete = holes.length > 0 && thru === holes.length;
   const isFinished = matchStatus === 'finished';
+  // The always-visible Confirm scores list below is a DIFFERENT question —
+  // not "is the data complete" but "has this player deliberately said
+  // they're done" (tapped Save & review on hole 18 — see
+  // confirmTournamentCard/TournamentScorecardScreen's handleNextHole).
+  // A card can have all 18 holes filled and still read Pending here if
+  // nobody's tapped through yet — that's the point: it lets the host
+  // actually go ask, rather than assume "has a number in every box" means
+  // "done reviewing."
+  const confirmRows = roster.map((p) => {
+    const playerThru = perPlayerThru[p.id] ?? 0;
+    return {
+      playerId: p.id,
+      name: p.name,
+      confirmed: p.cardConfirmedAt !== null,
+      allHolesIn: holes.length > 0 && playerThru >= holes.length,
+      thru: playerThru,
+      gross: standings.find((r) => r.playerId === p.id)?.gross ?? 0,
+    };
+  });
+  const confirmedCount = confirmRows.filter((r) => r.confirmed).length;
 
   const bestGrossRow = standings.filter((r) => r.thru > 0).reduce<(typeof standings)[number] | null>((best, r) => (!best || r.gross < best.gross ? r : best), null);
   const stablefordBestGrossRow = stablefordStandings
@@ -235,6 +255,49 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          {/* Lets the host see exactly WHO to check on before finishing early,
+              instead of just a "17 of 18" number — hidden once the round's
+              actually finished, since by then it's moot either way. */}
+          {!isFinished && roster.length > 1 ? (
+            <>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionLabel}>Confirm scores</Text>
+                <Text style={styles.confirmCountLabel}>
+                  {confirmedCount} of {roster.length} confirmed
+                </Text>
+              </View>
+              <View style={styles.confirmList}>
+                {confirmRows.map((row, index) => (
+                  <View key={row.playerId} style={styles.confirmRow}>
+                    <View style={[styles.tableAvatar, { backgroundColor: getSolidAvatarColor(index) }]}>
+                      <Text style={styles.tableAvatarLabel}>{row.name.charAt(0)}</Text>
+                    </View>
+                    <View style={styles.confirmBody}>
+                      <Text style={styles.confirmName}>
+                        {row.name}
+                        {row.playerId === viewerId ? <Text style={styles.confirmYou}> (You)</Text> : null}
+                      </Text>
+                      <Text style={[styles.confirmSubtitle, row.confirmed ? styles.confirmSubtitleDone : styles.confirmSubtitlePending]}>
+                        {row.confirmed
+                          ? `Card confirmed · ${row.gross} gross`
+                          : row.allHolesIn
+                            ? "All holes in · hasn't tapped Save & review"
+                            : `Still entering · thru ${row.thru} of ${holes.length}`}
+                      </Text>
+                    </View>
+                    {row.confirmed ? (
+                      <CircleCheckBig size={20} color={colors.statusSuccess} />
+                    ) : (
+                      <View style={styles.confirmPendingPill}>
+                        <Text style={styles.confirmPendingLabel}>Pending</Text>
+                      </View>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : null}
+
           {!roundComplete ? (
             <View style={styles.gateCard}>
               <View style={styles.gateIconTile}>
@@ -819,6 +882,63 @@ const styles = StyleSheet.create({
     fontFamily: getFontFamily('body', '400'),
     fontSize: 11,
     color: colors.textDisabled,
+  },
+  confirmCountLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 12,
+    color: colors.statusWarning,
+  },
+  confirmList: {
+    gap: spacing[2],
+    marginBottom: spacing[5],
+  },
+  confirmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2] + 1,
+    backgroundColor: colors.surfaceCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: spacing[3],
+    ...shadows.xs,
+  },
+  confirmBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  confirmName: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  confirmYou: {
+    color: colors.textMuted,
+  },
+  confirmSubtitle: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    marginTop: 2,
+  },
+  confirmSubtitleDone: {
+    color: colors.statusSuccess,
+  },
+  confirmSubtitlePending: {
+    color: colors.statusWarning,
+  },
+  confirmPendingPill: {
+    backgroundColor: palette.orange[100],
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing[2] + 2,
+    paddingVertical: spacing[1] + 1,
+  },
+  confirmPendingLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 11,
+    color: palette.orange[700],
   },
   tableCard: {
     backgroundColor: colors.surfaceCard,

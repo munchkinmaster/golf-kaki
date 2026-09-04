@@ -15,6 +15,7 @@ import { stablefordPointsForHole } from '../data/stableford';
 import { SCORE_CLASS_LABEL, classifyDiff, quickPickOptions } from '../data/strokePlay';
 import type { ScoreClass } from '../data/strokePlay';
 import { SYSTEM36_TOTAL_HOLES, s36Handicap, s36PointsForHole, stablefordTotal } from '../data/system36';
+import { confirmTournamentCard } from '../data/tournaments';
 import { useTournamentRound } from '../hooks/useTournamentRound';
 import type { TournamentRoundPlayer } from '../hooks/useTournamentRound';
 import type { RootStackParamList } from '../navigation/types';
@@ -206,7 +207,11 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
     }
     // On the final hole there's no "next" — commit the score (above) and hand
     // off to the Finish/review step so an untouched par on 18 still saves.
+    // This tap IS "Save & review" (see the label below) — the one deliberate
+    // "I'm done" signal the Finish screen's Confirm scores list looks for,
+    // so it's recorded here rather than inferred from hole-completeness.
     if (holePos >= playOrder.length - 1) {
+      if (selectedPlayerId && canEditPlayer(selectedPlayerId)) confirmTournamentCard(matchId, selectedPlayerId).catch(() => {});
       navigation.navigate('TournamentFinish', { tournamentId, matchId });
     } else {
       goHole(1);
