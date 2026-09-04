@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Award, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleDot, Coins, Crown, HandCoins, List, Lock, Minus, Trophy } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -16,6 +16,7 @@ import { computeSkinsStandings, resolveSkinsHoles } from '../data/skins';
 import { computeStablefordStandings } from '../data/stableford';
 import { computeTournamentStandings, parTotal } from '../data/strokePlay';
 import { SYSTEM36_TOTAL_HOLES, computeSystem36Standings, isLeaderboardUnlocked } from '../data/system36';
+import { useFinishRedirect } from '../hooks/useFinishRedirect';
 import { useTournamentRound } from '../hooks/useTournamentRound';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
@@ -42,7 +43,13 @@ function joinNames(names: string[]): string {
 export function TournamentLeaderboardScreen({ navigation, route }: Props) {
   const { tournamentId, matchId } = route.params;
   const round = useTournamentRound(tournamentId, matchId);
-  const { loading, error, viewerId, roster, holes, playOrder, scores, gross, thru, sideGames, courseId, tieBreakRule } = round;
+  const { loading, error, viewerId, roster, holes, playOrder, scores, gross, thru, sideGames, courseId, tieBreakRule, matchStatus } = round;
+
+  useFinishRedirect(
+    matchStatus,
+    loading,
+    useCallback(() => navigation.navigate('TournamentFinish', { tournamentId, matchId }), [navigation, tournamentId, matchId]),
+  );
 
   const [catalog, setCatalog] = useState<CatalogCourse[]>([]);
   const [expandedSkinsPlayerId, setExpandedSkinsPlayerId] = useState<string | null>(null);

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { Card } from '../components/Card';
+import { FinishEarlySheet } from '../components/FinishEarlySheet';
 import { InRoundTabBar } from '../components/InRoundTabBar';
 import type { InRoundTab } from '../components/InRoundTabBar';
 import { SkinsHoleCell } from '../components/SkinsHoleCell';
@@ -54,6 +55,7 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
   const [expandedSkinsPlayerId, setExpandedSkinsPlayerId] = useState<string | null>(null);
+  const [earlyFinishSheetOpen, setEarlyFinishSheetOpen] = useState(false);
 
   if (loading) {
     return (
@@ -127,6 +129,15 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
 
   const roundComplete = holes.length > 0 && thru === holes.length;
   const isFinished = matchStatus === 'finished';
+  // Who the "finish anyway" warning names — this stays tied to actual data
+  // completeness (every hole has a stroke value), since that's what
+  // determines whether finishing now actually costs them a differential —
+  // NOT whether they've tapped "Save & review" (a still-complete-but-
+  // unconfirmed card finishes just fine). perPlayerThru (already computed
+  // above for the standings) is per-player, so this correctly lists
+  // everyone short of a full card, not just the field's single slowest
+  // (thru is the min across the roster).
+  const notFinishedNames = roster.filter((p) => (perPlayerThru[p.id] ?? 0) < holes.length).map((p) => p.name.split(' ')[0]!);
   // The always-visible Confirm scores list below is a DIFFERENT question —
   // not "is the data complete" but "has this player deliberately said
   // they're done" (tapped Save & review on hole 18 — see
@@ -164,12 +175,28 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
     : [];
   const viewerSkins = viewerId ? skinsStandings[viewerId] : undefined;
 
-  async function handleFinish() {
-    if (!isHostViewer || finishing || !roundComplete) return;
+  // Tapping "Finish round" mid-round used to be simply impossible (the CTA
+  // was hard-disabled until roundComplete) — meaning one straggler card
+  // could block the whole group forever. Now an incomplete round routes
+  // through a confirm sheet naming who isn't through instead of a silent
+  // block; that player's differential/streaks/badges just won't be part of
+  // finish_tournament_round's write (see computeDifferentialForPlayer's own
+  // thru gate) if the host proceeds anyway.
+  function handleFinish() {
+    if (!isHostViewer || finishing) return;
+    if (!roundComplete) {
+      setEarlyFinishSheetOpen(true);
+      return;
+    }
+    doFinish();
+  }
+
+  async function doFinish() {
     setFinishing(true);
     setFinishError(null);
     try {
       await finishTournamentRound(matchId);
+      setEarlyFinishSheetOpen(false);
       round.refresh();
     } catch {
       setFinishError("Couldn't finish the round — please try again.");
@@ -308,7 +335,9 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                   {thru} of {holes.length} holes in
                 </Text>
                 <Text style={styles.gateSubtitle}>
-                  Final standings and the Skins settlement show up here once every card is complete.
+                  {isHostViewer
+                    ? 'Final standings and the Skins settlement show up here once every card is complete — or finish early below if you need to.'
+                    : 'Final standings and the Skins settlement show up here once every card is complete.'}
                 </Text>
               </View>
             </View>

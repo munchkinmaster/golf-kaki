@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Activity, CircleCheckBig, Info, ListOrdered, Lock, Table2 } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -10,6 +10,7 @@ import type { InRoundTab } from '../components/InRoundTabBar';
 import { ScoreCell } from '../components/ScoreCell';
 import { strokesReceivedOnHole } from '../data/handicap';
 import { SYSTEM36_TOTAL_HOLES, s36Handicap, s36PointsForHole, stablefordPointsForHole } from '../data/system36';
+import { useFinishRedirect } from '../hooks/useFinishRedirect';
 import { useTournamentRound } from '../hooks/useTournamentRound';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
@@ -95,6 +96,12 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
   const { tournamentId, matchId } = route.params;
   const round = useTournamentRound(tournamentId, matchId);
   const { loading, error, viewerId, roster, holes, playOrder, scores, thru, standingsBasis, matchStatus } = round;
+
+  useFinishRedirect(
+    matchStatus,
+    loading,
+    useCallback(() => navigation.navigate('TournamentFinish', { tournamentId, matchId }), [navigation, tournamentId, matchId]),
+  );
 
   const [nineOverride, setNineOverride] = useState<NineSide | null>(null);
   const [statMode, setStatMode] = useState<GridView>('nett');

@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ArrowRight, Calculator, Check, ChevronLeft, ChevronRight, Coins, Lock, Minus, Plus, Repeat, Table2 } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -16,6 +16,7 @@ import { SCORE_CLASS_LABEL, classifyDiff, quickPickOptions } from '../data/strok
 import type { ScoreClass } from '../data/strokePlay';
 import { SYSTEM36_TOTAL_HOLES, s36Handicap, s36PointsForHole, stablefordTotal } from '../data/system36';
 import { confirmTournamentCard } from '../data/tournaments';
+import { useFinishRedirect } from '../hooks/useFinishRedirect';
 import { useTournamentRound } from '../hooks/useTournamentRound';
 import type { TournamentRoundPlayer } from '../hooks/useTournamentRound';
 import type { RootStackParamList } from '../navigation/types';
@@ -52,7 +53,13 @@ function initials(name: string): string {
 export function TournamentScorecardScreen({ navigation, route }: Props) {
   const { tournamentId, matchId } = route.params;
   const round = useTournamentRound(tournamentId, matchId);
-  const { loading, error, viewerId, roster, holes, playOrder, scores, gross, sideGames, canEditPlayer, adjustScore, setScore } = round;
+  const { loading, error, viewerId, roster, holes, playOrder, scores, gross, sideGames, canEditPlayer, adjustScore, setScore, matchStatus } = round;
+
+  useFinishRedirect(
+    matchStatus,
+    loading,
+    useCallback(() => navigation.navigate('TournamentFinish', { tournamentId, matchId }), [navigation, tournamentId, matchId]),
+  );
 
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [activeHoleN, setActiveHoleN] = useState<number | null>(null);

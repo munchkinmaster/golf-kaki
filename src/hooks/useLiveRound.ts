@@ -253,6 +253,14 @@ export function useLiveRound(matchId: string) {
   }, [schedule, thru, rosterIds, gross, frontNineDeals, holes, matchupRows, isHostViewer, viewerId, matchId, load]);
 
   function adjustScore(playerId: string, holeIndex: number, delta: number) {
+    // Mirrors scores' own RLS (20260827140000_lock_scores_after_finish.sql)
+    // — this hook had no editability guard at all before (ScorecardScreen's
+    // own canEdit() only ever checked host/self, never match status), so a
+    // player who lingered on the Scorecard after the host finished the round
+    // could keep tapping the stepper. The write would now just fail
+    // server-side; short-circuiting here avoids the optimistic local update
+    // flashing a "saved" score that never actually persists.
+    if (matchStatus === 'finished') return;
     const hole = holes[holeIndex];
     if (!hole) return;
     const current = scores[playerId]?.[hole.n] ?? hole.par;

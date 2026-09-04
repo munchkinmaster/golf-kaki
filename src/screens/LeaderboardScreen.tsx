@@ -12,13 +12,14 @@ import {
   Trophy,
   Users,
 } from 'lucide-react-native';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { holeUpValue, money, record, runningUp, upLabel } from '../data/round';
 import type { GrossMap, Hole, RoundSchedule, StrokeDeal } from '../data/round';
+import { useFinishRedirect } from '../hooks/useFinishRedirect';
 import { useLiveRound } from '../hooks/useLiveRound';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
@@ -139,8 +140,28 @@ function HoleTrack({ track }: { track: Track[] }) {
 
 export function LeaderboardScreen({ navigation, route }: Props) {
   const { matchId, matchName, courseName, gameModeName } = route.params;
-  const { loading, viewerId, hostId, roster, holes, schedule, playOrder, gross, thru, frontNineDeals, backNineDeals, stakePerHole, refresh: refreshRound } =
-    useLiveRound(matchId);
+  const {
+    loading,
+    viewerId,
+    hostId,
+    roster,
+    holes,
+    schedule,
+    playOrder,
+    gross,
+    thru,
+    frontNineDeals,
+    backNineDeals,
+    stakePerHole,
+    matchStatus,
+    refresh: refreshRound,
+  } = useLiveRound(matchId);
+
+  useFinishRedirect(
+    matchStatus,
+    loading,
+    useCallback(() => navigation.navigate('Finish', { matchId, matchName, courseName, gameModeName }), [navigation, matchId, matchName, courseName, gameModeName]),
+  );
 
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);

@@ -152,9 +152,15 @@ export function useTournamentRound(tournamentId: string, matchId: string) {
 
   const thru = useMemo(() => computeThru(rosterIds, scores, playOrder), [rosterIds, scores, playOrder]);
 
-  /** Own row (self) or host — mirrors the `scores` table's own RLS (own player_id or host). */
+  /**
+   * Own row (self) or host, AND the round isn't finished yet — mirrors the
+   * `scores` table's own RLS (20260827140000_lock_scores_after_finish.sql
+   * added the finished-match clause there; this keeps the UI in sync with
+   * what the server will actually accept, rather than showing a live-looking
+   * stepper that silently no-ops or errors on tap).
+   */
   function canEditPlayer(playerId: string): boolean {
-    return playerId === viewerId || isHostViewer;
+    return (playerId === viewerId || isHostViewer) && matchStatus !== 'finished';
   }
 
   function adjustScore(playerId: string, holeIndex: number, delta: number) {

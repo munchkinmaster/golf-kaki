@@ -1,12 +1,13 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Clipboard from 'expo-clipboard';
 import { ChevronLeft, CircleCheckBig, Coffee, Copy, Lightbulb, List, Trophy, Users } from 'lucide-react-native';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { MatchupEditor } from '../components/MatchupEditor';
+import { useFinishRedirect } from '../hooks/useFinishRedirect';
 import { useLiveRound } from '../hooks/useLiveRound';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
@@ -27,7 +28,14 @@ export function InGameLobbyScreen({ navigation, route }: Props) {
     stakePerHole,
     adjustPairStrokes,
     setPairAGives,
+    matchStatus,
   } = useLiveRound(matchId);
+
+  useFinishRedirect(
+    matchStatus,
+    loading,
+    useCallback(() => navigation.navigate('Finish', { matchId, matchName, courseName, gameModeName }), [navigation, matchId, matchName, courseName, gameModeName]),
+  );
 
   const [matchIdCopied, setMatchIdCopied] = useState(false);
 
