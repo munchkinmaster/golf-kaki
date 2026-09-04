@@ -19,6 +19,7 @@ import { useAuth } from '../state/AuthContext';
 import type { TournamentPlayerDraft } from '../state/TournamentDraftContext';
 import { useTournamentDraft } from '../state/TournamentDraftContext';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
+import { supabase } from '../lib/supabase';
 
 type Props = NativeStackScreenProps<TournamentStackParamList, 'TournamentPreRound'>;
 
@@ -62,36 +63,68 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
 
   // The draft is a local, client-only snapshot from when the wizard last
   // touched it — once the real tournament/match row exists (matchId set),
-  // other players joining or toggling Skins from their own device never
-  // reaches this screen's state on its own (no realtime subscription here,
-  // and this screen isn't navigated through on their end at all). Refetch
-  // live join/Skins state on every focus so a host revisiting this review
-  // step (e.g. after inviting someone, backing out and back in) sees who's
-  // actually confirmed rather than the stale invited/joined snapshot from
-  // whenever the draft was first built.
+  // other players joining (or joining by code, bypassing this wizard
+  // entirely) or toggling Skins from their own device never reaches this
+  // screen's state on its own.
+  const loadLiveRoster = useCallback(() => {
+    if (!draft.matchId || !draft.tournamentId) return Promise.resolve();
+    return fetchTournamentLobby(draft.tournamentId)
+      .then((lobby) => {
+        update({
+          players: lobby.players.map((p) => ({
+            id: p.id,
+            name: p.name,
+            handicapIndex: p.handicapIndex,
+            isHost: p.isHost,
+            status: p.status,
+            tee: p.teeColor,
+            playingHandicap: p.playingHandicap,
+            handicapOverride: p.handicapOverride,
+          })),
+          sideGames: lobby.sideGames,
+        });
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- update is stable (Provider-scoped useCallback with [] deps)
+  }, [draft.matchId, draft.tournamentId]);
+
+  // Refetch on every focus (backing out and back in)...
   useFocusEffect(
     useCallback(() => {
-      if (!draft.matchId || !draft.tournamentId) return;
-      fetchTournamentLobby(draft.tournamentId)
-        .then((lobby) => {
-          update({
-            players: lobby.players.map((p) => ({
-              id: p.id,
-              name: p.name,
-              handicapIndex: p.handicapIndex,
-              isHost: p.isHost,
-              status: p.status,
-              tee: p.teeColor,
-              playingHandicap: p.playingHandicap,
-              handicapOverride: p.handicapOverride,
-            })),
-            sideGames: lobby.sideGames,
-          });
-        })
-        .catch(() => {});
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- update is stable (Provider-scoped useCallback with [] deps)
-    }, [draft.matchId, draft.tournamentId]),
+      loadLiveRoster();
+    }, [loadLiveRoster]),
   );
+
+  // ...plus a realtime channel + poll fallback for a host who just STAYS on
+  // this review step waiting for people to accept — focus alone never
+  // refires for them. Same gap TournamentPlayersScreen had (see its own
+  // identical fix) — every other live tournament screen already covers this.
+  const channelId = useRef(Math.random().toString(36).slice(2)).current;
+  useEffect(() => {
+    if (!draft.matchId) return;
+    let syncTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleSync = () => {
+      if (syncTimer) clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => {
+        loadLiveRoster();
+      }, 250);
+    };
+
+    const channel = supabase
+      .channel(`tournament-preround-${draft.matchId}-${channelId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'match_players', filter: `match_id=eq.${draft.matchId}` }, scheduleSync)
+      .subscribe();
+
+    const pollTimer = setInterval(() => {
+      loadLiveRoster();
+    }, 20000);
+
+    return () => {
+      if (syncTimer) clearTimeout(syncTimer);
+      clearInterval(pollTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [draft.matchId, channelId, loadLiveRoster]);
 
   const course = catalog.find((c) => c.id === draft.courseId);
   const combo = course?.combos.find((c) => c.id === draft.comboId);
