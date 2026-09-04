@@ -21,9 +21,26 @@ import type { TournamentLobbyPlayer, TournamentScoringFormat, TournamentStanding
 import { fetchTournamentLobby } from '../data/tournaments';
 import type { MatchStatus } from '../data/matches';
 import { useAuth } from '../state/AuthContext';
-import { supabase } from '../lib/supabase';
+import { joinMatchSync } from '../lib/liveMatchSync';
 
 export type TournamentRoundPlayer = TournamentLobbyPlayer;
+
+/** Everything a round's `load()` fetches, as one value — lets the fetch (shared across every screen watching this match, see liveMatchSync.ts) stay separate from applying it to any one screen's own state. */
+type TournamentRoundData = {
+  matchName: string;
+  handicapAllowancePct: number;
+  standingsBasis: TournamentStandingsBasis;
+  scoringFormat: TournamentScoringFormat;
+  tieBreakRule: TournamentTieBreakRule;
+  matchStatus: MatchStatus;
+  hostId: string | null;
+  startHole: number;
+  courseId: string | null;
+  roster: TournamentRoundPlayer[];
+  holes: ComboHole[];
+  scores: HoleScoreMap;
+  sideGames: SkinsConfig[];
+};
 
 export function useTournamentRound(tournamentId: string, matchId: string) {
   const { session } = useAuth();
@@ -49,7 +66,7 @@ export function useTournamentRound(tournamentId: string, matchId: string) {
   const playOrder = useMemo(() => buildPlayOrder(startHole).slice(0, holes.length), [startHole, holes.length]);
   const isHostViewer = hostId !== null && hostId === viewerId;
 
-  const load = useCallback(async () => {
+  const fetchRoundData = useCallback(async (): Promise<TournamentRoundData> => {
     const lobby = await fetchTournamentLobby(tournamentId);
     const catalog = await fetchCourseCatalog();
     const course = catalog.find((c) => c.id === lobby.courseId);
@@ -58,63 +75,72 @@ export function useTournamentRound(tournamentId: string, matchId: string) {
 
     const scoreMap = await fetchScores(matchId);
 
-    setMatchName(lobby.name);
-    setHandicapAllowancePct(lobby.handicapAllowancePct);
-    setStandingsBasis(lobby.standingsBasis);
-    setScoringFormat(lobby.scoringFormat);
-    setTieBreakRule(lobby.tieBreakRule);
-    setMatchStatus(lobby.matchStatus);
-    setHostId(lobby.hostId);
-    setStartHole(lobby.startHole);
-    setCourseId(lobby.courseId);
-    // Invited-but-not-yet-joined players never score — computeThru requires
-    // every roster id to have a hole entry, so counting them would stall
-    // `thru` at 0 forever.
-    setRoster(lobby.players.filter((p) => p.status === 'joined'));
-    setHoles(comboHoles);
-    setScores(scoreMap);
-    setSideGames(lobby.sideGames);
+    return {
+      matchName: lobby.name,
+      handicapAllowancePct: lobby.handicapAllowancePct,
+      standingsBasis: lobby.standingsBasis,
+      scoringFormat: lobby.scoringFormat,
+      tieBreakRule: lobby.tieBreakRule,
+      matchStatus: lobby.matchStatus,
+      hostId: lobby.hostId,
+      startHole: lobby.startHole,
+      courseId: lobby.courseId,
+      // Invited-but-not-yet-joined players never score — computeThru requires
+      // every roster id to have a hole entry, so counting them would stall
+      // `thru` at 0 forever.
+      roster: lobby.players.filter((p) => p.status === 'joined'),
+      holes: comboHoles,
+      scores: scoreMap,
+      sideGames: lobby.sideGames,
+    };
   }, [tournamentId, matchId]);
 
+  const applyRoundData = useCallback((data: TournamentRoundData) => {
+    setMatchName(data.matchName);
+    setHandicapAllowancePct(data.handicapAllowancePct);
+    setStandingsBasis(data.standingsBasis);
+    setScoringFormat(data.scoringFormat);
+    setTieBreakRule(data.tieBreakRule);
+    setMatchStatus(data.matchStatus);
+    setHostId(data.hostId);
+    setStartHole(data.startHole);
+    setCourseId(data.courseId);
+    setRoster(data.roster);
+    setHoles(data.holes);
+    setScores(data.scores);
+    setSideGames(data.sideGames);
+  }, []);
+
+  const load = useCallback(async () => {
+    applyRoundData(await fetchRoundData());
+  }, [fetchRoundData, applyRoundData]);
+
+  // Realtime + fallback poll, shared across every screen currently watching
+  // this same round — same proven pattern as useLiveRound (see
+  // liveMatchSync.ts): every one of the 5 tournament screens calls this hook
+  // independently, and React Navigation keeps earlier stack screens mounted
+  // underneath the current one, so joinMatchSync collapses what used to be
+  // one realtime channel + one 20s poll loop *per mounted screen* down to
+  // one of each per round, shared and ref-counted across all of them.
   useEffect(() => {
-    load()
-      .catch((err) => setError(err instanceof Error ? err.message : "Couldn't load this round."))
-      .finally(() => setLoading(false));
-  }, [load]);
-
-  // Realtime: another player's score entry or the round's own status change
-  // should show up without a manual refresh — same proven pattern as
-  // useLiveRound (per-mount channel suffix so two screens showing this same
-  // round at once don't collide on one shared topic name).
-  const channelId = useRef(Math.random().toString(36).slice(2)).current;
-  useEffect(() => {
-    let syncTimer: ReturnType<typeof setTimeout> | null = null;
-    const scheduleSync = () => {
-      if (syncTimer) clearTimeout(syncTimer);
-      syncTimer = setTimeout(() => {
-        load().catch(() => {});
-      }, 250);
-    };
-
-    const channel = supabase
-      .channel(`tournament-round-${matchId}-${channelId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'scores', filter: `match_id=eq.${matchId}` }, scheduleSync)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` }, scheduleSync)
-      .subscribe();
-
-    // postgres_changes isn't guaranteed delivery — bounds how long any client
-    // can stay out of sync without noticing (same fallback useLiveRound uses).
-    // 20s, not 6s — see useLiveRound's identical change for why.
-    const pollTimer = setInterval(() => {
-      load().catch(() => {});
-    }, 20000);
-
-    return () => {
-      if (syncTimer) clearTimeout(syncTimer);
-      clearInterval(pollTimer);
-      supabase.removeChannel(channel);
-    };
-  }, [matchId, channelId, load]);
+    return joinMatchSync(
+      `tournament-round-${matchId}`,
+      fetchRoundData,
+      [
+        { table: 'scores', filter: `match_id=eq.${matchId}` },
+        { table: 'matches', filter: `id=eq.${matchId}` },
+      ],
+      (data) => {
+        applyRoundData(data);
+        setError(null);
+        setLoading(false);
+      },
+      (err) => {
+        setError(err instanceof Error ? err.message : "Couldn't load this round.");
+        setLoading(false);
+      },
+    );
+  }, [matchId, fetchRoundData, applyRoundData]);
 
   const gross: GrossMap = useMemo(() => {
     const map: GrossMap = {};
