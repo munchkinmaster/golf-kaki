@@ -109,6 +109,27 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
     // ledger every load, since the ledger can still be catching up to a
     // just-finished round's carry-forward (see finishRound's ledger settle).
     //
+    // The touched check MUST run before the existing-row check, not after:
+    // `persistPair` fires one upsert per stepper tap without awaiting or
+    // sequencing them, and this screen's realtime subscription reloads on
+    // EVERY game_matchups change for the whole match (any pair, not just the
+    // one being edited) after a 250ms debounce. That means a `load()` can
+    // land mid-burst — while several of this pair's own increment taps are
+    // still in flight, or right after just the get/give toggle at strokes=0
+    // has committed — and read back a stroke count trailing behind what's
+    // already showing on screen. Trusting that stale read once a row exists
+    // (as this used to) sets the visible stroke count BACKWARD, most visibly
+    // to 0 (see the sign-ambiguity case below); if the player has already
+    // moved on to the next pair by the time that happens, nothing taps this
+    // stepper again to correct it, and the silently-reset 0 is exactly what
+    // Start's "persist every pair" call then writes for real — this is
+    // 2026-09's B53S match, where two of three deals reached 0 in prod this
+    // way. Checking touched first makes a pair's local value the single
+    // source of truth from the moment it's first touched until Start (which
+    // re-persists it unconditionally anyway), so a trailing stale read can
+    // never overwrite a newer local edit — only another client's genuinely
+    // later edit (which arrives as its own subsequent realtime reload) can.
+    //
     // Exception: front_nine_strokes' sign is how get/give is encoded (positive =
     // a gives b), which can't represent a direction at 0 strokes — 0 and -0 are
     // the same row. Reloading would otherwise always read a 0-stroke pair back
@@ -119,11 +140,11 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
         const key = pairKey(a, b);
         const existing = existingByPair.get(key);
         const prevPair = prev.find((p) => p.playerAId === a && p.playerBId === b);
+        if (touchedPairsRef.current.has(key) && prevPair) return prevPair;
         if (existing) {
           if (existing.frontNineStrokes === 0 && prevPair) return { ...prevPair, strokes: 0 };
           return seedPair(a, b, existing, 0);
         }
-        if (touchedPairsRef.current.has(key) && prevPair) return prevPair;
         return seedPair(a, b, undefined, ledger[key] ?? 0);
       }),
     );
