@@ -25,7 +25,7 @@ import type { GrossMap, Hole, HoleScoreMap, RoundSchedule, StrokeDeal } from '..
 import { fetchScores, finishMatchAndSettleLedger, saveScore, upsertMatchupBackNine } from '../data/scores';
 import type { LedgerDeal } from '../data/scores';
 import { useAuth } from '../state/AuthContext';
-import { joinMatchSync } from '../lib/liveMatchSync';
+import { joinMatchSync, refreshMatchSync } from '../lib/liveMatchSync';
 
 export type LiveRoundPlayer = MatchupEditorPlayer & { isHost: boolean };
 
@@ -94,6 +94,13 @@ export function useLiveRound(matchId: string) {
   const [pairSettings, setPairSettings] = useState<PairSetting[]>([]);
   const [matchupRows, setMatchupRows] = useState<MatchupPair[]>([]);
 
+  // Cells/pairs this specific screen instance has locally edited and not yet
+  // seen echoed back — see applyRoundData below for why these exist and are
+  // never cleared. Refs (not state): they gate a merge inside a setter, not
+  // something a render needs to react to.
+  const touchedScoresRef = useRef<Set<string>>(new Set());
+  const touchedPairsRef = useRef<Set<string>>(new Set());
+
   const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
   const schedule: RoundSchedule = useMemo(() => ({ holesToPlay, strokesBasis, startHole }), [holesToPlay, strokesBasis, startHole]);
   const playOrder = useMemo(() => buildPlayOrder(startHole).slice(0, holes.length), [startHole, holes.length]);
@@ -137,6 +144,21 @@ export function useLiveRound(matchId: string) {
     };
   }, [matchId]);
 
+  // `data` here comes from the shared fetch in liveMatchSync.ts's registry,
+  // not necessarily from something this instance itself requested — every
+  // screen watching this match (Scorecard, Leaderboard, InGameLobby, ...)
+  // gets the SAME broadcast applied to its OWN local state. A fetch that
+  // races ahead of (or merely predates) this instance's own still-in-flight
+  // `saveScore`/`persistPair` write reads the pre-write value, and applying
+  // it unconditionally rolls the local optimistic update backward — visibly,
+  // a score or stroke deal this screen already showed reverts and has to be
+  // re-entered. Confirmed 2026-09: switching to the Leaderboard tab near the
+  // turn (mounting a second instance, which pulls in whatever the shared
+  // cache last held) reset every pair's strokes to 0 and cleared hole 8/9
+  // scores this way. For any cell this instance has itself locally edited,
+  // keep that local value instead of the incoming one — it only stops
+  // reflecting the fetch once a later write from elsewhere touches that same
+  // cell again, which arrives as its own fresh broadcast.
   const applyRoundData = useCallback((data: RoundData) => {
     setHostId(data.hostId);
     setMatchCode(data.matchCode);
@@ -148,9 +170,28 @@ export function useLiveRound(matchId: string) {
     setStakePerHole(data.stakePerHole);
     setRoster(data.roster);
     setHoles(data.holes);
-    setScores(data.scores);
+    setScores((prev) => {
+      if (touchedScoresRef.current.size === 0) return data.scores;
+      const merged: HoleScoreMap = {};
+      new Set([...Object.keys(prev), ...Object.keys(data.scores)]).forEach((playerId) => {
+        const playerHoles = { ...data.scores[playerId] };
+        Object.keys(prev[playerId] ?? {}).forEach((holeStr) => {
+          const holeN = Number(holeStr);
+          if (touchedScoresRef.current.has(`${playerId}:${holeN}`)) playerHoles[holeN] = prev[playerId]![holeN];
+        });
+        merged[playerId] = playerHoles;
+      });
+      return merged;
+    });
     setMatchupRows(data.matchupRows);
-    setPairSettings(data.pairSettings);
+    setPairSettings((prev) => {
+      if (touchedPairsRef.current.size === 0) return data.pairSettings;
+      return data.pairSettings.map((p) => {
+        const key = pairKey(p.playerAId, p.playerBId);
+        if (!touchedPairsRef.current.has(key)) return p;
+        return prev.find((pp) => pp.playerAId === p.playerAId && pp.playerBId === p.playerBId) ?? p;
+      });
+    });
   }, []);
 
   const load = useCallback(async () => {
@@ -247,10 +288,21 @@ export function useLiveRound(matchId: string) {
       .filter(([a, b]) => rowByPair.get(pairKey(a, b))?.backNineStrokes !== (net[pairKey(a, b)] ?? 0));
     if (stalePairs.length === 0) return;
 
+    // refreshMatchSync, not the local `load()` bypass: `load()` only updates
+    // THIS instance's own state, leaving liveMatchSync's shared cache (what
+    // every OTHER screen watching this match, current or not-yet-mounted,
+    // reads on join) holding the pre-restrike snapshot until the next
+    // realtime-triggered or polled fetch happens to land. A screen mounted
+    // in that gap — e.g. switching to Leaderboard right after the turn —
+    // picks up that stale cache, where this pair (and, per
+    // buildBackNineDeals/dealsAndRankForHole's null-until-every-pair-resolves
+    // fallback, every OTHER pair too) still reads back as unresolved and
+    // shows 0 strokes. Broadcasting through the shared cache the moment our
+    // own write lands closes that window instead of waiting on it.
     Promise.all(stalePairs.map(([a, b]) => upsertMatchupBackNine(matchId, a, b, net[pairKey(a, b)] ?? 0)))
-      .then(() => load())
+      .then(() => refreshMatchSync(`round-${matchId}`))
       .catch(() => {});
-  }, [schedule, thru, rosterIds, gross, frontNineDeals, holes, matchupRows, isHostViewer, viewerId, matchId, load]);
+  }, [schedule, thru, rosterIds, gross, frontNineDeals, holes, matchupRows, isHostViewer, viewerId, matchId]);
 
   function adjustScore(playerId: string, holeIndex: number, delta: number) {
     // Mirrors scores' own RLS (20260827140000_lock_scores_after_finish.sql)
@@ -265,6 +317,7 @@ export function useLiveRound(matchId: string) {
     if (!hole) return;
     const current = scores[playerId]?.[hole.n] ?? hole.par;
     const next = Math.max(1, current + delta);
+    touchedScoresRef.current.add(`${playerId}:${hole.n}`);
     setScores((prev) => ({ ...prev, [playerId]: { ...prev[playerId], [hole.n]: next } }));
     saveScore(matchId, playerId, hole.n, next).catch(() => {
       setError("Couldn't save that score — try again.");
@@ -281,6 +334,7 @@ export function useLiveRound(matchId: string) {
   }
 
   function updatePair(a: string, b: string, updater: (p: PairSetting) => PairSetting) {
+    touchedPairsRef.current.add(pairKey(a, b));
     setPairSettings((prev) => {
       const current = prev.find((p) => p.playerAId === a && p.playerBId === b);
       if (!current) return prev;
