@@ -20,6 +20,7 @@ import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import { BackNineStrokesPendingNotice } from '../components/BackNineStrokesPendingNotice';
 import { ScoreBadge } from '../components/ScoreBadge';
 import type { UnlockCelebration } from '../components/UnlockCelebrationModal';
 import { UnlockCelebrationModal } from '../components/UnlockCelebrationModal';
@@ -107,6 +108,7 @@ export function ScorecardScreen({ navigation, route }: Props) {
     thru,
     frontNineDeals,
     backNineDeals,
+    blockedBy,
     adjustScore,
     matchStatus,
     refresh: refreshRound,
@@ -314,6 +316,15 @@ export function ScorecardScreen({ navigation, route }: Props) {
     return 'halve';
   }
 
+  // Only worth saying once the viewer is actually looking at holes the missing
+  // deal affects — a front 9 that's still filling in is just the normal state
+  // of a round in progress, not something to nag about.
+  const backNineStrokesPending = schedule.holesToPlay === 18 && schedule.strokesBasis === 9 && backNineDeals === null && nine === 'back';
+  // The first blocked card this viewer is actually allowed to write (host: any
+  // card; everyone else: only their own), so the notice can offer a one-tap fix
+  // rather than just telling them to go find someone.
+  const pendingTarget = blockedBy.find((b) => canEdit(b.playerId) && b.holes.length > 0);
+
   const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
   const outScores = useMemo(() => sumRange(rosterIds, thru, 0, 9, gross, playOrder), [rosterIds, thru, gross, playOrder]);
   const inScores = useMemo(() => sumRange(rosterIds, thru, 9, 18, gross, playOrder), [rosterIds, thru, gross, playOrder]);
@@ -389,6 +400,14 @@ export function ScorecardScreen({ navigation, route }: Props) {
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          {backNineStrokesPending ? (
+            <BackNineStrokesPendingNotice
+              blockers={blockedBy}
+              canEdit={pendingTarget !== undefined}
+              onPress={pendingTarget ? () => selectCell(pendingTarget.playerId, pendingTarget.holes[0]!) : undefined}
+            />
+          ) : null}
+
           <View style={styles.gridHeaderRow}>
             <Text style={styles.gridHeaderH}>H</Text>
             <Text style={styles.gridHeaderMeta}>SI</Text>

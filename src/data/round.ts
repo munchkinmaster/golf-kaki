@@ -224,6 +224,14 @@ function dealsAndRankForHole(
   if (schedule.strokesBasis === 18) return { deals: frontNineDeals, rank: fullRank(holes) };
   const firstNinePlayed = new Set(buildPlayOrder(schedule.startHole).slice(0, 9));
   if (firstNinePlayed.has(holeN)) return { deals: frontNineDeals, rank: frontRank(holes, schedule) };
+  // A null here now means only one thing: at least one player's front 9 is
+  // still unfinished, so the re-strike genuinely cannot be computed by anyone
+  // yet (useLiveRound derives it locally as soon as it can, rather than
+  // waiting on a persisted row). Callers are expected to SAY so rather than
+  // let the round quietly play on at scratch — see
+  // BackNineStrokesPendingNotice, and note getResultTint already withholds a
+  // win/loss verdict for any hole past `thru`, which is exactly this window.
+  //
   // Until the turn's restrike actually lands, there's no valid deal for these
   // holes yet — falling back to frontNineDeals here (as this used to) applies
   // the SAME stroke amount a second time via the back nine's own SI rank,
@@ -451,4 +459,28 @@ export function computeThru(players: PlayerKey[], scores: HoleScoreMap, playOrde
     thru++;
   }
   return thru;
+}
+
+/** The hole numbers of this player's first 9 played holes that still have no recorded score. */
+export function missingFrontNineHoles(player: PlayerKey, scores: HoleScoreMap, schedule: RoundSchedule): number[] {
+  return buildPlayOrder(schedule.startHole)
+    .slice(0, 9)
+    .filter((n) => scores[player]?.[n] === undefined);
+}
+
+/**
+ * Whether this player's first 9 played holes are all recorded — the only
+ * precondition for re-striking a deal they're part of, since restrikeNet
+ * reads exactly that pair's two cards (see holeResult) and no one else's.
+ *
+ * Deliberately per-player, not the group-wide `computeThru`: a pair's back-9
+ * deal doesn't depend in any way on a third player's card, so gating the
+ * re-strike on the whole roster's shortest card let one slow scorer hold back
+ * deals their own scores play no part in. That's the 2026-09-26 report — a
+ * 3-player round where one player entered holes in pairs, so his hole 9
+ * wasn't written until the end of hole 10, leaving the group `thru` at 8 and
+ * every pairing (including the two he wasn't in) with no back-9 deal.
+ */
+export function hasCompleteFrontNine(player: PlayerKey, scores: HoleScoreMap, schedule: RoundSchedule): boolean {
+  return missingFrontNineHoles(player, scores, schedule).length === 0;
 }

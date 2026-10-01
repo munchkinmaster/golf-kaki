@@ -17,6 +17,7 @@ import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, Vi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import { BackNineStrokesPendingNotice } from '../components/BackNineStrokesPendingNotice';
 import { holeUpValue, money, record, runningUp, upLabel } from '../data/round';
 import type { GrossMap, Hole, RoundSchedule, StrokeDeal } from '../data/round';
 import { useFinishRedirect } from '../hooks/useFinishRedirect';
@@ -149,9 +150,11 @@ export function LeaderboardScreen({ navigation, route }: Props) {
     schedule,
     playOrder,
     gross,
+    scores,
     thru,
     frontNineDeals,
     backNineDeals,
+    blockedBy,
     stakePerHole,
     matchStatus,
     refresh: refreshRound,
@@ -200,6 +203,15 @@ export function LeaderboardScreen({ navigation, route }: Props) {
     }));
   }, [roster, rosterIds, gross, holes, thru, frontNineDeals, schedule, backNineDeals, stakePerHole, playOrder]);
 
+  // Only once the group is actually playing holes the missing deal applies to
+  // — before the turn a part-filled front 9 is just a round in progress.
+  const someoneOnBackNine = useMemo(
+    () => playOrder.slice(9).some((n) => rosterIds.some((id) => scores[id]?.[n] !== undefined)),
+    [playOrder, rosterIds, scores],
+  );
+  const backNineStrokesPending =
+    schedule.holesToPlay === 18 && schedule.strokesBasis === 9 && backNineDeals === null && someoneOnBackNine && blockedBy.length > 0;
+
   const spinRotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
 
   return (
@@ -231,6 +243,12 @@ export function LeaderboardScreen({ navigation, route }: Props) {
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          {/* Explains the two numbers above that otherwise just look frozen: a
+              card with a front-9 gap pins THRU (computeThru is the group's
+              shortest card) and, with it, every money total — which is summed
+              over playOrder.slice(0, thru). */}
+          {backNineStrokesPending ? <BackNineStrokesPendingNotice blockers={blockedBy} canEdit={false} /> : null}
+
           <View style={styles.standingsRow}>
             <Swords size={15} color={colors.primary} />
             <Text style={styles.standingsLabel}>Standings counted for</Text>

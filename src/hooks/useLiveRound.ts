@@ -20,7 +20,16 @@ import { recalculateAndSaveStreaks } from '../data/streaks';
 import { fetchMatchLobby, fetchMatchups, upsertMatchup } from '../data/matches';
 import type { MatchStatus, MatchupPair, StrokeMode } from '../data/matches';
 import { fetchCourseCatalog, getComboHoles } from '../data/courses';
-import { buildAllPairs, buildPlayOrder, computeThru, getBackNineNet, getNextRoundNet, pairKey } from '../data/round';
+import {
+  buildAllPairs,
+  buildPlayOrder,
+  computeThru,
+  getBackNineNet,
+  getNextRoundNet,
+  hasCompleteFrontNine,
+  missingFrontNineHoles,
+  pairKey,
+} from '../data/round';
 import type { GrossMap, Hole, HoleScoreMap, RoundSchedule, StrokeDeal } from '../data/round';
 import { fetchScores, finishMatchAndSettleLedger, saveScore, upsertMatchupBackNine } from '../data/scores';
 import type { LedgerDeal } from '../data/scores';
@@ -59,15 +68,39 @@ function pairSettingsToDeals(pairSettings: PairSetting[]): StrokeDeal[] {
     );
 }
 
-/** Null until every pair in the roster has a persisted back-9 re-strike — see the restrike effect below for who computes it. */
-function buildBackNineDeals(rosterIds: string[], matchups: MatchupPair[]): StrokeDeal[] | null {
-  const pairs = buildAllPairs(rosterIds);
-  const rows = pairs.map(([a, b]) => matchups.find((m) => m.playerAId === a && m.playerBId === b));
-  if (rows.some((r) => r?.backNineStrokes == null)) return null;
+/**
+ * Every pair's back-9 deal: the persisted re-strike where it has landed, and
+ * the identical arithmetic run locally where it hasn't yet.
+ *
+ * The local fallback matters because persistence is not a precondition for
+ * knowing the answer — `getBackNineNet` is pure, every client feeds it the
+ * same front-9 scores and the same front-9 deals, so they all derive the same
+ * number the moment the cards allow it. Reading only `game_matchups` (as this
+ * used to) meant the whole match played the back 9 at scratch during any
+ * window where the value was computable but nobody with write access to some
+ * pair had happened to be on a live-round screen to persist it — and because
+ * this returns null unless EVERY pair resolves, one such pair blacked out the
+ * strokes for all of them. The re-strike effect below still writes the value
+ * through; that's now a background catch-up for the read paths that have no
+ * scores to derive from (data/rounds.ts, data/kaki.ts) rather than the thing
+ * the live round waits on.
+ *
+ * Still null while `allFrontNinesComplete` is false: a pair whose two cards
+ * aren't both finished has no derivable deal, and no honest value to show.
+ * That state is surfaced, not papered over — see BackNineStrokesPendingNotice.
+ */
+function buildBackNineDeals(
+  rosterIds: string[],
+  matchups: MatchupPair[],
+  derivedNet: Record<string, number>,
+  allFrontNinesComplete: boolean,
+): StrokeDeal[] | null {
+  if (!allFrontNinesComplete) return null;
   const deals: StrokeDeal[] = [];
-  rows.forEach((r, i) => {
-    const [a, b] = pairs[i]!;
-    const v = r!.backNineStrokes!;
+  buildAllPairs(rosterIds).forEach(([a, b]) => {
+    const key = pairKey(a, b);
+    const row = matchups.find((m) => m.playerAId === a && m.playerBId === b);
+    const v = row?.backNineStrokes ?? derivedNet[key] ?? 0;
     if (v > 0) deals.push({ giver: a, receiver: b, amount: v });
     else if (v < 0) deals.push({ giver: b, receiver: a, amount: -v });
   });
@@ -245,12 +278,42 @@ export function useLiveRound(matchId: string) {
   const thru = useMemo(() => computeThru(rosterIds, scores, playOrder), [rosterIds, scores, playOrder]);
 
   const frontNineDeals = useMemo(() => pairSettingsToDeals(pairSettings), [pairSettings]);
-  const backNineDeals = useMemo(() => buildBackNineDeals(rosterIds, matchupRows), [rosterIds, matchupRows]);
 
-  // The mid-round re-strike (18-hole/9-strokes-basis matches only): once the
-  // front 9 is complete (thru >= 9), compute the back-9 deal and persist it
-  // for every pair this viewer can legally write (game_matchups RLS: either
-  // participant, or the host as admin override).
+  // Who can have their deals re-struck at all yet. Per player, not the group's
+  // `thru` — see hasCompleteFrontNine for why that distinction is the whole
+  // bug. `blockedBy` drives the Scorecard's pending notice, so the people
+  // holding the back 9 up are named instead of the strokes just vanishing.
+  const frontNineComplete = useMemo(
+    () => new Set(rosterIds.filter((id) => hasCompleteFrontNine(id, scores, schedule))),
+    [rosterIds, scores, schedule],
+  );
+  const blockedBy = useMemo(
+    () =>
+      roster
+        .filter((p) => !frontNineComplete.has(p.playerId))
+        .map((p) => ({ playerId: p.playerId, name: p.name, holes: missingFrontNineHoles(p.playerId, scores, schedule) })),
+    [roster, frontNineComplete, scores, schedule],
+  );
+
+  const backNineNet = useMemo(
+    () => getBackNineNet(rosterIds, gross, frontNineDeals, holes, schedule),
+    [rosterIds, gross, frontNineDeals, holes, schedule],
+  );
+  const backNineDeals = useMemo(
+    () => buildBackNineDeals(rosterIds, matchupRows, backNineNet, blockedBy.length === 0),
+    [rosterIds, matchupRows, backNineNet, blockedBy.length],
+  );
+
+  // The mid-round re-strike (18-hole/9-strokes-basis matches only): once a
+  // pair's two players have both finished their front 9, compute that pair's
+  // back-9 deal and persist it — for every pair this viewer can legally write
+  // (game_matchups RLS: either participant, or the host as admin override).
+  //
+  // Note this is now a catch-up write, not the thing the live round waits on:
+  // buildBackNineDeals derives the same value locally for display the moment
+  // the cards allow it. Persisting still matters for the read paths that have
+  // no scores to derive from — data/rounds.ts's history rows and
+  // data/kaki.ts's ledger preview — and for the finish settle.
   //
   // Filling all of a 4+ player roster's pairs usually takes more than one
   // client — each viewer only has write access to their own pairs (or all of
@@ -265,25 +328,33 @@ export function useLiveRound(matchId: string) {
   // diff is empty and the effect no-ops, so it can't loop forever chasing its
   // own `load()`.
   //
-  // Deliberately `thru >= 9`, not `=== 9`: this used to only fire in the
-  // instant window between everyone finishing hole 9 and everyone finishing
-  // hole 10. If no client holding write access to some pair (that pair's own
-  // two players, or the host) had the round open in that exact window — e.g.
-  // off on the Leaderboard tab, or the app was briefly backgrounded — that
-  // pair's back_nine_strokes stayed null forever, and getFlags/dealsAndRankForHole
-  // falls back to zero strokes for the WHOLE match (not just that pair) for
-  // every hole from 10 on, until every pair resolves (round.ts's
-  // dealsAndRankForHole comment). `>= 9` lets any later client passing
-  // through — even mid-back-nine — catch and repair a still-missing pair;
-  // the diff-and-only-upsert-what-changed check above keeps this idempotent
-  // once every writable pair is already correct.
+  // The gate is per pair, not the group-wide `thru`. It used to be
+  // `thru >= 9` — "nobody's deal re-strikes until the slowest card in the
+  // match has finished its front 9" — which is far stronger than the
+  // arithmetic actually needs: restrikeNet reads a pair's own two cards and
+  // nothing else. In the 2026-09-26 round that cost the whole match its back
+  // 9: three players, one entering scores two holes at a time, so his hole 9
+  // landed only at the end of hole 10. `thru` sat at 8 through the turn, this
+  // effect returned early, no pair was ever written, and buildBackNineDeals'
+  // null-unless-every-pair-resolves rule put every pairing — including the
+  // two that player wasn't in, whose cards were both complete at the 9th —
+  // on zero strokes for holes 10 and 11. Gating each pair on its own two
+  // players lets those deals re-strike on time regardless of a third card.
+  //
+  // Still `>= 9` in spirit rather than `=== 9`: there's no instant-window
+  // requirement here at all. A client passing through later — even
+  // mid-back-nine — re-evaluates and repairs any pair it can write, and the
+  // diff-and-only-upsert-what-changed check above keeps that idempotent.
   useEffect(() => {
     if (schedule.holesToPlay !== 18 || schedule.strokesBasis !== 9) return;
-    if (thru < 9) return;
 
-    const net = getBackNineNet(rosterIds, gross, frontNineDeals, holes, schedule);
+    const net = backNineNet;
     const rowByPair = new Map(matchupRows.map((m) => [pairKey(m.playerAId, m.playerBId), m]));
     const stalePairs = buildAllPairs(rosterIds)
+      // Both cards complete — otherwise this pair's entry in `net` was read
+      // off holes `gross` filled in with par (see that memo), which is a
+      // guess, and persisting a guess is how it stops being correctable.
+      .filter(([a, b]) => frontNineComplete.has(a) && frontNineComplete.has(b))
       .filter(([a, b]) => isHostViewer || a === viewerId || b === viewerId)
       .filter(([a, b]) => rowByPair.get(pairKey(a, b))?.backNineStrokes !== (net[pairKey(a, b)] ?? 0));
     if (stalePairs.length === 0) return;
@@ -294,15 +365,14 @@ export function useLiveRound(matchId: string) {
     // reads on join) holding the pre-restrike snapshot until the next
     // realtime-triggered or polled fetch happens to land. A screen mounted
     // in that gap — e.g. switching to Leaderboard right after the turn —
-    // picks up that stale cache, where this pair (and, per
-    // buildBackNineDeals/dealsAndRankForHole's null-until-every-pair-resolves
-    // fallback, every OTHER pair too) still reads back as unresolved and
-    // shows 0 strokes. Broadcasting through the shared cache the moment our
-    // own write lands closes that window instead of waiting on it.
+    // picks up that stale cache. Less load-bearing than it was now that
+    // buildBackNineDeals derives the deal locally rather than waiting on this
+    // write, but still the difference between every screen agreeing at once
+    // and them agreeing at the next incidental fetch.
     Promise.all(stalePairs.map(([a, b]) => upsertMatchupBackNine(matchId, a, b, net[pairKey(a, b)] ?? 0)))
       .then(() => refreshMatchSync(`round-${matchId}`))
       .catch(() => {});
-  }, [schedule, thru, rosterIds, gross, frontNineDeals, holes, matchupRows, isHostViewer, viewerId, matchId]);
+  }, [schedule, frontNineComplete, rosterIds, backNineNet, matchupRows, isHostViewer, viewerId, matchId]);
 
   function adjustScore(playerId: string, holeIndex: number, delta: number) {
     // Mirrors scores' own RLS (20260827140000_lock_scores_after_finish.sql)
@@ -423,6 +493,8 @@ export function useLiveRound(matchId: string) {
     thru,
     frontNineDeals,
     backNineDeals,
+    /** Players whose front 9 isn't fully entered yet, with the holes they're missing — why `backNineDeals` is still null, in a form the UI can name. */
+    blockedBy,
     pairSettings,
     stakePerHole,
     refresh,
