@@ -11,20 +11,20 @@ import {
   MapPin,
   Navigation,
   Search,
-  X,
 } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import { BottomSheet } from '../components/BottomSheet';
 import { Button } from '../components/Button';
 import { IconButton } from '../components/IconButton';
 import type { Course as CatalogCourse, NineCombo } from '../data/courses';
 import { fetchCourseCatalog, getComboHoles } from '../data/courses';
 import { distanceKm, formatDistanceKm } from '../lib/geo';
 import type { RootStackParamList } from '../navigation/types';
-import { colors, getFontFamily, motion, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
+import { colors, getFontFamily, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SelectCourse'>;
 
@@ -364,8 +364,6 @@ function CourseRow({
   );
 }
 
-const SHEET_OFFSCREEN_Y = 600;
-
 function StartHoleSheet({
   open,
   holes,
@@ -379,69 +377,35 @@ function StartHoleSheet({
   onConfirm: (n: number) => void;
   onClose: () => void;
 }) {
-  const insets = useSafeAreaInsets();
-  const progress = useRef(new Animated.Value(0)).current;
-  const [mounted, setMounted] = useState(open);
   const [draftHole, setDraftHole] = useState(selected);
 
   useEffect(() => {
-    if (open) {
-      setDraftHole(selected);
-      setMounted(true);
-    }
-    Animated.timing(progress, {
-      toValue: open ? 1 : 0,
-      duration: motion.duration.slow,
-      easing: Easing.bezier(...motion.easing.out),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished && !open) setMounted(false);
-    });
-  }, [open, selected, progress]);
-
-  if (!mounted) return null;
-
-  const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [SHEET_OFFSCREEN_Y, 0] });
+    if (open) setDraftHole(selected);
+  }, [open, selected]);
 
   return (
-    <Modal transparent visible animationType="none" onRequestClose={onClose}>
-      <View style={styles.modalRoot}>
-        <Animated.View style={[styles.scrim, { opacity: progress }]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        </Animated.View>
-        <Animated.View style={[styles.sheet, { paddingBottom: insets.bottom + spacing[5], transform: [{ translateY }] }]}>
-          <View style={styles.sheetHandleWrap}>
-            <View style={styles.sheetHandle} />
-          </View>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Select starting hole</Text>
-            <Pressable style={styles.sheetCloseButton} onPress={onClose}>
-              <X size={17} color={colors.textMuted} />
+    <BottomSheet
+      visible={open}
+      onClose={onClose}
+      title="Select starting hole"
+      subtitle="Shotgun starts let your group tee off from any hole."
+      footer={<Button label="Confirm" variant="accent" size="lg" block onPress={() => onConfirm(draftHole)} />}
+    >
+      <View style={styles.startHoleList}>
+        {holes.map((hole) => {
+          const on = hole.n === draftHole;
+          return (
+            <Pressable key={hole.n} style={styles.startHoleRow} onPress={() => setDraftHole(hole.n)}>
+              <View>
+                <Text style={[styles.startHoleRowLabel, on && styles.startHoleRowLabelActive]}>Hole {hole.n}</Text>
+                <Text style={styles.startHoleRowMeta}>{hole.meta}</Text>
+              </View>
+              {on ? <CircleCheckBig size={22} color={colors.primary} /> : <Circle size={22} color={palette.sand[400]} />}
             </Pressable>
-          </View>
-          <Text style={styles.sheetSubtitle}>Shotgun starts let your group tee off from any hole.</Text>
-          <View style={styles.startHoleList}>
-            {holes.map((hole) => {
-              const on = hole.n === draftHole;
-              return (
-                <Pressable key={hole.n} style={styles.startHoleRow} onPress={() => setDraftHole(hole.n)}>
-                  <View>
-                    <Text style={[styles.startHoleRowLabel, on && styles.startHoleRowLabelActive]}>Hole {hole.n}</Text>
-                    <Text style={styles.startHoleRowMeta}>{hole.meta}</Text>
-                  </View>
-                  {on ? (
-                    <CircleCheckBig size={22} color={colors.primary} />
-                  ) : (
-                    <Circle size={22} color={palette.sand[400]} />
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-          <Button label="Confirm" variant="accent" size="lg" block style={styles.sheetConfirmButton} onPress={() => onConfirm(draftHole)} />
-        </Animated.View>
+          );
+        })}
       </View>
-    </Modal>
+    </BottomSheet>
   );
 }
 
@@ -458,73 +422,32 @@ function ComboPickerSheet({
   onConfirm: (id: string) => void;
   onClose: () => void;
 }) {
-  const insets = useSafeAreaInsets();
-  const progress = useRef(new Animated.Value(0)).current;
-  const [mounted, setMounted] = useState(open);
   const [draftId, setDraftId] = useState(selectedId);
 
   useEffect(() => {
-    if (open) {
-      setDraftId(selectedId);
-      setMounted(true);
-    }
-    Animated.timing(progress, {
-      toValue: open ? 1 : 0,
-      duration: motion.duration.slow,
-      easing: Easing.bezier(...motion.easing.out),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished && !open) setMounted(false);
-    });
-  }, [open, selectedId, progress]);
-
-  if (!mounted) return null;
-
-  const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [SHEET_OFFSCREEN_Y, 0] });
+    if (open) setDraftId(selectedId);
+  }, [open, selectedId]);
 
   return (
-    <Modal transparent visible animationType="none" onRequestClose={onClose}>
-      <View style={styles.modalRoot}>
-        <Animated.View style={[styles.scrim, { opacity: progress }]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        </Animated.View>
-        <Animated.View style={[styles.sheet, { paddingBottom: insets.bottom + spacing[5], transform: [{ translateY }] }]}>
-          <View style={styles.sheetHandleWrap}>
-            <View style={styles.sheetHandle} />
-          </View>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Select which nines</Text>
-            <Pressable style={styles.sheetCloseButton} onPress={onClose}>
-              <X size={17} color={colors.textMuted} />
+    <BottomSheet
+      visible={open}
+      onClose={onClose}
+      title="Select which nines"
+      subtitle="Pick the two nines you're playing today."
+      footer={<Button label="Confirm" variant="accent" size="lg" block onPress={() => draftId && onConfirm(draftId)} />}
+    >
+      <View style={styles.startHoleList}>
+        {combos.map((combo) => {
+          const on = combo.id === draftId;
+          return (
+            <Pressable key={combo.id} style={styles.startHoleRow} onPress={() => setDraftId(combo.id)}>
+              <Text style={[styles.startHoleRowLabel, on && styles.startHoleRowLabelActive]}>{combo.label}</Text>
+              {on ? <CircleCheckBig size={22} color={colors.primary} /> : <Circle size={22} color={palette.sand[400]} />}
             </Pressable>
-          </View>
-          <Text style={styles.sheetSubtitle}>Pick the two nines you're playing today.</Text>
-          <View style={styles.startHoleList}>
-            {combos.map((combo) => {
-              const on = combo.id === draftId;
-              return (
-                <Pressable key={combo.id} style={styles.startHoleRow} onPress={() => setDraftId(combo.id)}>
-                  <Text style={[styles.startHoleRowLabel, on && styles.startHoleRowLabelActive]}>{combo.label}</Text>
-                  {on ? (
-                    <CircleCheckBig size={22} color={colors.primary} />
-                  ) : (
-                    <Circle size={22} color={palette.sand[400]} />
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-          <Button
-            label="Confirm"
-            variant="accent"
-            size="lg"
-            block
-            style={styles.sheetConfirmButton}
-            onPress={() => draftId && onConfirm(draftId)}
-          />
-        </Animated.View>
+          );
+        })}
       </View>
-    </Modal>
+    </BottomSheet>
   );
 }
 
@@ -813,68 +736,6 @@ const styles = StyleSheet.create({
     paddingBottom: spacing[5],
     backgroundColor: colors.surfacePage,
   },
-  modalRoot: {
-    flex: 1,
-  },
-  scrim: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.overlayScrim,
-  },
-  sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.surfaceCard,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    paddingHorizontal: screenGutter,
-    shadowColor: '#0E3A28',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.16,
-    shadowRadius: 32,
-    elevation: 16,
-  },
-  sheetHandleWrap: {
-    alignItems: 'center',
-    paddingVertical: spacing[2] + 2,
-  },
-  sheetHandle: {
-    width: 38,
-    height: 4,
-    borderRadius: radius.pill,
-    backgroundColor: colors.borderDefault,
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sheetTitle: {
-    fontFamily: getFontFamily('display', '700'),
-    fontWeight: '700',
-    fontSize: 18,
-    color: colors.textPrimary,
-  },
-  sheetCloseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceSunken,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sheetSubtitle: {
-    fontFamily: getFontFamily('body', '400'),
-    fontSize: 12,
-    color: colors.textDisabled,
-    marginTop: spacing[2] + 1,
-    marginBottom: spacing[1],
-  },
   startHoleList: {
     marginTop: spacing[1],
   },
@@ -902,8 +763,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textDisabled,
     marginTop: 2,
-  },
-  sheetConfirmButton: {
-    marginTop: spacing[3] + 2,
   },
 });
