@@ -11,13 +11,14 @@ import { System36NoHandicapCallout } from '../components/System36NoHandicapCallo
 import { System36RuleCards } from '../components/System36RuleCards';
 import type { Course as CatalogCourse } from '../data/courses';
 import { fetchCourseCatalog, getComboHoles } from '../data/courses';
+import { tieBreakSummary } from '../data/multiRound';
 import { teePresentation } from '../data/tees';
 import { startMatch } from '../data/matches';
 import { createTournament, fetchTournamentLobby, removeTournamentPlayer, setSkinsParticipant } from '../data/tournaments';
 import type { RootStackParamList, TournamentStackParamList } from '../navigation/types';
 import { useAuth } from '../state/AuthContext';
 import type { TournamentPlayerDraft } from '../state/TournamentDraftContext';
-import { useTournamentDraft } from '../state/TournamentDraftContext';
+import { buildRoundPlans, useTournamentDraft } from '../state/TournamentDraftContext';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
 import { supabase } from '../lib/supabase';
 
@@ -68,7 +69,7 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
   // screen's state on its own.
   const loadLiveRoster = useCallback(() => {
     if (!draft.matchId || !draft.tournamentId) return Promise.resolve();
-    return fetchTournamentLobby(draft.tournamentId)
+    return fetchTournamentLobby(draft.tournamentId, draft.matchId)
       .then((lobby) => {
         update({
           players: lobby.players.map((p) => ({
@@ -136,7 +137,9 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
   const isSystem36 = draft.format === 'system_36';
   const isStableford = draft.format === 'stableford';
   const holeCount = course && combo ? getComboHoles(course, combo.id).length : 18;
-  const tieBreakLabel = draft.tieBreakRule === 'countback' ? 'Back-9 countback' : 'Shared place';
+  // roundsCount keeps its default (3) on a single-round draft — roundStructure is what says multi.
+  const tieBreak = tieBreakSummary(draft.tieBreakRule, draft.roundStructure === 'multi' && draft.roundsCount > 1);
+  const tieBreakLabel = tieBreak.label;
   // No scheduled-time field exists on the draft (a round starts the moment
   // the host taps Create & start scoring), so the review's Date row reflects
   // "now" — captured once at mount so it doesn't tick while the screen is open.
@@ -227,6 +230,8 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
             handicapOverride: p.handicapOverride,
           })),
           sideGames: draft.sideGames,
+          rounds: buildRoundPlans(draft),
+          standingsMode: draft.standingsMode,
         });
         tournamentId = created.tournamentId;
         matchId = created.matchId;
@@ -534,6 +539,13 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
                 <Text style={styles.rulesRowValue}>
                   {isStableford ? 'Stableford' : 'Stroke play'} · Nett {draft.handicapAllowancePct}%
                 </Text>
+              </View>
+              <View style={styles.rulesRow}>
+                <Text style={styles.rulesRowLabel}>Tie-break</Text>
+                <View style={styles.rulesRowValueGroup}>
+                  <Text style={styles.rulesRowValue}>{tieBreak.label}</Text>
+                  <Text style={styles.rulesRowSub}>{tieBreak.sub}</Text>
+                </View>
               </View>
               {skins ? (
                 <View style={styles.rulesRow}>
@@ -1099,6 +1111,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   rulesRowValueGroup: {
+    flexShrink: 1,
     marginLeft: spacing[3],
     alignItems: 'flex-end',
   },

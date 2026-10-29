@@ -82,7 +82,7 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
     // start it; a non-host who refreshes (or gets a realtime nudge after the
     // host already started) needs this to notice and follow them into the round.
     if (lobby.status === 'live') {
-      navigation.navigate('Scorecard', { matchId, matchName, courseName, gameModeName, isHost: lobby.hostId === viewerId });
+      navigation.navigate('Scorecard', { matchId, matchName, courseName, gameModeName });
       return;
     }
 
@@ -313,7 +313,6 @@ export function MatchLobbyScreen({ navigation, route }: Props) {
         matchName,
         courseName,
         gameModeName,
-        isHost: hostId === viewerId,
       });
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not start the round — try again.');

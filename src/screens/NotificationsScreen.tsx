@@ -8,7 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { Avatar } from '../components/Avatar';
 import { IconButton } from '../components/IconButton';
-import { BadgeAttestationCard, FriendRequestCard, GameInviteCard } from '../components/NotificationCards';
+import { BadgeAttestationCard, FriendRequestCard, GameInviteCard, TournamentNoticeCard } from '../components/NotificationCards';
 import type { AttestableBadge } from '../data/attestations';
 import { attestBadge, fetchAttestableBadges } from '../data/attestations';
 import type { FriendRequest } from '../data/kaki';
@@ -19,6 +19,8 @@ import { getInitials } from '../data/profile';
 import { moneyLabel } from '../data/round';
 import type { EarlierItem } from '../data/notifications';
 import { fetchEarlierActivity, formatRelativeTime } from '../data/notifications';
+import type { TournamentNotice } from '../data/tournamentHome';
+import { fetchTournamentNotices } from '../data/tournamentHome';
 import type { RootStackParamList } from '../navigation/types';
 import { useAuth } from '../state/AuthContext';
 import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, spacing } from '../theme/tokens';
@@ -33,16 +35,19 @@ export function NotificationsScreen({ navigation }: Props) {
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [attestableBadges, setAttestableBadges] = useState<AttestableBadge[]>([]);
   const [earlier, setEarlier] = useState<EarlierItem[]>([]);
+  const [tournamentNotices, setTournamentNotices] = useState<TournamentNotice[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     if (!viewerId) return;
-    const [invites, overview, attestable, earlierActivity] = await Promise.all([
+    const [invites, overview, attestable, earlierActivity, notices] = await Promise.all([
       fetchMatchInvites(viewerId),
       fetchKakiOverview(viewerId),
       fetchAttestableBadges(viewerId),
       fetchEarlierActivity(viewerId),
+      fetchTournamentNotices(viewerId).catch(() => []),
     ]);
+    setTournamentNotices(notices);
     setMatchInvites(invites);
     setFriendRequests(overview.requests);
     setAttestableBadges(attestable);
@@ -73,7 +78,6 @@ export function NotificationsScreen({ navigation }: Props) {
           matchName: invite.matchName,
           courseName: invite.courseName,
           gameModeName: invite.gameModeName,
-          isHost: false,
         });
       } else {
         navigation.navigate('MatchLobby', {
@@ -123,7 +127,7 @@ export function NotificationsScreen({ navigation }: Props) {
     }
   }
 
-  const todayCount = matchInvites.length + friendRequests.length + attestableBadges.length;
+  const todayCount = matchInvites.length + friendRequests.length + attestableBadges.length + tournamentNotices.length;
 
   return (
     <View style={styles.page}>
@@ -161,6 +165,17 @@ export function NotificationsScreen({ navigation }: Props) {
                       colorIndex={index}
                       onIgnore={() => handleIgnoreFriendRequest(request)}
                       onAccept={() => handleAcceptFriendRequest(request)}
+                    />
+                  ))}
+                  {tournamentNotices.map((notice) => (
+                    <TournamentNoticeCard
+                      key={notice.key}
+                      notice={notice}
+                      onOpen={() =>
+                        notice.kind === 'roundStarted'
+                          ? navigation.navigate('TournamentScorecard', { tournamentId: notice.tournamentId, matchId: notice.matchId })
+                          : navigation.navigate('TournamentLobby', { tournamentId: notice.tournamentId, matchId: notice.matchId })
+                      }
                     />
                   ))}
                   {attestableBadges.map((badge, index) => (

@@ -12,7 +12,8 @@ import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { HandicapBadge } from '../components/HandicapBadge';
 import { NotificationBell } from '../components/NotificationBell';
-import { BadgeAttestationCard, FriendRequestCard, GameInviteCard } from '../components/NotificationCards';
+import { BadgeAttestationCard, FriendRequestCard, GameInviteCard, TournamentNoticeCard } from '../components/NotificationCards';
+import { TournamentHomeCard } from '../components/TournamentHomeCard';
 import type { AttestableBadge } from '../data/attestations';
 import { attestBadge, fetchAttestableBadges } from '../data/attestations';
 import type { FriendRequest } from '../data/kaki';
@@ -20,8 +21,13 @@ import { acceptFriendRequest, fetchKakiOverview, removeKakiRelationship } from '
 import type { MatchInvite } from '../data/matches';
 import { acceptMatchInvite, declineMatchInvite, fetchMatchInvites } from '../data/matches';
 import { getInitials } from '../data/profile';
+import type { PastGameEntry } from '../data/pastGames';
+import { groupPastRounds } from '../data/pastGames';
 import type { RoundSummary } from '../data/rounds';
 import { fetchRoundSummaries, isIncompleteRound } from '../data/rounds';
+import type { ActiveTournament, TournamentNotice } from '../data/tournamentHome';
+import { fetchActiveTournaments } from '../data/tournamentHome';
+import { supabase } from '../lib/supabase';
 import type { RootStackParamList } from '../navigation/types';
 import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, getPlayerColors, layout, palette, radius, screenGutter, spacing } from '../theme/tokens';
@@ -50,9 +56,11 @@ export function HomeScreen({ navigation }: Props) {
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
   const [attestableBadges, setAttestableBadges] = useState<AttestableBadge[]>([]);
   const [liveRounds, setLiveRounds] = useState<RoundSummary[]>([]);
-  const [pastRounds, setPastRounds] = useState<RoundSummary[]>([]);
+  const [pastGames, setPastGames] = useState<PastGameEntry<RoundSummary>[]>([]);
+  const [activeTournaments, setActiveTournaments] = useState<ActiveTournament[]>([]);
+  const tournamentNotices = activeTournaments.flatMap((t) => (t.notice ? [t.notice] : []));
 
-  const notificationCount = matchInvites.length + friendRequests.length + attestableBadges.length;
+  const notificationCount = matchInvites.length + friendRequests.length + attestableBadges.length + tournamentNotices.length;
 
   const loadNotifications = useCallback(async (viewerId: string) => {
     const [invites, overview, attestable] = await Promise.all([fetchMatchInvites(viewerId), fetchKakiOverview(viewerId), fetchAttestableBadges(viewerId)]);
@@ -63,8 +71,9 @@ export function HomeScreen({ navigation }: Props) {
 
   const loadRounds = useCallback(async (viewerId: string) => {
     const [live, past] = await Promise.all([fetchRoundSummaries(viewerId, 'live'), fetchRoundSummaries(viewerId, 'finished')]);
-    setLiveRounds(live);
-    setPastRounds(past.slice(0, 3));
+    // A multi-round tournament's live round is covered by the Tournament card (MR12) — don't list it twice.
+    setLiveRounds(live.filter((r) => (r.tournamentRoundsCount ?? 1) < 2));
+    setPastGames(groupPastRounds(past).slice(0, 3));
   }, []);
 
   // Refetch on focus, not just mount — an invite/request/attestation can land
@@ -77,7 +86,45 @@ export function HomeScreen({ navigation }: Props) {
       // Notifications are supplementary — a failed fetch just means none show, not a blocking error.
       loadNotifications(profile.id).catch(() => {});
       loadRounds(profile.id).catch(() => {});
+      fetchActiveTournaments(profile.id)
+        .then(setActiveTournaments)
+        .catch(() => {});
     }, [profile, loadNotifications, loadRounds]),
+  );
+
+  // The focus refetch above misses a change made while the viewer is already
+  // sitting on Home — e.g. the organiser tapping "Begin Round 2" (sets
+  // tournament_rounds.match_id) or starting it (matches.status → live), which
+  // left players stuck on "Waiting for … to set up Round 2" until they left
+  // Home and came back. Watch exactly those rows while Home is focused and
+  // refetch the cards when one changes. Keyed on the ids so it resubscribes
+  // once a newly set-up round hands us a new matchId to watch.
+  const watchedTournamentIds = activeTournaments.map((t) => t.tournamentId).join(',');
+  const watchedMatchIds = activeTournaments.flatMap((t) => (t.round.matchId ? [t.round.matchId] : [])).join(',');
+  useFocusEffect(
+    useCallback(() => {
+      if (!profile || !watchedTournamentIds) return;
+      let syncTimer: ReturnType<typeof setTimeout> | null = null;
+      const scheduleSync = () => {
+        if (syncTimer) clearTimeout(syncTimer);
+        syncTimer = setTimeout(() => {
+          fetchActiveTournaments(profile.id)
+            .then(setActiveTournaments)
+            .catch(() => {});
+        }, 300);
+      };
+      let channelBuilder = supabase
+        .channel(`home-tournaments-${profile.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_rounds', filter: `tournament_id=in.(${watchedTournamentIds})` }, scheduleSync);
+      if (watchedMatchIds) {
+        channelBuilder = channelBuilder.on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches', filter: `id=in.(${watchedMatchIds})` }, scheduleSync);
+      }
+      const channel = channelBuilder.subscribe();
+      return () => {
+        if (syncTimer) clearTimeout(syncTimer);
+        supabase.removeChannel(channel);
+      };
+    }, [profile, watchedTournamentIds, watchedMatchIds]),
   );
 
   async function handleAcceptInvite(invite: MatchInvite) {
@@ -95,7 +142,6 @@ export function HomeScreen({ navigation }: Props) {
           matchName: invite.matchName,
           courseName: invite.courseName,
           gameModeName: invite.gameModeName,
-          isHost: false,
         });
       } else {
         navigation.navigate('MatchLobby', {
@@ -132,6 +178,25 @@ export function HomeScreen({ navigation }: Props) {
   async function handleAttestBadge(badge: AttestableBadge) {
     setAttestableBadges((prev) => prev.filter((b) => !(b.playerId === badge.playerId && b.badgeType === badge.badgeType)));
     attestBadge(badge.playerId, badge.badgeType, profile!.id).catch(() => setAttestableBadges((prev) => [...prev, badge]));
+  }
+
+  function openTournament(t: ActiveTournament) {
+    if (t.action === 'beginRound') navigation.navigate('TournamentSetupRound', { tournamentId: t.tournamentId, roundIndex: t.round.index });
+    else if (t.action === 'joinScoring') navigation.navigate('TournamentScorecard', { tournamentId: t.tournamentId, matchId: t.matchId });
+    else if (t.action === 'viewLeaderboard') navigation.navigate('TournamentLeaderboard', { tournamentId: t.tournamentId, matchId: t.matchId });
+    else navigation.navigate('TournamentLobby', { tournamentId: t.tournamentId, matchId: t.matchId });
+  }
+
+  function openNotice(notice: TournamentNotice) {
+    if (notice.kind === 'roundStarted') navigation.navigate('TournamentScorecard', { tournamentId: notice.tournamentId, matchId: notice.matchId });
+    else navigation.navigate('TournamentLobby', { tournamentId: notice.tournamentId, matchId: notice.matchId });
+  }
+
+  function openPastTournament(entry: Extract<PastGameEntry<RoundSummary>, { kind: 'tournament' }>) {
+    const latest = entry.rounds[0]!;
+    // Final round done → MR13; otherwise the latest round's recap (MR10).
+    if (entry.rounds.some((r) => r.tournamentRoundIndex === entry.roundsCount)) navigation.navigate('TournamentComplete', { tournamentId: entry.tournamentId });
+    else navigation.navigate('TournamentRoundRecap', { tournamentId: entry.tournamentId, matchId: latest.matchId });
   }
 
   if (!profile) {
@@ -219,6 +284,9 @@ export function HomeScreen({ navigation }: Props) {
                   onAccept={() => handleAcceptFriendRequest(request)}
                 />
               ))}
+              {tournamentNotices.map((notice) => (
+                <TournamentNoticeCard key={notice.key} notice={notice} onOpen={() => openNotice(notice)} />
+              ))}
               {attestableBadges.map((badge, index) => (
                 <BadgeAttestationCard
                   key={`${badge.playerId}:${badge.badgeType}`}
@@ -227,6 +295,12 @@ export function HomeScreen({ navigation }: Props) {
                   onConfirm={() => handleAttestBadge(badge)}
                 />
               ))}
+            </View>
+          ) : null}
+
+          {activeTournaments[0] ? (
+            <View style={styles.tournamentSection}>
+              <TournamentHomeCard tournament={activeTournaments[0]} onAction={() => openTournament(activeTournaments[0]!)} />
             </View>
           ) : null}
 
@@ -247,7 +321,6 @@ export function HomeScreen({ navigation }: Props) {
                     matchName: round.matchName,
                     courseName: round.courseName,
                     gameModeName: round.gameModeName,
-                    isHost: false,
                   });
                 }}
                 onFinish={() => {
@@ -267,7 +340,7 @@ export function HomeScreen({ navigation }: Props) {
             </>
           ) : null}
 
-          {pastRounds.length > 0 ? (
+          {pastGames.length > 0 ? (
             <>
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.sectionLabel}>Past games</Text>
@@ -276,11 +349,38 @@ export function HomeScreen({ navigation }: Props) {
                 </Pressable>
               </View>
               <View style={styles.pastGameList}>
-                {pastRounds.map((round) => {
+                {pastGames.map((entry) => {
+                  if (entry.kind === 'tournament') {
+                    const first = entry.rounds[0]!;
+                    const gross = entry.rounds.reduce((sum, r) => sum + (r.viewerGross ?? 0), 0);
+                    const complete = entry.rounds.some((r) => r.tournamentRoundIndex === entry.roundsCount);
+                    return (
+                      <Pressable key={entry.key} onPress={() => openPastTournament(entry)}>
+                        <Card style={styles.pastGameRow}>
+                          <View style={styles.pastGameIcon}>
+                            <Trophy size={18} color={colors.scoreEagle} />
+                          </View>
+                          <View style={styles.pastGameInfo}>
+                            <Text style={styles.pastGameTitle}>{first.tournamentName ?? first.matchName}</Text>
+                            <Text style={styles.pastGameSubtitle}>
+                              {complete ? `${entry.roundsCount} rounds` : `${entry.rounds.length} of ${entry.roundsCount} rounds`}
+                              {first.finishedAt ? ` · ${new Date(first.finishedAt).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : ''}
+                            </Text>
+                          </View>
+                          <View style={styles.pastGameScoreWrap}>
+                            <Text style={styles.pastGameScore}>{gross || '–'}</Text>
+                            <Text style={styles.pastGameScoreLabel}>gross</Text>
+                          </View>
+                          <ChevronRight size={17} color={palette.sand[400]} />
+                        </Card>
+                      </Pressable>
+                    );
+                  }
+                  const round = entry.round;
                   const incomplete = isIncompleteRound(round);
                   return (
                     <Pressable
-                      key={round.matchId}
+                      key={entry.key}
                       onPress={() => {
                         if (round.tournamentId) {
                           navigation.navigate('TournamentFinish', { tournamentId: round.tournamentId, matchId: round.matchId });
@@ -504,6 +604,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing[2] + 1,
   },
   liveCard: {
+    marginBottom: spacing[6],
+  },
+  tournamentSection: {
     marginBottom: spacing[6],
   },
   liveCardTop: {

@@ -16,6 +16,10 @@ const STEPS: { key: WizardStep; label: string }[] = [
 type TournamentWizardHeaderProps = {
   step: WizardStep;
   onBack: () => void;
+  /** Multi-round tournaments (MR1–MR2b) relabel step 2 "Rounds" — the course step becomes the round schedule. */
+  multiRound?: boolean;
+  /** Replaces "Create a tournament" — MR2b's "Round 1 course". */
+  title?: string;
 };
 
 /**
@@ -25,14 +29,15 @@ type TournamentWizardHeaderProps = {
  * since it's byte-for-byte the same across steps, only which step is
  * "current" changes.
  */
-export function TournamentWizardHeader({ step, onBack }: TournamentWizardHeaderProps) {
+export function TournamentWizardHeader({ step, onBack, multiRound = false, title = 'Create a tournament' }: TournamentWizardHeaderProps) {
   const currentIndex = STEPS.findIndex((s) => s.key === step);
+  const steps = multiRound ? STEPS.map((s) => (s.key === 'course' ? { ...s, label: '2 · Rounds' } : s)) : STEPS;
 
   return (
     <View style={styles.row}>
       <IconButton icon={ChevronLeft} iconSize={20} onPress={onBack} />
       <View style={styles.titleGroup}>
-        <Text style={styles.title}>Create a tournament</Text>
+        <Text style={styles.title}>{title}</Text>
         <View style={styles.progressWrap}>
           <View style={styles.segmentRow}>
             {STEPS.map((s, i) => (
@@ -40,7 +45,7 @@ export function TournamentWizardHeader({ step, onBack }: TournamentWizardHeaderP
             ))}
           </View>
           <View style={styles.labelRow}>
-            {STEPS.map((s, i) => (
+            {steps.map((s, i) => (
               <Text
                 key={s.key}
                 style={[

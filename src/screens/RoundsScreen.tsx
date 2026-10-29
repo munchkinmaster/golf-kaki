@@ -14,6 +14,8 @@ import { NotificationBell } from '../components/NotificationBell';
 import { deleteMatch } from '../data/matches';
 import type { RoundSummary } from '../data/rounds';
 import { fetchRoundSummaries, isIncompleteRound } from '../data/rounds';
+import type { PastGameEntry } from '../data/pastGames';
+import { groupPastRounds } from '../data/pastGames';
 import { moneyLabel } from '../data/round';
 import { useNotificationCount } from '../hooks/useNotificationCount';
 import type { RootStackParamList } from '../navigation/types';
@@ -76,7 +78,6 @@ export function RoundsScreen({ navigation, route }: Props) {
       matchName: round.matchName,
       courseName: round.courseName,
       gameModeName: round.gameModeName,
-      isHost: false,
     });
   }
 
@@ -91,6 +92,12 @@ export function RoundsScreen({ navigation, route }: Props) {
       courseName: round.courseName,
       gameModeName: round.gameModeName,
     });
+  }
+
+  /** A multi-round tournament's single Past entry: the final summary (MR13) once its last round is done, else the latest round's recap (MR10). */
+  function openPastTournament(entry: Extract<PastGameEntry<RoundSummary>, { kind: 'tournament' }>) {
+    if (entry.rounds.some((r) => r.tournamentRoundIndex === entry.roundsCount)) navigation.navigate('TournamentComplete', { tournamentId: entry.tournamentId });
+    else navigation.navigate('TournamentRoundRecap', { tournamentId: entry.tournamentId, matchId: entry.rounds[0]!.matchId });
   }
 
   function showToast(message: string) {
@@ -155,9 +162,13 @@ export function RoundsScreen({ navigation, route }: Props) {
           {!loading && !loadError && tab === 'past' ? (
             pastRounds.length > 0 ? (
               <View style={styles.pastList}>
-                {pastRounds.map((round) => (
-                  <PastRoundRow key={round.matchId} round={round} onPress={() => openPastRound(round)} />
-                ))}
+                {groupPastRounds(pastRounds).map((entry) =>
+                  entry.kind === 'tournament' ? (
+                    <PastTournamentRow key={entry.key} entry={entry} onPress={() => openPastTournament(entry)} />
+                  ) : (
+                    <PastRoundRow key={entry.key} round={entry.round} onPress={() => openPastRound(entry.round)} />
+                  ),
+                )}
               </View>
             ) : (
               <Text style={styles.stateText}>No past rounds yet.</Text>
@@ -338,6 +349,36 @@ function DeleteRoundSheet({
         </Pressable>
       </Pressable>
     </Modal>
+  );
+}
+
+/** Every round of one multi-round tournament as a single row — total gross across the rounds the viewer played. */
+function PastTournamentRow({ entry, onPress }: { entry: Extract<PastGameEntry<RoundSummary>, { kind: 'tournament' }>; onPress: () => void }) {
+  const latest = entry.rounds[0]!;
+  const complete = entry.rounds.some((r) => r.tournamentRoundIndex === entry.roundsCount);
+  const gross = entry.rounds.reduce((sum, r) => sum + (r.viewerGross ?? 0), 0);
+  const meta = [complete ? `${entry.roundsCount} rounds` : `${entry.rounds.length} of ${entry.roundsCount} rounds`, shortDate(latest.finishedAt)].filter(Boolean).join(' · ');
+
+  return (
+    <Pressable onPress={onPress}>
+      <Card>
+        <View style={styles.pastTopRow}>
+          <View style={styles.pastInfo}>
+            <Text style={styles.pastName} numberOfLines={1}>
+              {latest.tournamentName ?? latest.matchName}
+            </Text>
+            <Text style={styles.pastMeta} numberOfLines={1}>
+              {meta}
+            </Text>
+          </View>
+          <View style={styles.pastScoreWrap}>
+            <Text style={styles.pastGross}>{gross || '–'}</Text>
+            <Text style={styles.pastGrossLabel}>gross</Text>
+          </View>
+        </View>
+        <PlayerAvatarStack players={initialsFor(latest)} onGreen={false} />
+      </Card>
+    </Pressable>
   );
 }
 

@@ -11,6 +11,7 @@
  * rather than imported (this module doesn't otherwise depend on skins.ts).
  */
 
+import { compareCountback, countbackKey } from './countback';
 import { strokesReceivedOnHole } from './handicap';
 import { grossTotal } from './round';
 import type { GrossMap, Hole, PlayerKey } from './round';
@@ -123,23 +124,6 @@ export type TournamentStandingRow = {
   rank: number;
 };
 
-/** Countback comparison key for a finished (thru === holes.length) card — back-9, back-6, back-3, then the 18th hole's nett alone, ascending (lower is better at each tier). The standard recognized stroke-play tie-break order. Only meaningful once every hole 1-18 has been played, regardless of tee-off order, which is why this reads literal hole numbers rather than playOrder. */
-function countbackKey(nettByN: Map<number, number>): number[] {
-  const sumRange = (start: number, end: number) => {
-    let total = 0;
-    for (let n = start; n <= end; n++) total += nettByN.get(n) ?? 0;
-    return total;
-  };
-  return [sumRange(10, 18), sumRange(13, 18), sumRange(16, 18), nettByN.get(18) ?? 0];
-}
-
-function compareKeys(a: number[], b: number[]): number {
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return a[i]! - b[i]!;
-  }
-  return 0;
-}
-
 /**
  * Ranks the field by nett-to-par, ascending (lowest wins) — the
  * tournaments.standings_basis migration's "only nett is in scope for v1"
@@ -147,11 +131,12 @@ function compareKeys(a: number[], b: number[]): number {
  * computeThru([id], scores, playOrder) per player — this module stays
  * scores-agnostic, same convention nettTotal/grossTotal already use).
  *
- * Ties only resolve via countback once BOTH tied players are fully
- * finished — comparing completed-round subtotals against a partial card
- * doesn't mean anything. A mid-round tie (or a 'shared_place' tournament)
- * shares the same rank number, and the next rank skips by the tied count
- * (1, 2, 2, 4 — standard sports-ranking convention).
+ * Ties only resolve via countback (R&A matching scorecards — see
+ * countback.ts) once BOTH tied players are fully finished — comparing
+ * completed-round subtotals against a partial card doesn't mean anything. A
+ * mid-round tie, a 'shared_place' tournament, or two cards that match on
+ * every countback segment share the same rank number, and the next rank
+ * skips by the tied count (1, 2, 2, 4 — standard sports-ranking convention).
  */
 export function computeTournamentStandings(
   playerIds: PlayerKey[],
@@ -174,25 +159,26 @@ export function computeTournamentStandings(
       gross: grossTotal(playerId, t, gross, playOrder),
       nett,
       toPar: nett - parTotal(t, holes, playOrder),
-      countback: countbackKey(nettByN),
+      countback: countbackKey(gross[playerId] ?? [], playingHandicaps[playerId] ?? 0),
     };
   });
 
+  const countbackOrder = (a: (typeof rows)[number], b: (typeof rows)[number]) =>
+    tieBreakRule === 'countback' && a.finished && b.finished ? compareCountback(a.countback, b.countback) : 0;
+
   rows.sort((a, b) => {
     if (a.toPar !== b.toPar) return a.toPar - b.toPar;
-    if (tieBreakRule === 'countback' && a.finished && b.finished) return compareKeys(a.countback, b.countback);
-    return 0; // stays a shared rank below
+    return countbackOrder(a, b); // 0 stays a shared rank below
   });
 
   const ranked: TournamentStandingRow[] = [];
   rows.forEach((row, i) => {
     // Same rank as the row above when they're an unresolved tie (equal
-    // toPar, and either not both finished or the tournament uses
-    // shared_place) — countback-resolved ties already have a strict sort
-    // order above and should NOT share a rank despite equal toPar.
+    // toPar, and countback either doesn't apply or couldn't separate them)
+    // — countback-resolved ties already have a strict sort order above and
+    // should NOT share a rank despite equal toPar.
     const prev = rows[i - 1];
-    const resolvedByCountback = tieBreakRule === 'countback' && row.finished && prev?.finished;
-    const sharesRank = prev !== undefined && prev.toPar === row.toPar && !resolvedByCountback;
+    const sharesRank = prev !== undefined && prev.toPar === row.toPar && countbackOrder(prev, row) === 0;
     const rank = sharesRank ? ranked[i - 1]!.rank : i + 1;
     ranked.push({ playerId: row.playerId, thru: row.thru, finished: row.finished, gross: row.gross, nett: row.nett, toPar: row.toPar, rank });
   });

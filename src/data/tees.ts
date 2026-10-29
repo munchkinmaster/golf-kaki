@@ -42,6 +42,7 @@ const DEFAULTS: Record<TeeColor, TeePresentation> = {
  * The Els Club Teluk Datai: Black stays Black; blue→Silver, white→Copper,
  * red→Jade (dotBorder cleared since copper/silver read fine on their own).
  * Same Els Club branding applies to the Desaru Ocean and Valley courses.
+ * Horizon Hills: black→Gold, the rest stay standard.
  */
 const ELS_CLUB_TEE_OVERRIDE: Partial<Record<TeeColor, Partial<TeePresentation>>> = {
   blue: { label: 'Silver', dot: palette.tee.silver },
@@ -49,10 +50,15 @@ const ELS_CLUB_TEE_OVERRIDE: Partial<Record<TeeColor, Partial<TeePresentation>>>
   red: { label: 'Jade', dot: palette.tee.jade },
 };
 
+const HORIZON_HILLS_TEE_OVERRIDE: Partial<Record<TeeColor, Partial<TeePresentation>>> = {
+  black: { label: 'Gold', dot: palette.tee.gold },
+};
+
 const COURSE_OVERRIDES: Record<string, Partial<Record<TeeColor, Partial<TeePresentation>>>> = {
   'the-els-club-teluk-datai': ELS_CLUB_TEE_OVERRIDE,
   'the-els-club-desaru-ocean-course': ELS_CLUB_TEE_OVERRIDE,
   'the-els-club-desaru-valley-course': ELS_CLUB_TEE_OVERRIDE,
+  'horizon-hills-golf-country-club': HORIZON_HILLS_TEE_OVERRIDE,
 };
 
 /** Full presentation for one tee on one course (course id optional — falls back to the standard names/swatches). */

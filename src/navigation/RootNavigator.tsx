@@ -19,10 +19,14 @@ import { RoundsScreen } from '../screens/RoundsScreen';
 import { ScorecardScreen } from '../screens/ScorecardScreen';
 import { SelectCourseScreen } from '../screens/SelectCourseScreen';
 import { TournamentLobbyScreen } from '../screens/TournamentLobbyScreen';
+import { TournamentCompleteScreen } from '../screens/TournamentCompleteScreen';
 import { TournamentFinishScreen } from '../screens/TournamentFinishScreen';
 import { TournamentLeaderboardScreen } from '../screens/TournamentLeaderboardScreen';
 import { TournamentScorecardGridScreen } from '../screens/TournamentScorecardGridScreen';
+import { TournamentRoundCourseScreen } from '../screens/TournamentRoundCourseScreen';
+import { TournamentRoundRecapScreen } from '../screens/TournamentRoundRecapScreen';
 import { TournamentScorecardScreen } from '../screens/TournamentScorecardScreen';
+import { TournamentSetupRoundScreen } from '../screens/TournamentSetupRoundScreen';
 import { TrophyCabinetScreen } from '../screens/TrophyCabinetScreen';
 import { TournamentNavigator } from './TournamentNavigator';
 import { useAuth } from '../state/AuthContext';
@@ -64,6 +68,10 @@ export function RootNavigator() {
       <Stack.Screen name="TournamentScorecardGrid" component={TournamentScorecardGridScreen} />
       <Stack.Screen name="TournamentLeaderboard" component={TournamentLeaderboardScreen} />
       <Stack.Screen name="TournamentFinish" component={TournamentFinishScreen} />
+      <Stack.Screen name="TournamentSetupRound" component={TournamentSetupRoundScreen} />
+      <Stack.Screen name="TournamentRoundCourse" component={TournamentRoundCourseScreen} />
+      <Stack.Screen name="TournamentRoundRecap" component={TournamentRoundRecapScreen} />
+      <Stack.Screen name="TournamentComplete" component={TournamentCompleteScreen} />
     </Stack.Navigator>
   );
 }

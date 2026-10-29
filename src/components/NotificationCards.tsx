@@ -1,10 +1,11 @@
-import { Bird, Check, Flag, Flame, Gauge, MapPin, Repeat, Target, UserPlus, Users, X } from 'lucide-react-native';
+import { ArrowRight, Bird, Check, Flag, Flame, Gauge, MapPin, Repeat, Target, Trophy, UserPlus, Users, X } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar } from './Avatar';
 import type { AttestableBadge } from '../data/attestations';
 import type { FriendRequest } from '../data/kaki';
 import type { MatchInvite } from '../data/matches';
+import type { TournamentNotice } from '../data/tournamentHome';
 import { getInitials } from '../data/profile';
 import { colors, getFontFamily, getPlayerColors, palette, radius, shadows, spacing } from '../theme/tokens';
 
@@ -57,6 +58,32 @@ export function GameInviteCard({
         <Pressable style={styles.notifActionAccent} onPress={onAccept}>
           <Check size={16} color={palette.white} />
           <Text style={styles.notifActionAccentLabel}>Accept</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+/** A multi-round tournament's round was set up / has started (design_handoff_multi_round MR11 "Players are notified when you confirm"). Clears itself once acted on — see tournamentHome.ts. */
+export function TournamentNoticeCard({ notice, onOpen }: { notice: TournamentNotice; onOpen: () => void }) {
+  return (
+    <View style={[styles.notifCard, styles.notifCardInvite]}>
+      <View style={styles.notifTopRow}>
+        <View style={styles.noticeIcon}>
+          <Trophy size={19} color={colors.accent} />
+        </View>
+        <View style={styles.notifBody}>
+          <Text style={styles.notifHeadline}>{notice.title}</Text>
+          <Text style={styles.notifLead}>{notice.body}</Text>
+        </View>
+        <View style={[styles.newPill, styles.newPillOrange]}>
+          <Text style={[styles.newPillLabel, styles.newPillLabelOrange]}>New</Text>
+        </View>
+      </View>
+      <View style={styles.notifActions}>
+        <Pressable style={styles.notifActionAccent} onPress={onOpen}>
+          <Text style={styles.notifActionAccentLabel}>{notice.kind === 'roundStarted' ? 'Join scoring' : 'Open lobby'}</Text>
+          <ArrowRight size={16} color={palette.white} />
         </Pressable>
       </View>
     </View>
@@ -180,6 +207,14 @@ export function BadgeAttestationCard({
 }
 
 const styles = StyleSheet.create({
+  noticeIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   notifCard: {
     backgroundColor: colors.surfaceCard,
     borderWidth: 1,

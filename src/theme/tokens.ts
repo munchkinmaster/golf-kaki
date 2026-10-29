@@ -153,10 +153,65 @@ const tee = {
   whiteBorder: '#C9BF9E',
   red: '#C0392B',
   // Cosmetic per-course tee-marker colors (see data/tees.ts) — The Els Club
-  // Teluk Datai brands its blue/white/red tees Silver/Copper/Jade.
+  // Teluk Datai brands its blue/white/red tees Silver/Copper/Jade; Horizon
+  // Hills brands its black tee Gold.
   silver: '#9AA0A6',
   copper: '#B0693A',
   jade: '#2E8B6B',
+  gold: '#C9A227',
+} as const;
+
+// ---- Multi-round tournament (design_handoff_multi_round) ----
+// Literal inline styles from Multi-Round Tournament.dc.html that no existing
+// token matches. `note` is the amber info note (MR2, MR11) and the "Planned ·
+// confirm on the day" pill (pill text uses `note.icon`); `required` is Round
+// 1's "Choose course · Required" state and the "changed from plan" accent.
+const multiRound = {
+  note: { fill: '#FBEFD0', border: '#E5CE8E', icon: '#9A6B12', text: '#7A5A17' },
+  required: { fill: '#FFF3E9', border: '#F4C79B', text: '#C4621F' },
+  divider: '#EEE8DA', // hairline between a round card's header and its course row
+  brandSoftBorder: '#CDE3C8', // "Round N" pill border on its green-50 fill
+  dayDisabled: '#C9C2AE', // MR2c — a date before the allowed range, and the disabled month chevron
+  emptyTileBorder: '#C9BF9E', // dashed border on "Course on the day"'s empty map-pin tile
+  futureBorder: '#D8CFB9', // dashed card for a later round with no course yet (MR6a/MR6b)
+  // Lobby header round timeline (MR6a/MR6/MR6b) — done / current / upcoming segments + labels on the green header.
+  timeline: {
+    done: '#8FE3A8',
+    current: 'rgba(255,255,255,0.55)',
+    upcoming: 'rgba(255,255,255,0.2)',
+    labelActive: 'rgba(255,255,255,0.85)',
+    labelUpcoming: 'rgba(255,255,255,0.5)',
+    pillFill: 'rgba(255,255,255,0.12)',
+    roundTabsTrack: 'rgba(0,0,0,0.14)', // MR8 scorecard's Round 1/2/3 tab track
+    clock: '#FFC79E',
+  },
+  // A rostered player who hasn't joined yet (MR6a "Invited · Tee & HC set when they join"), or isn't playing this round (MR6b DNS).
+  pending: {
+    border: '#D8CDB0',
+    avatarFill: '#EDE6D4',
+    name: '#8A7E63',
+    meta: '#B4A98A',
+    tileFill: '#F4F0E4',
+    tileText: '#C4BCA6',
+    tagText: '#B4863A',
+    tagFill: '#FBF3E4',
+    tagBorder: '#EAD6AF',
+  },
+  // Green recap heroes (MR10 round recap, MR13 tournament complete) — the
+  // translucent stat tiles and labels on the green header; same values the
+  // single-round Finish screen (S10) uses inline.
+  hero: {
+    tileFill: 'rgba(255,255,255,0.09)',
+    // Over-par value on the green hero's To par tile ONLY (MR10/MR13 recap,
+    // S10 Finish) — statusDanger red is unreadable on green. Deliberate
+    // one-off: don't reuse it anywhere else.
+    toParOver: '#C36E3A',
+    label: 'rgba(255,255,255,0.6)',
+    labelOnAccent: 'rgba(255,255,255,0.85)',
+    subtitle: 'rgba(255,255,255,0.66)',
+    close: 'rgba(255,255,255,0.7)',
+  },
+  leaderFill: '#FBF6E9', // standings row for the current leader / champion (MR9, MR10, MR13)
 } as const;
 
 // ---- Solid player-avatar cycle ---- (tournament flow's Field roster, S4/S6b/S6c/S9 —
@@ -164,7 +219,7 @@ const tee = {
 // playerPalette below used by the invite-friend rows elsewhere in the app)
 const avatarSolid = [green[800], '#3B6FB0', '#C77E1E', '#7A8C4E'] as const;
 
-export const palette = { green, orange, sand, ink, white, score, status, scoreCell, scoreChip, settledTile, skins, soon, tee, avatarSolid } as const;
+export const palette = { green, orange, sand, ink, white, score, status, scoreCell, scoreChip, settledTile, skins, soon, tee, multiRound, avatarSolid } as const;
 
 /** Semantic color aliases — prefer these in components. */
 export const colors = {

@@ -4,6 +4,7 @@ import { TournamentCourseScreen } from '../screens/TournamentCourseScreen';
 import { TournamentFormatScreen } from '../screens/TournamentFormatScreen';
 import { TournamentPlayersScreen } from '../screens/TournamentPlayersScreen';
 import { TournamentPreRoundScreen } from '../screens/TournamentPreRoundScreen';
+import { TournamentRoundsScreen } from '../screens/TournamentRoundsScreen';
 import { TournamentRulesScreen } from '../screens/TournamentRulesScreen';
 import { TournamentSideGamesScreen } from '../screens/TournamentSideGamesScreen';
 import { TournamentDraftProvider } from '../state/TournamentDraftContext';
@@ -23,6 +24,7 @@ export function TournamentNavigator() {
     <TournamentDraftProvider>
       <Stack.Navigator initialRouteName="TournamentFormat" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="TournamentFormat" component={TournamentFormatScreen} />
+        <Stack.Screen name="TournamentRounds" component={TournamentRoundsScreen} />
         <Stack.Screen name="TournamentCourse" component={TournamentCourseScreen} />
         <Stack.Screen name="TournamentRules" component={TournamentRulesScreen} />
         <Stack.Screen name="TournamentPlayers" component={TournamentPlayersScreen} />

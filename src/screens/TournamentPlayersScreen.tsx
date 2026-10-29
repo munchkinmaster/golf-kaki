@@ -21,7 +21,7 @@ import type { TournamentStackParamList } from '../navigation/types';
 import { useAuth } from '../state/AuthContext';
 import { useProfile } from '../state/ProfileContext';
 import type { TournamentPlayerDraft } from '../state/TournamentDraftContext';
-import { useTournamentDraft } from '../state/TournamentDraftContext';
+import { buildRoundPlans, useTournamentDraft } from '../state/TournamentDraftContext';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
 import { supabase } from '../lib/supabase';
 
@@ -70,7 +70,7 @@ export function TournamentPlayersScreen({ navigation }: Props) {
   // state on its own.
   const loadLiveRoster = useCallback(() => {
     if (!draft.matchId || !draft.tournamentId) return Promise.resolve();
-    return fetchTournamentLobby(draft.tournamentId)
+    return fetchTournamentLobby(draft.tournamentId, draft.matchId)
       .then((lobby) => {
         update({
           players: lobby.players.map((p) => ({
@@ -270,6 +270,8 @@ export function TournamentPlayersScreen({ navigation }: Props) {
             handicapOverride: p.handicapOverride,
           })),
           sideGames: draft.sideGames,
+          rounds: buildRoundPlans(draft),
+          standingsMode: draft.standingsMode,
         });
         update({ players: nextPlayers, tournamentId, matchId });
       } else {

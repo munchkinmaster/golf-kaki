@@ -24,6 +24,9 @@ import type { TeeColor } from './courses';
 import { computeDifferentialForPlayer } from './handicap';
 import { generateMatchCodePreview } from './matches';
 import type { MatchStatus } from './matches';
+import { deriveRoundStatus } from './multiRound';
+import type { TournamentRoundStatus } from './multiRound';
+import { localDateString } from './roundDates';
 import type { SideGameSettings, SkinsConfig } from './skins';
 import { isTransientError, sleep, withRetry } from '../lib/retry';
 import { supabase } from '../lib/supabase';
@@ -32,6 +35,9 @@ export type TournamentPlayAs = 'individual' | 'team';
 export type TournamentRoundStructure = 'single' | 'multi';
 export type TournamentStandingsBasis = 'nett' | 'gross' | 'both';
 export type TournamentTieBreakRule = 'countback' | 'shared_place';
+/** Mirrors tournaments.standings_mode — only 'aggregate' is wired; 'best_n' is MR1's SOON option. */
+export type TournamentStandingsMode = 'aggregate' | 'best_n';
+export type { TournamentRoundStatus };
 /**
  * Mirrors tournaments.scoring_format (widened to include 'stableford' by
  * 20260827120000_tournament_stableford_format.sql). Now the SAME set of
@@ -53,6 +59,15 @@ export type CreateTournamentPlayer = {
   handicapOverride: boolean;
 };
 
+/** One MR2 schedule row. Round 1's planned course is the course actually created for it; later rounds' are optional until MR11 confirms them on the day. */
+export type TournamentRoundPlan = {
+  /** Local calendar date, YYYY-MM-DD (tournament_rounds.round_date). */
+  date: string;
+  plannedCourseId: string | null;
+  plannedComboId: string | null;
+  defaultTee: TeeColor | null;
+};
+
 export type CreateTournamentParams = {
   hostId: string;
   /** Client-side preview code (see generateMatchCodePreview) so the UI can show/share it before the row exists — same pattern as createMatch's matchCode. */
@@ -70,10 +85,13 @@ export type CreateTournamentParams = {
   startHole: number;
   players: CreateTournamentPlayer[];
   sideGames: SkinsConfig[];
+  /** MR2's schedule, Round 1 first — its length is the tournament's rounds_count. Omitted = a single round today on `courseId`/`comboId` (the single-round wizard). */
+  rounds?: TournamentRoundPlan[];
+  standingsMode?: TournamentStandingsMode;
 };
 
 /**
- * Creates the tournament + its (today, always single) match + one
+ * Creates the tournament + its Round 1 match + one
  * match_players row per player currently in `params.players`. Called from
  * two places: TournamentPlayersScreen the moment the host's first invite
  * goes out (players = [host, thatFriend]), or TournamentPreRoundScreen's
@@ -90,6 +108,9 @@ export type CreateTournamentParams = {
 export async function createTournament(params: CreateTournamentParams): Promise<{ tournamentId: string; matchId: string; tournamentCode: string }> {
   let code = params.tournamentCode;
   const maxAttempts = 5;
+  const rounds: TournamentRoundPlan[] = params.rounds ?? [
+    { date: localDateString(), plannedCourseId: params.courseId, plannedComboId: params.comboId, defaultTee: null },
+  ];
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const { data, error } = await supabase
@@ -104,6 +125,8 @@ export async function createTournament(params: CreateTournamentParams): Promise<
         standings_basis: params.standingsBasis,
         handicap_allowance_pct: params.handicapAllowancePct,
         tie_break_rule: params.tieBreakRule,
+        rounds_count: rounds.length,
+        standings_mode: params.standingsMode ?? 'aggregate',
       })
       .select('id')
       .single();
@@ -116,6 +139,7 @@ export async function createTournament(params: CreateTournamentParams): Promise<
       // update, so using params.tournamentCode here could mint a match_code
       // that doesn't match the tournament players were actually invited to.
       const matchId = await createTournamentMatch(tournamentId, code, params);
+      await createTournamentRounds(tournamentId, matchId, rounds);
       return { tournamentId, matchId, tournamentCode: code };
     }
 
@@ -196,6 +220,25 @@ async function createTournamentMatch(tournamentId: string, tournamentCode: strin
     if (playersError) throw playersError;
 
     return matchId;
+  });
+}
+
+/** Writes MR2's schedule — Round 1 linked to the match just created, later rounds left match-less until MR11 sets them up. Its own withRetry (transient-only) for the same reason createTournamentMatch has one; upsert-ignore keeps a retry after a lost response idempotent. */
+async function createTournamentRounds(tournamentId: string, round1MatchId: string, rounds: TournamentRoundPlan[]): Promise<void> {
+  return withRetry(async () => {
+    const { error } = await supabase.from('tournament_rounds').upsert(
+      rounds.map((r, i) => ({
+        tournament_id: tournamentId,
+        round_index: i + 1,
+        round_date: r.date,
+        planned_course_id: r.plannedCourseId,
+        planned_combo_id: r.plannedComboId,
+        default_tee: r.defaultTee,
+        match_id: i === 0 ? round1MatchId : null,
+      })),
+      { onConflict: 'tournament_id,round_index', ignoreDuplicates: true },
+    );
+    if (error) throw error;
   });
 }
 
@@ -362,8 +405,14 @@ export type TournamentLobby = {
   standingsBasis: TournamentStandingsBasis;
   handicapAllowancePct: number;
   tieBreakRule: TournamentTieBreakRule;
+  roundsCount: number;
+  /** Which round of the tournament this match is (1 for a single-round tournament). */
+  roundIndex: number;
+  standingsMode: TournamentStandingsMode;
   matchStatus: MatchStatus;
   thru: number;
+  /** Any score entered for this round yet — MR6a/MR6b lock tee and Play HC from the first score (the DB enforces the same, see 20261029130000_lock_seat_after_first_score.sql). */
+  hasScores: boolean;
   courseId: string;
   comboId: string;
   /** Shotgun start — mirrors matches.start_hole. Needed to build the round's actual tee-off order (buildPlayOrder) for live scoring. */
@@ -381,6 +430,8 @@ type TournamentRow = {
   standings_basis: TournamentStandingsBasis;
   handicap_allowance_pct: number;
   tie_break_rule: TournamentTieBreakRule;
+  rounds_count: number;
+  standings_mode: TournamentStandingsMode;
 };
 
 type MatchRow = {
@@ -406,12 +457,12 @@ type PlayerRow = {
   profiles: { display_name: string };
 };
 
-/** Everyone's current state for the pre-round/in-round lobby (S6b's post-creation view and S6c) — a plain fetch-on-mount, not a realtime subscription (that lands with live scoring in a later phase). */
-export async function fetchTournamentLobby(tournamentId: string): Promise<TournamentLobby> {
+/** Everyone's current state for one round's pre-round/in-round lobby (S6b's post-creation view and S6c) — a plain fetch-on-mount, not a realtime subscription (that lands with live scoring in a later phase). `matchId` picks the round: a multi-round tournament has one match per set-up round, so filtering on tournament_id alone no longer identifies a single row. */
+export async function fetchTournamentLobby(tournamentId: string, matchId: string): Promise<TournamentLobby> {
   return withRetry(async () => {
     const { data: tData, error: tError } = await supabase
       .from('tournaments')
-      .select('id, host_id, name, tournament_code, scoring_format, standings_basis, handicap_allowance_pct, tie_break_rule')
+      .select('id, host_id, name, tournament_code, scoring_format, standings_basis, handicap_allowance_pct, tie_break_rule, rounds_count, standings_mode')
       .eq('id', tournamentId)
       .single();
     if (tError) throw tError;
@@ -420,6 +471,7 @@ export async function fetchTournamentLobby(tournamentId: string): Promise<Tourna
     const { data: mData, error: mError } = await supabase
       .from('matches')
       .select('id, status, thru, course_id, combo_id, start_hole, game_settings')
+      .eq('id', matchId)
       .eq('tournament_id', tournamentId)
       .single();
     if (mError) throw mError;
@@ -432,6 +484,12 @@ export async function fetchTournamentLobby(tournamentId: string): Promise<Tourna
       .order('joined_at');
     if (pError) throw pError;
     const rows = playerRows as unknown as PlayerRow[];
+
+    const { count: scoreCount, error: sError } = await supabase.from('scores').select('id', { count: 'exact', head: true }).eq('match_id', match.id);
+    if (sError) throw sError;
+
+    const { data: rData, error: rError } = await supabase.from('tournament_rounds').select('round_index').eq('match_id', match.id).maybeSingle();
+    if (rError) throw rError;
 
     const players: TournamentLobbyPlayer[] = rows.map((row) => ({
       id: row.player_id,
@@ -463,14 +521,124 @@ export async function fetchTournamentLobby(tournamentId: string): Promise<Tourna
       standingsBasis: tournament.standings_basis,
       handicapAllowancePct: tournament.handicap_allowance_pct,
       tieBreakRule: tournament.tie_break_rule,
+      roundsCount: tournament.rounds_count,
+      roundIndex: (rData as { round_index: number } | null)?.round_index ?? 1,
+      standingsMode: tournament.standings_mode,
       matchStatus: match.status,
       thru: match.thru,
+      hasScores: (scoreCount ?? 0) > 0,
       courseId: match.course_id,
       comboId: match.combo_id,
       startHole: match.start_hole,
       players,
       sideGames,
     };
+  });
+}
+
+export type TournamentRound = {
+  index: number;
+  /** YYYY-MM-DD, local calendar day. */
+  date: string;
+  status: TournamentRoundStatus;
+  plannedCourseId: string | null;
+  plannedComboId: string | null;
+  defaultTee: TeeColor | null;
+  /** Null until the round is set up (Round 1 at creation, later rounds at MR11). */
+  matchId: string | null;
+  /** The course actually being played — null while planned. */
+  courseId: string | null;
+  comboId: string | null;
+  /** Shotgun start of the set-up round's match (1 while planned). */
+  startHole: number;
+  thru: number;
+  /** MR11 footer / MR13 "changed on the day" — the set-up course differs from the planned one. */
+  changedOnTheDay: boolean;
+};
+
+type RoundRow = {
+  round_index: number;
+  round_date: string;
+  planned_course_id: string | null;
+  planned_combo_id: string | null;
+  default_tee: TeeColor | null;
+  match_id: string | null;
+  matches: { status: MatchStatus; course_id: string; combo_id: string; thru: number; start_hole: number } | null;
+};
+
+/** MR2/MR6's schedule — every round of the tournament, Round 1 first, with its match's live state folded in. */
+export async function fetchTournamentRounds(tournamentId: string): Promise<TournamentRound[]> {
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('tournament_rounds')
+      .select('round_index, round_date, planned_course_id, planned_combo_id, default_tee, match_id, matches ( status, course_id, combo_id, thru, start_hole )')
+      .eq('tournament_id', tournamentId)
+      .order('round_index');
+    if (error) throw error;
+
+    return (data as unknown as RoundRow[]).map((row) => {
+      const match = row.matches;
+      return {
+        index: row.round_index,
+        date: row.round_date,
+        status: deriveRoundStatus(match?.status ?? null),
+        plannedCourseId: row.planned_course_id,
+        plannedComboId: row.planned_combo_id,
+        defaultTee: row.default_tee,
+        matchId: row.match_id,
+        courseId: match?.course_id ?? null,
+        comboId: match?.combo_id ?? null,
+        startHole: match?.start_hole ?? 1,
+        thru: match?.thru ?? 0,
+        changedOnTheDay:
+          match !== null && row.planned_course_id !== null && (match.course_id !== row.planned_course_id || match.combo_id !== row.planned_combo_id),
+      };
+    });
+  });
+}
+
+/** Each player's CURRENT Handicap Index (profiles.handicap) — MR11 seats a later round off the index as it stands that day, not Round 1's snapshot. */
+export async function fetchHandicapIndexes(playerIds: string[]): Promise<Record<string, number | null>> {
+  if (playerIds.length === 0) return {};
+  return withRetry(async () => {
+    const { data, error } = await supabase.from('profiles').select('id, handicap').in('id', playerIds);
+    if (error) throw error;
+    return Object.fromEntries((data as { id: string; handicap: number | null }[]).map((r) => [r.id, r.handicap === null ? null : Number(r.handicap)]));
+  });
+}
+
+export type SetupRoundPlayer = { playerId: string; handicapIndex: number | null; teeColor: TeeColor; playingHandicap: number };
+
+/**
+ * MR11 "Confirm & Next" — creates (or, before its first score, rewrites) a
+ * later round's match on the confirmed course, seated with only the players
+ * who are playing. One transaction via setup_tournament_round()
+ * (20261029140000_setup_tournament_round.sql). Returns the round's match id.
+ */
+export async function setupTournamentRound(params: {
+  tournamentId: string;
+  roundIndex: number;
+  courseId: string;
+  comboId: string;
+  startHole: number;
+  players: SetupRoundPlayer[];
+}): Promise<string> {
+  return withRetry(async () => {
+    const { data, error } = await supabase.rpc('setup_tournament_round', {
+      p_tournament_id: params.tournamentId,
+      p_round_index: params.roundIndex,
+      p_course_id: params.courseId,
+      p_combo_id: params.comboId,
+      p_start_hole: params.startHole,
+      p_players: params.players.map((p) => ({
+        player_id: p.playerId,
+        handicap_index: p.handicapIndex,
+        tee_color: p.teeColor,
+        playing_handicap: p.playingHandicap,
+      })),
+    });
+    if (error) throw error;
+    return data as string;
   });
 }
 

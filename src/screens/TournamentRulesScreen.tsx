@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ArrowRight, CircleSlash, GitCompare, Handshake, Info, ShieldCheck, Target } from 'lucide-react-native';
+import { ArrowRight, CircleSlash, GitCompare, Handshake, Info, ShieldCheck, Sigma, Target } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
@@ -66,6 +66,8 @@ export function TournamentRulesScreen({ navigation }: Props) {
   const isStableford = draft.format === 'stableford';
   /** Both points-ranked formats share the same countback description ("most points", not "compare nett") — see SB3/SY3. */
   const ranksByPoints = isSystem36 || isStableford;
+  /** MR3 — multi-round is stroke play only, and always ranks on aggregate nett (S1 sets standingsBasis to 'nett' when Multi-round is picked). */
+  const isMultiRound = draft.roundStructure === 'multi';
 
   // The tie-break selector is the one control all three formats share —
   // System 36 and Stableford still let the host pick countback vs. shared
@@ -99,7 +101,9 @@ export function TournamentRulesScreen({ navigation }: Props) {
                     ? 'Ties split the position'
                     : ranksByPoints
                       ? 'Most points over last 9, 6, 3, then 18th'
-                      : 'Compare last 9, 6, 3, then 18th hole'}
+                      : isMultiRound
+                        ? 'Best last round, then its last 9, 6, 3, 18th'
+                        : 'Compare last 9, 6, 3, then 18th hole'}
                 </Text>
               </View>
               {selected ? <View style={styles.tieBreakCheck} /> : <View style={styles.tieBreakRadioOff} />}
@@ -114,7 +118,7 @@ export function TournamentRulesScreen({ navigation }: Props) {
     <View style={styles.page}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <TournamentWizardHeader step="rules" onBack={() => navigation.goBack()} />
+        <TournamentWizardHeader step="rules" multiRound={isMultiRound} onBack={() => navigation.goBack()} />
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           {locked ? <TournamentLockedNotice /> : null}
@@ -229,6 +233,17 @@ export function TournamentRulesScreen({ navigation }: Props) {
             </>
           ) : (
             <>
+              {isMultiRound ? (
+              <View style={styles.sbTargetCard}>
+                <View style={styles.sbTargetIcon}>
+                  <Sigma size={18} color={colors.primary} />
+                </View>
+                <View style={styles.sbTargetBody}>
+                  <Text style={styles.sbTargetTitle}>Rank on aggregate nett to par across all rounds</Text>
+                  <Text style={styles.sbTargetCaption}>The {draft.handicapAllowancePct}% allowance applies to every round.</Text>
+                </View>
+              </View>
+              ) : (
               <View>
                 <Text style={styles.fieldLabel}>Rank standings by</Text>
                 <View style={styles.row}>
@@ -247,6 +262,7 @@ export function TournamentRulesScreen({ navigation }: Props) {
                   })}
                 </View>
               </View>
+              )}
 
               <View>
                 <View style={styles.allowanceHeaderRow}>
@@ -310,7 +326,15 @@ export function TournamentRulesScreen({ navigation }: Props) {
 
       <BottomSheet visible={infoOpen} onClose={() => setInfoOpen(false)} title="Tie-breaks explained" subtitle="How a level score is settled.">
         {TIE_BREAK_INFO.map((rule) => (
-          <TieBreakInfoRow key={rule.id} rule={rule} selected={draft.tieBreakRule === rule.id} />
+          <TieBreakInfoRow
+            key={rule.id}
+            rule={
+              isMultiRound && rule.id === 'countback'
+                ? { ...rule, description: `The better final-round score wins the tie. Still level? ${rule.description}` }
+                : rule
+            }
+            selected={draft.tieBreakRule === rule.id}
+          />
         ))}
       </BottomSheet>
     </View>

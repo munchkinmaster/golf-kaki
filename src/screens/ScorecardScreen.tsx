@@ -94,11 +94,12 @@ function eagleCelebration(holeN: number): UnlockCelebration {
 type ResultTint = 'win' | 'lose' | 'halve' | null;
 
 export function ScorecardScreen({ navigation, route }: Props) {
-  const { matchId, matchName, courseName, gameModeName, isHost } = route.params;
+  const { matchId, matchName, courseName, gameModeName } = route.params;
 
   const {
     loading,
     viewerId,
+    isHostViewer,
     roster,
     holes,
     schedule,
@@ -206,8 +207,12 @@ export function ScorecardScreen({ navigation, route }: Props) {
   // once the round is finished, nobody (host included) can keep editing a
   // card the way FinishScreen's own copy already promises ("Once finished,
   // scores lock and the round moves to everyone's history").
+  // Host-ness comes from the match row itself, not a route param — Home's
+  // Resume, the Rounds list and invite-accept used to pass a hardcoded
+  // `isHost: false`, so a host who re-entered a live round that way silently
+  // lost the ability to score for anyone else.
   function canEdit(playerId: string) {
-    return (isHost || playerId === viewerId) && matchStatus !== 'finished';
+    return (isHostViewer || playerId === viewerId) && matchStatus !== 'finished';
   }
 
   function selectCell(playerId: string, holeN: number) {

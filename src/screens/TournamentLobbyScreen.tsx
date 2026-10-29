@@ -1,6 +1,7 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Clipboard from 'expo-clipboard';
-import { Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Info, Minus, Pencil, Plus, Share2, Trophy } from 'lucide-react-native';
+import { Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Info, Minus, Pencil, Play, Plus, Share2, SlidersHorizontal, Trophy } from 'lucide-react-native';
+import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -12,6 +13,8 @@ import { supabase } from '../lib/supabase';
 import { Button } from '../components/Button';
 import type { InRoundTab } from '../components/InRoundTabBar';
 import { InRoundTabBar } from '../components/InRoundTabBar';
+import type { LobbyPlayerState, OverallRow, RoundCardVariant, TimelineSegment } from '../components/MultiRoundLobby';
+import { LobbyStatusPill, MultiRoundPlayerRow, OverallStandingsList, RoundCard, RoundTimeline, shortCourseName } from '../components/MultiRoundLobby';
 import { System36NoHandicapCallout } from '../components/System36NoHandicapCallout';
 import { System36RuleCards } from '../components/System36RuleCards';
 import type { Course as CatalogCourse, TeeColor } from '../data/courses';
@@ -19,9 +22,15 @@ import { fetchCourseCatalog, getComboHoles } from '../data/courses';
 import { TEE_COLORS, teePresentation } from '../data/tees';
 import { computeCourseHandicap, computePlayingHandicap, fetchComboRating } from '../data/handicap';
 import { startMatch } from '../data/matches';
+import { computeAggregateStandings, pickCurrentRound, tieBreakSummary } from '../data/multiRound';
+import type { TournamentPhase } from '../data/multiRound';
+import { buildPlayOrder } from '../data/round';
+import { formatRoundDate, localDateString } from '../data/roundDates';
+import type { TournamentResults } from '../data/tournamentResults';
+import { fetchTournamentResults } from '../data/tournamentResults';
 import { useFinishRedirect } from '../hooks/useFinishRedirect';
-import type { TournamentLobby, TournamentLobbyPlayer, TournamentPlayerSeatPatch } from '../data/tournaments';
-import { fetchTournamentLobby, setSkinsParticipant, updateTournamentPlayerSeat } from '../data/tournaments';
+import type { TournamentLobby, TournamentLobbyPlayer, TournamentPlayerSeatPatch, TournamentRound } from '../data/tournaments';
+import { fetchTournamentLobby, fetchTournamentRounds, setSkinsParticipant, updateTournamentPlayerSeat } from '../data/tournaments';
 import type { RootStackParamList } from '../navigation/types';
 import { useAuth } from '../state/AuthContext';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
@@ -34,10 +43,16 @@ const TIE_RULE_LABEL: Record<string, string> = { carryover: 'Carries over', spli
 type Rating = { courseRating: number; slopeRating: number };
 
 export function TournamentLobbyScreen({ navigation, route }: Props) {
-  const { tournamentId, matchId } = route.params;
+  const { tournamentId, matchId: routeMatchId } = route.params;
   const { session } = useAuth();
   const viewerId = session?.user.id;
   const [lobby, setLobby] = useState<TournamentLobby | null>(null);
+  /** Every round's results — only fetched for a multi-round tournament (null for a single round). */
+  const [results, setResults] = useState<TournamentResults | null>(null);
+  // The round this lobby is showing. A multi-round lobby follows the
+  // tournament's CURRENT round (see load), not whichever round's match it
+  // was opened with — Home and invites always link Round 1's.
+  const matchId = lobby?.matchId ?? routeMatchId;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
@@ -114,15 +129,23 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
     }
   }
 
-  const load = useCallback(() => {
-    return fetchTournamentLobby(tournamentId)
-      .then((data) => {
-        setLobby(data);
-        setError(false);
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, [tournamentId]);
+  const load = useCallback(async () => {
+    try {
+      const rounds = await fetchTournamentRounds(tournamentId);
+      const multi = rounds.length > 1 ? await fetchTournamentResults(tournamentId) : null;
+      const picked = multi ? pickCurrentRound(multi.rounds) : null;
+      // Between rounds the next round has no match yet — show the one just finished.
+      const activeMatchId = picked?.current.matchId ?? picked?.previous?.matchId ?? routeMatchId;
+      const data = await fetchTournamentLobby(tournamentId, activeMatchId);
+      setResults(multi);
+      setLobby(data);
+      setError(false);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [tournamentId, routeMatchId]);
 
   // Instant refresh whenever this screen regains focus (e.g. navigating back
   // from Tee box) — the realtime channel below is what covers everyone else's
@@ -152,6 +175,8 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
       .channel(`tournament-lobby-${matchId}-${channelId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` }, scheduleSync)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'match_players', filter: `match_id=eq.${matchId}` }, scheduleSync)
+      // A multi-round organiser setting up the next round (MR11) links its match here.
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_rounds', filter: `tournament_id=eq.${tournamentId}` }, scheduleSync)
       .subscribe();
 
     // postgres_changes isn't guaranteed delivery — bounds how long any client
@@ -166,7 +191,7 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
       clearInterval(pollTimer);
       supabase.removeChannel(channel);
     };
-  }, [matchId, channelId, load]);
+  }, [matchId, tournamentId, channelId, load]);
 
   // Previously the host's own "Start scoring" tap navigated THEM straight to
   // S7, but everyone else just sat on the Lobby tab until they noticed the
@@ -277,7 +302,8 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
   const isSystem36 = lobby.scoringFormat === 'system_36';
   const isStableford = lobby.scoringFormat === 'stableford';
   const holeCount = course && combo ? getComboHoles(course, combo.id).length : 18;
-  const tieBreakLabel = lobby.tieBreakRule === 'countback' ? 'Back-9 countback' : 'Shared place';
+  const tieBreak = tieBreakSummary(lobby.tieBreakRule, lobby.roundsCount > 1);
+  const tieBreakLabel = tieBreak.label;
   const joinedPlayers = lobby.players.filter((p) => p.status === 'joined');
   const displayCode = `GK-${lobby.tournamentCode}`;
   const isLive = lobby.matchStatus !== 'lobby';
@@ -291,7 +317,12 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
   // policy), and everyone can edit their own (pre-existing self-row policy)
   // — mirrors S4's PlayerRow. Locks the moment the round goes live, same
   // cutoff as Skins participation above.
-  const canEditPlayer = (playerId: string) => !isLive && (isHostViewer || playerId === viewerId);
+  const multi = results ? describeMultiRound(results, lobby, catalog, viewerId) : null;
+  // Multi-round (MR6a/MR6b): editable until the round's FIRST SCORE, not
+  // the moment it goes live — the DB enforces the same cutoff
+  // (20261029130000_lock_seat_after_first_score.sql).
+  const canEditPlayer = (playerId: string) =>
+    (multi ? !lobby.hasScores && (multi.phase === 'setup' || multi.phase === 'live') : !isLive) && (isHostViewer || playerId === viewerId);
   const teeSheetPlayer = lobby.players.find((p) => p.id === teeSheetPlayerId);
   const handicapSheetPlayer = lobby.players.find((p) => p.id === handicapSheetPlayerId);
 
@@ -307,14 +338,26 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
             <View style={styles.headerTitleGroup}>
               <Text style={styles.headerTitle}>{lobby.name}</Text>
               <Text style={styles.headerSubtitle}>
-                {isSystem36 ? 'System 36 · Individual' : `${isStableford ? 'Stableford' : 'Stroke play'} · Nett ${lobby.handicapAllowancePct}%`}
+                {multi
+                  ? `${lobby.roundsCount} rounds · Stroke play · Nett ${lobby.handicapAllowancePct}%`
+                  : isSystem36
+                    ? 'System 36 · Individual'
+                    : `${isStableford ? 'Stableford' : 'Stroke play'} · Nett ${lobby.handicapAllowancePct}%`}
               </Text>
             </View>
-            <View style={styles.statusPill}>
-              {isLive ? <View style={styles.statusDot} /> : null}
-              <Text style={styles.statusPillLabel}>{isLive ? `THRU ${lobby.thru}` : 'Ready to start'}</Text>
-            </View>
+            {multi ? (
+              <LobbyStatusPill kind={multi.statusPill.kind} label={multi.statusPill.label} />
+            ) : (
+              <View style={styles.statusPill}>
+                {isLive ? <View style={styles.statusDot} /> : null}
+                <Text style={styles.statusPillLabel}>{isLive ? `THRU ${lobby.thru}` : 'Ready to start'}</Text>
+              </View>
+            )}
           </View>
+          {multi ? <RoundTimeline segments={multi.timeline} /> : null}
+          {/* The invite code only matters while people can still join — before Round 1 starts. */}
+          {multi && !(multi.phase === 'setup' && multi.current.index === 1) ? null : (
+          <>
           <View style={styles.headerDivider} />
           <View style={styles.codeRow}>
             <View style={styles.codeRowLeft}>
@@ -331,9 +374,103 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
             </View>
           </View>
           {codeCopied ? <Text style={styles.copiedHint}>Copied</Text> : null}
+          </>
+          )}
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          {multi ? (
+            <>
+              <View>
+                <Text style={[styles.sectionLabel, styles.sectionLabelSpaced]}>Rounds</Text>
+                <View style={styles.playerList}>
+                  {multi.rounds.map((card) => (
+                    <RoundCard
+                      key={card.round.index}
+                      variant={card.variant}
+                      index={card.round.index}
+                      title={card.title}
+                      lines={card.lines}
+                      onPress={
+                        card.round.status === 'done' && card.round.matchId
+                          ? () => navigation.navigate('TournamentLeaderboard', { tournamentId, matchId: card.round.matchId! })
+                          : undefined
+                      }
+                      // MR11 is the organiser's: set up the next round, or change one
+                      // that's set up but hasn't had a score yet (Round 1 is set at creation).
+                      onEdit={
+                        isHostViewer && card.round.index > 1 && (card.variant === 'notSetUp' || (card.variant === 'ready' && !lobby.hasScores))
+                          ? () => navigation.navigate('TournamentSetupRound', { tournamentId, roundIndex: card.round.index })
+                          : undefined
+                      }
+                    />
+                  ))}
+                </View>
+              </View>
+
+              {multi.phase === 'setup' || multi.phase === 'live' ? (
+                <View>
+                  <View style={styles.sectionHeaderRow}>
+                    <View>
+                      <Text style={styles.sectionLabel}>{multi.playersTitle}</Text>
+                      <Text style={styles.sectionHint}>Tee shows CR / Slope · Play HC updates with tee</Text>
+                    </View>
+                    <Text style={styles.sectionCaption}>{multi.playersCaption}</Text>
+                  </View>
+                  <View style={styles.playerList}>
+                    {multi.players.map(({ player, state }, index) => (
+                      <MultiRoundPlayerRow
+                        key={player.id}
+                        name={player.name}
+                        handicapIndex={player.handicapIndex}
+                        isHost={player.isHost}
+                        isViewer={player.id === viewerId}
+                        state={state}
+                        colorIndex={index}
+                        courseId={course?.id ?? null}
+                        teeColor={player.teeColor}
+                        rating={ratings[player.teeColor]}
+                        playingHandicap={player.playingHandicap}
+                        handicapOverride={player.handicapOverride}
+                        editable={state === 'seated' && canEditPlayer(player.id)}
+                        onOpenTee={() => setTeeSheetPlayerId(player.id)}
+                        onOpenHandicap={() => setHandicapSheetPlayerId(player.id)}
+                      />
+                    ))}
+                  </View>
+                  {seatError ? <Text style={styles.seatErrorText}>{seatError}</Text> : null}
+                  {multi.phase === 'setup' ? (
+                    <View style={[styles.noteCard, styles.noteCardSpaced]}>
+                      <Info size={14} color={colors.primary} style={styles.noteIcon} />
+                      <Text style={styles.noteText}>Check your tee and Play HC before tee-off. The organiser can edit anyone’s; scores save every hole, so you can resume from Home anytime.</Text>
+                    </View>
+                  ) : (
+                    <Pressable style={styles.leaderboardLink} onPress={() => handleTabNavigate('leaderboard')}>
+                      <Trophy size={13} color={colors.primary} />
+                      <Text style={styles.standingsLinkLabel}>Scores & standings live in Leaderboard</Text>
+                    </Pressable>
+                  )}
+                </View>
+              ) : (
+                <View>
+                  <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.sectionLabel}>{multi.overallTitle}</Text>
+                    {multi.previous?.matchId ? (
+                      <Pressable
+                        style={styles.standingsLink}
+                        onPress={() => navigation.navigate('TournamentLeaderboard', { tournamentId, matchId: multi.previous!.matchId! })}
+                      >
+                        <Text style={styles.sectionCaption}>Full leaderboard</Text>
+                        <ChevronRight size={13} color={colors.textDisabled} />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                  <OverallStandingsList rows={multi.overall} />
+                </View>
+              )}
+            </>
+          ) : null}
+
           {isSystem36 ? (
             <>
               <View>
@@ -353,6 +490,7 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
             </>
           ) : null}
 
+          {multi ? null : (
           <View>
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionLabel}>In the field</Text>
@@ -374,6 +512,38 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
             </View>
             {seatError ? <Text style={styles.seatErrorText}>{seatError}</Text> : null}
           </View>
+          )}
+
+          {/* Stroke play's rules — previously the only format with no card here,
+              so players joining never saw how a level total gets settled. */}
+          {!isSystem36 && !isStableford ? (
+            <View>
+              <Text style={styles.sectionLabel}>Format &amp; rules</Text>
+              <View style={styles.detailCard}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailKey}>Format</Text>
+                  <Text style={styles.detailValue}>
+                    {lobby.roundsCount > 1 ? `${lobby.roundsCount} rounds · ` : ''}Stroke play · Nett {lobby.handicapAllowancePct}%
+                  </Text>
+                </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailKey}>Winner</Text>
+                  <Text style={styles.detailValue}>{lobby.roundsCount > 1 ? 'Lowest total nett to par' : 'Lowest nett wins'}</Text>
+                </View>
+                <View style={[styles.detailRow, styles.detailRowTop]}>
+                  <Text style={styles.detailKey}>Tie-break</Text>
+                  <View style={styles.detailValueGroup}>
+                    <Text style={styles.detailValueInGroup}>{tieBreak.label}</Text>
+                    <Text style={styles.detailSub}>{tieBreak.sub}</Text>
+                  </View>
+                </View>
+                <View style={[styles.detailRow, styles.detailRowLast]}>
+                  <Text style={styles.detailKey}>Scoring</Text>
+                  <Text style={styles.detailValue}>All {joinedPlayers.length} players enter own</Text>
+                </View>
+              </View>
+            </View>
+          ) : null}
 
           {isSystem36 ? (
             <View>
@@ -431,7 +601,7 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
             </View>
           ) : null}
 
-          {skins ? (
+          {skins && (!multi || multi.phase === 'setup' || multi.phase === 'live') ? (
             <View>
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.sectionLabel}>Side game · Skins</Text>
@@ -480,7 +650,22 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
           ) : null}
         </ScrollView>
 
-        {viewerPlayer?.status === 'joined' ? (
+        {multi ? (
+          <MultiRoundFooter
+            phase={multi.phase}
+            roundIndex={multi.current.index}
+            isHost={isHostViewer}
+            isSeated={viewerPlayer?.status === 'joined'}
+            hostName={lobby.players.find((p) => p.isHost)?.name ?? 'the organiser'}
+            resumeHole={multi.viewerResumeHole}
+            starting={starting}
+            startError={startError}
+            onStartOrResume={handleStartOrContinueScoring}
+            onViewStandings={() => handleTabNavigate('leaderboard')}
+            onSetUpRound={() => navigation.navigate('TournamentSetupRound', { tournamentId, roundIndex: multi.current.index })}
+            onViewFinal={() => navigation.navigate('TournamentComplete', { tournamentId })}
+          />
+        ) : viewerPlayer?.status === 'joined' ? (
           <View style={styles.footer}>
             {startError ? <Text style={styles.seatErrorText}>{startError}</Text> : null}
             {isHostViewer || isLive ? (
@@ -595,6 +780,217 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
           setHandicapSheetPlayerId(null);
         }}
       />
+    </View>
+  );
+}
+
+type MultiRoundView = {
+  phase: TournamentPhase;
+  current: TournamentRound;
+  previous: TournamentRound | null;
+  statusPill: { kind: 'upcoming' | 'live' | 'done'; label: string };
+  timeline: TimelineSegment[];
+  rounds: { round: TournamentRound; variant: RoundCardVariant; title: string; lines: string[] }[];
+  playersTitle: string;
+  playersCaption: string;
+  players: { player: TournamentLobbyPlayer; state: LobbyPlayerState }[];
+  overallTitle: string;
+  overall: OverallRow[];
+  /** The hole the viewer picks up on when resuming a live round (null if not seated / card complete). */
+  viewerResumeHole: number | null;
+};
+
+/** Everything the multi-round lobby (MR6a / MR6 / MR6b) renders, derived from the round results + the current round's seats. */
+function describeMultiRound(results: TournamentResults, lobby: TournamentLobby, catalog: CatalogCourse[], viewerId: string | undefined): MultiRoundView | null {
+  const picked = pickCurrentRound(results.rounds);
+  if (!picked) return null;
+  const { phase, current, previous } = picked;
+  const count = results.rounds.length;
+  const nameOf = (id: string) => results.roster.find((p) => p.id === id)?.name ?? '';
+  const firstName = (id: string) => nameOf(id).split(' ')[0] ?? '';
+
+  const courseFor = (round: TournamentRound) => {
+    const course = catalog.find((c) => c.id === (round.courseId ?? round.plannedCourseId));
+    const comboId = round.courseId ? round.comboId : round.plannedComboId;
+    const combo = course?.combos.find((c) => c.id === comboId);
+    const par = course && combo ? getComboHoles(course, combo.id).reduce((sum, h) => sum + h.par, 0) : null;
+    const label = course ? (combo && course.combos.length > 1 ? `${course.name} · ${combo.label}` : course.name) : null;
+    return { course, combo, par, label };
+  };
+
+  const rounds = results.rounds.map((round) => {
+    const { course, combo, par, label } = courseFor(round);
+    const date = formatRoundDate(round.date);
+    const final = round.index === count ? ' · Final' : '';
+    if (round.status === 'done') {
+      const played = results.roster
+        .map((p) => ({ id: p.id, entry: results.entries[p.id]?.[round.index] }))
+        .filter((x) => x.entry?.kind === 'played' && x.entry.thru === x.entry.holes);
+      const low = played.reduce<{ id: string; nett: number } | null>(
+        (best, x) => (x.entry?.kind === 'played' && (best === null || x.entry.nett < best.nett) ? { id: x.id, nett: x.entry.nett } : best),
+        null,
+      );
+      const mine = viewerId ? results.entries[viewerId]?.[round.index] : undefined;
+      const summary = [date, low ? `Low nett ${firstName(low.id)} ${low.nett}` : null, mine?.kind === 'played' && low?.id !== viewerId ? `you ${mine.nett}` : null];
+      return { round, variant: 'done' as const, title: `Round ${round.index} · ${course?.name ?? '…'}`, lines: [summary.filter(Boolean).join(' · ')] };
+    }
+    if (round.status === 'live') {
+      return {
+        round,
+        variant: 'live' as const,
+        title: `Round ${round.index} · ${course?.name ?? '…'}`,
+        lines: [[course?.area, par !== null ? `Par ${par}` : null, `Thru ${round.thru}`].filter(Boolean).join(' · '), 'Locked — scoring has started'],
+      };
+    }
+    if (round.status === 'setup') {
+      const tee = round.defaultTee ? teePresentation(course?.id, round.defaultTee).label : null;
+      return {
+        round,
+        variant: 'ready' as const,
+        title: `Round ${round.index} · ${course?.name ?? '…'}`,
+        lines: [date, [combo?.label, par !== null ? `Par ${par}` : null, tee].filter(Boolean).join(' · ')],
+      };
+    }
+    if (phase === 'between' && round.index === current.index) {
+      return { round, variant: 'notSetUp' as const, title: `Round ${round.index}${final}`, lines: [date, label ? `Planned: ${label}` : 'Course on the day'] };
+    }
+    if (label) {
+      return { round, variant: 'planned' as const, title: `Round ${round.index}${final}`, lines: [date, `${label} · confirm on the day`] };
+    }
+    return { round, variant: 'future' as const, title: `Round ${round.index}${final}`, lines: [`${date} · Course on the day`] };
+  });
+
+  const timeline: TimelineSegment[] = results.rounds.map((round) => {
+    const { course } = courseFor(round);
+    const isNext = phase === 'between' && round.index === current.index;
+    const name = round.courseId && course ? shortCourseName(course.name) : isNext ? 'next' : round.index === count ? 'Final' : course ? shortCourseName(course.name) : 'TBC';
+    const state: TimelineSegment['state'] =
+      round.status === 'done' ? 'done' : round.status === 'live' ? 'live' : isNext ? 'next' : round.index === current.index ? 'current' : 'upcoming';
+    return { label: `R${round.index} · ${name}`, state };
+  });
+
+  const statusPill: MultiRoundView['statusPill'] =
+    phase === 'live'
+      ? { kind: 'live', label: `R${current.index} · THRU ${lobby.thru}` }
+      : phase === 'setup'
+        ? { kind: 'upcoming', label: current.date === localDateString() ? `R${current.index} today` : `R${current.index} · ${formatRoundDate(current.date)}` }
+        : phase === 'between'
+          ? { kind: 'done', label: `R${previous?.index ?? 1} of ${count}` }
+          : { kind: 'done', label: 'Final' };
+
+  // Round 1's seats ARE the roster (invited = pending); a later round shows
+  // the whole roster, with anyone not seated in its match as DNS.
+  const players: MultiRoundView['players'] =
+    current.index === 1
+      ? lobby.players.map((player) => ({ player, state: player.status === 'joined' ? ('seated' as const) : ('pending' as const) }))
+      : results.roster
+          .filter((p) => p.status === 'joined')
+          .map((p) => {
+            const seat = lobby.players.find((s) => s.id === p.id && s.status === 'joined');
+            return seat
+              ? { player: seat, state: 'seated' as const }
+              : {
+                  player: { id: p.id, name: p.name, handicapIndex: p.handicapIndex, isHost: p.isHost, status: 'joined' as const, teeColor: 'white' as const, playingHandicap: 0, handicapOverride: false, cardConfirmedAt: null },
+                  state: 'dns' as const,
+                };
+          });
+  const joined = lobby.players.filter((p) => p.status === 'joined').length;
+  const seated = players.filter((p) => p.state === 'seated').length;
+
+  const rosterIds = results.roster.filter((p) => p.status === 'joined').map((p) => p.id);
+  const overall = computeAggregateStandings(rosterIds, results.rounds, results.entries, results.tieBreakRule).map((row) => ({
+    playerId: row.playerId,
+    name: nameOf(row.playerId),
+    rank: row.rank,
+    toPar: row.missedRounds.length > 0 ? null : row.totalToPar,
+    isViewer: row.playerId === viewerId,
+    colorIndex: rosterIds.indexOf(row.playerId),
+  }));
+
+  const viewerEntry = viewerId ? results.entries[viewerId]?.[current.index] : undefined;
+  const viewerResumeHole =
+    phase === 'live' && viewerEntry?.kind === 'played' && viewerEntry.thru < viewerEntry.holes ? buildPlayOrder(current.startHole)[viewerEntry.thru] ?? null : null;
+
+  return {
+    phase,
+    current,
+    previous,
+    statusPill,
+    timeline,
+    rounds,
+    playersTitle: current.index === 1 && phase === 'setup' ? 'Players' : `Players · Round ${current.index}`,
+    playersCaption: current.index === 1 && phase === 'setup' ? `${joined} of ${lobby.players.length} joined` : `${seated} playing`,
+    players,
+    overallTitle: phase === 'complete' ? 'Final standings' : `Overall · after R${previous?.index ?? 1}`,
+    overall,
+    viewerResumeHole,
+  };
+}
+
+/** Bottom CTA for the multi-round lobby — one accent action per state (MR6a Start, MR6b Resume, MR6 Set up). */
+function MultiRoundFooter({
+  phase,
+  roundIndex,
+  isHost,
+  isSeated,
+  hostName,
+  resumeHole,
+  starting,
+  startError,
+  onStartOrResume,
+  onViewStandings,
+  onSetUpRound,
+  onViewFinal,
+}: {
+  phase: TournamentPhase;
+  roundIndex: number;
+  isHost: boolean;
+  isSeated: boolean;
+  hostName: string;
+  resumeHole: number | null;
+  starting: boolean;
+  startError: string | null;
+  onStartOrResume: () => void;
+  onViewStandings: () => void;
+  onSetUpRound: () => void;
+  onViewFinal: () => void;
+}) {
+  const playIcon = <Play size={18} color={colors.textOnAccent} />;
+  let cta: ReactNode = null;
+  if (phase === 'setup') {
+    cta = isHost ? (
+      <Button label={starting ? 'Starting…' : `Start Round ${roundIndex}`} variant="accent" size="lg" block disabled={starting} onPress={onStartOrResume} icon={playIcon} iconPosition="right" />
+    ) : isSeated ? (
+      <Button label="Waiting for host to start" variant="ghost" size="lg" block disabled />
+    ) : null;
+  } else if (phase === 'live') {
+    cta = isSeated ? (
+      <Button
+        label={resumeHole !== null ? `Resume Round ${roundIndex} · Hole ${resumeHole}` : `Review Round ${roundIndex}`}
+        variant="accent"
+        size="lg"
+        block
+        onPress={onStartOrResume}
+        icon={playIcon}
+        iconPosition="right"
+      />
+    ) : (
+      <Button label="View leaderboard" variant="secondary" size="lg" block onPress={onViewStandings} />
+    );
+  } else if (phase === 'between') {
+    cta = isHost ? (
+      <Button label={`Set up Round ${roundIndex}`} variant="accent" size="lg" block onPress={onSetUpRound} icon={<SlidersHorizontal size={18} color={colors.textOnAccent} />} iconPosition="right" />
+    ) : (
+      <Button label={`Waiting for ${hostName.split(' ')[0]} to set up Round ${roundIndex}`} variant="ghost" size="lg" block disabled />
+    );
+  } else {
+    cta = <Button label="View final standings" variant="secondary" size="lg" block onPress={onViewFinal} />;
+  }
+  if (!cta) return null;
+  return (
+    <View style={styles.footer}>
+      {startError ? <Text style={styles.seatErrorText}>{startError}</Text> : null}
+      {cta}
     </View>
   );
 }
@@ -878,6 +1274,29 @@ const styles = StyleSheet.create({
   detailRowLast: {
     borderBottomWidth: 0,
   },
+  detailRowTop: {
+    alignItems: 'flex-start',
+  },
+  detailValueGroup: {
+    flex: 1,
+    marginLeft: spacing[3],
+    alignItems: 'flex-end',
+  },
+  detailValueInGroup: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 13,
+    color: colors.textPrimary,
+    textAlign: 'right',
+  },
+  detailSub: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.textDisabled,
+    marginTop: 2,
+    textAlign: 'right',
+  },
   detailKey: {
     fontFamily: getFontFamily('body', '400'),
     fontSize: 13,
@@ -911,6 +1330,26 @@ const styles = StyleSheet.create({
     fontFamily: getFontFamily('body', '400'),
     fontSize: 11,
     color: colors.textDisabled,
+  },
+  sectionLabelSpaced: {
+    marginBottom: spacing[2],
+  },
+  sectionHint: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 10,
+    color: palette.soon.labelUpcoming,
+    marginTop: 1,
+  },
+  noteCardSpaced: {
+    marginTop: spacing[3],
+  },
+  leaderboardLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[1] + 1,
+    minHeight: 44,
+    marginTop: spacing[1],
   },
   standingsLink: {
     flexDirection: 'row',

@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Award, ChevronRight, CircleCheckBig, Coins, Crown, Flag, GitCompare, List, Medal, Trophy, Wallet, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -14,6 +14,8 @@ import { computeThru } from '../data/round';
 import { computeSkinsStandings, resolveSkinsHoles } from '../data/skins';
 import { computeStablefordStandings } from '../data/stableford';
 import { computeTournamentStandings, parTotal } from '../data/strokePlay';
+import { hasSharedPlace, sharedPlaceNote } from '../data/multiRound';
+import { TieBreakCard } from '../components/TournamentRecap';
 import { computeSystem36Standings } from '../data/system36';
 import { finishTournamentRound } from '../data/tournaments';
 import { useTournamentRound } from '../hooks/useTournamentRound';
@@ -57,6 +59,15 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
   const [expandedSkinsPlayerId, setExpandedSkinsPlayerId] = useState<string | null>(null);
   const [earlyFinishSheetOpen, setEarlyFinishSheetOpen] = useState(false);
 
+  // A finished round of a MULTI-round tournament gets the MR10 round recap
+  // (or MR13 after the final round) instead of this single-round summary —
+  // this screen still owns confirming cards and finishing the round.
+  useEffect(() => {
+    if (loading || matchStatus !== 'finished' || round.roundsCount < 2) return;
+    if (round.roundIndex >= round.roundsCount) navigation.replace('TournamentComplete', { tournamentId });
+    else navigation.replace('TournamentRoundRecap', { tournamentId, matchId });
+  }, [loading, matchStatus, round.roundsCount, round.roundIndex, navigation, tournamentId, matchId]);
+
   if (loading) {
     return (
       <View style={styles.page}>
@@ -80,7 +91,10 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
   const rosterIds = roster.map((p) => p.id);
   const playingHandicaps = Object.fromEntries(roster.map((p) => [p.id, p.playingHandicap]));
   const perPlayerThru = Object.fromEntries(rosterIds.map((id) => [id, computeThru([id], scores, playOrder)]));
-  const standings = computeTournamentStandings(rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, round.tieBreakRule);
+  // One round of a multi-round event isn't a result on its own — level netts
+  // share the place here; the tie-break only settles the final total (MR13).
+  const isMultiRound = round.roundsCount > 1;
+  const standings = computeTournamentStandings(rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, isMultiRound ? 'shared_place' : round.tieBreakRule);
   const viewerRow = standings.find((r) => r.playerId === viewerId);
   const viewerPlayer = roster.find((p) => p.id === viewerId);
 
@@ -280,7 +294,9 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
               </View>
               <View style={styles.heroTile}>
                 <Text style={styles.heroTileLabel}>To par</Text>
-                <Text style={[styles.heroTileValue, styles.heroTileValueToPar]}>{viewerRow && viewerRow.thru > 0 ? toParLabel(viewerRow.toPar) : '–'}</Text>
+                <Text style={[styles.heroTileValue, styles.heroTileValueToPar, viewerRow && viewerRow.thru > 0 && viewerRow.toPar > 0 && styles.heroTileValueToParOver]}>
+                  {viewerRow && viewerRow.thru > 0 ? toParLabel(viewerRow.toPar) : '–'}
+                </Text>
               </View>
             </View>
           )}
@@ -403,7 +419,9 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                     <Trophy size={20} color={colors.accent} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.finishedTitle}>You finished {ordinal(viewerRow.rank)} nett</Text>
+                    <Text style={styles.finishedTitle}>
+                      {`You finished ${standings.some((r) => r !== viewerRow && r.rank === viewerRow.rank) ? 'tied ' : ''}${ordinal(viewerRow.rank)} nett`}
+                    </Text>
                     <Text style={styles.finishedSubtitle}>Nice round out there.</Text>
                   </View>
                 </View>
@@ -555,7 +573,7 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                         </View>
                         <Text style={styles.tableStatCell}>{row.gross}</Text>
                         <Text style={styles.tableStatCell}>{row.nett}</Text>
-                        <Text style={[styles.tableTotalCell, { color: row.toPar < 0 ? colors.statusSuccess : colors.textSecondary }]}>
+                        <Text style={[styles.tableTotalCell, { color: row.toPar < 0 ? colors.statusSuccess : row.toPar > 0 ? colors.statusDanger : colors.textSecondary }]}>
                           {toParLabel(row.toPar)}
                         </Text>
                       </View>
@@ -564,6 +582,10 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                 </View>
                 )}
               </View>
+
+              {isMultiRound && !isSystem36 && !isStableford && hasSharedPlace(standings) ? (
+                <TieBreakCard title="Tied places" notes={[sharedPlaceNote(round.tieBreakRule)]} />
+              ) : null}
 
               {countbackNotes.length > 0 ? (
                 <View style={styles.countbackCard}>
@@ -800,6 +822,9 @@ const styles = StyleSheet.create({
   },
   heroTileValueToPar: {
     color: '#8FE3A8',
+  },
+  heroTileValueToParOver: {
+    color: palette.multiRound.hero.toParOver,
   },
   heroTileStbf: {
     backgroundColor: colors.accent,

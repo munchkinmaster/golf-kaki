@@ -32,6 +32,10 @@ export type RoundSummary = {
   hostId: string;
   /** Non-null for a tournament (stroke play) match — routes to TournamentLobby/TournamentFinish instead of MatchLobby/Scorecard/Recap, which assume Kaki Match Play's pairwise structure. See tournaments.ts's module comment. */
   tournamentId: string | null;
+  /** Set for a tournament round: the tournament's name, how many rounds it has, and which one this is — a multi-round tournament's rounds are folded into one Past games entry (see pastGames.ts). */
+  tournamentName: string | null;
+  tournamentRoundsCount: number | null;
+  tournamentRoundIndex: number | null;
   /** Match-play "up" total against the whole field — null if the viewer isn't in this match's roster. */
   viewerUp: number | null;
   viewerMoney: number | null;
@@ -142,6 +146,9 @@ async function summarizeMatch(match: MatchRow, roster: RoundPlayer[], viewerId: 
     thru,
     hostId: match.host_id,
     tournamentId: match.tournament_id,
+    tournamentName: null,
+    tournamentRoundsCount: null,
+    tournamentRoundIndex: null,
     viewerUp,
     viewerMoney,
     viewerGross,
@@ -217,8 +224,9 @@ async function fetchRoundSummariesOnce(viewerId: string, status: 'live' | 'finis
   }
 
   const catalog = await fetchCourseCatalog();
+  const tournamentInfo = await fetchTournamentInfo(matches);
 
-  return Promise.all(
+  const summaries = await Promise.all(
     matches.map((match) =>
       summarizeMatch(
         match,
@@ -228,4 +236,38 @@ async function fetchRoundSummariesOnce(viewerId: string, status: 'live' | 'finis
       ),
     ),
   );
+  return summaries.map((summary) => ({ ...summary, ...(tournamentInfo.get(summary.matchId) ?? {}) }));
+}
+
+/** Tournament name / round count / round number for every tournament match in the list, keyed by match id. */
+async function fetchTournamentInfo(
+  matches: MatchRow[],
+): Promise<Map<string, Pick<RoundSummary, 'tournamentName' | 'tournamentRoundsCount' | 'tournamentRoundIndex'>>> {
+  const tournamentMatches = matches.filter((m) => m.tournament_id !== null);
+  const info = new Map<string, Pick<RoundSummary, 'tournamentName' | 'tournamentRoundsCount' | 'tournamentRoundIndex'>>();
+  if (tournamentMatches.length === 0) return info;
+
+  const [{ data: tRows, error: tError }, { data: rRows, error: rError }] = await Promise.all([
+    supabase
+      .from('tournaments')
+      .select('id, name, rounds_count')
+      .in('id', [...new Set(tournamentMatches.map((m) => m.tournament_id!))]),
+    supabase
+      .from('tournament_rounds')
+      .select('match_id, round_index')
+      .in(
+        'match_id',
+        tournamentMatches.map((m) => m.id),
+      ),
+  ]);
+  if (tError) throw tError;
+  if (rError) throw rError;
+  const tournaments = new Map((tRows as { id: string; name: string; rounds_count: number }[]).map((t) => [t.id, t]));
+  const roundIndexByMatch = new Map((rRows as { match_id: string; round_index: number }[]).map((r) => [r.match_id, r.round_index]));
+
+  for (const m of tournamentMatches) {
+    const t = tournaments.get(m.tournament_id!);
+    info.set(m.id, { tournamentName: t?.name ?? null, tournamentRoundsCount: t?.rounds_count ?? null, tournamentRoundIndex: roundIndexByMatch.get(m.id) ?? null });
+  }
+  return info;
 }

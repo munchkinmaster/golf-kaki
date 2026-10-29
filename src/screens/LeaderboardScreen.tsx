@@ -144,7 +144,6 @@ export function LeaderboardScreen({ navigation, route }: Props) {
   const {
     loading,
     viewerId,
-    hostId,
     roster,
     holes,
     schedule,
@@ -358,7 +357,7 @@ export function LeaderboardScreen({ navigation, route }: Props) {
         <View style={styles.inRoundNav}>
           <Pressable
             style={styles.inRoundTab}
-            onPress={() => navigation.navigate('Scorecard', { matchId, matchName, courseName, gameModeName, isHost: viewerId === hostId })}
+            onPress={() => navigation.navigate('Scorecard', { matchId, matchName, courseName, gameModeName })}
           >
             <List size={21} color={palette.sand[400]} />
             <Text style={styles.inRoundTabLabel}>Scorecard</Text>

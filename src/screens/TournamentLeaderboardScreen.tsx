@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Award, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleDot, Coins, Crown, HandCoins, List, Lock, Minus, Trophy } from 'lucide-react-native';
+import { Award, Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleDot, Coins, Crown, HandCoins, Info, List, Lock, Minus, TrendingUp, Trophy } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,6 +17,10 @@ import { computeStablefordStandings } from '../data/stableford';
 import { computeTournamentStandings, parTotal } from '../data/strokePlay';
 import { SYSTEM36_TOTAL_HOLES, computeSystem36Standings, isLeaderboardUnlocked } from '../data/system36';
 import { useFinishRedirect } from '../hooks/useFinishRedirect';
+import { useTournamentOverview } from '../hooks/useTournamentOverview';
+import { formatToPar } from '../components/MultiRoundLobby';
+import { MultiRoundStandingsTable, TieBreakCard } from '../components/TournamentRecap';
+import { computeAggregateStandings, findLowRound, hasSharedPlace, sharedPlaceNote } from '../data/multiRound';
 import { useTournamentRound } from '../hooks/useTournamentRound';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
@@ -53,6 +57,9 @@ export function TournamentLeaderboardScreen({ navigation, route }: Props) {
 
   const [catalog, setCatalog] = useState<CatalogCourse[]>([]);
   const [expandedSkinsPlayerId, setExpandedSkinsPlayerId] = useState<string | null>(null);
+  // MR9 — a multi-round tournament's board toggles between this round and the aggregate.
+  const overview = useTournamentOverview(tournamentId, round);
+  const [view, setView] = useState<'round' | 'overall'>('round');
 
   useEffect(() => {
     fetchCourseCatalog()
@@ -69,9 +76,13 @@ export function TournamentLeaderboardScreen({ navigation, route }: Props) {
     [rosterIds, scores, playOrder],
   );
 
+  // In a multi-round event one round's card isn't a result — level netts
+  // share the place; the tie-break only settles the final total (MR13).
+  const isMultiRound = round.roundsCount > 1;
+  const strokeTieRule = isMultiRound ? 'shared_place' : tieBreakRule;
   const standings = useMemo(
-    () => computeTournamentStandings(rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, tieBreakRule),
-    [rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, tieBreakRule],
+    () => computeTournamentStandings(rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, strokeTieRule),
+    [rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, strokeTieRule],
   );
 
   // Rank a hole ago, purely re-derived (no persistence) — same "nothing
@@ -80,9 +91,9 @@ export function TournamentLeaderboardScreen({ navigation, route }: Props) {
   // thru minus one), not a shared "whole field a hole ago" snapshot.
   const prevRankByPlayer = useMemo(() => {
     const prevThru = Object.fromEntries(rosterIds.map((id) => [id, Math.max(0, (perPlayerThru[id] ?? 0) - 1)]));
-    const prevStandings = computeTournamentStandings(rosterIds, prevThru, gross, holes, playingHandicaps, playOrder, tieBreakRule);
+    const prevStandings = computeTournamentStandings(rosterIds, prevThru, gross, holes, playingHandicaps, playOrder, strokeTieRule);
     return Object.fromEntries(prevStandings.map((r) => [r.playerId, r.rank]));
-  }, [rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, tieBreakRule]);
+  }, [rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, strokeTieRule]);
 
   const bestGrossRow = useMemo(() => {
     const started = standings.filter((r) => r.thru > 0);
@@ -143,6 +154,18 @@ export function TournamentLeaderboardScreen({ navigation, route }: Props) {
         .filter((n): n is string => n !== undefined)
     : [];
 
+  const overall = useMemo(() => {
+    if (!overview) return null;
+    const counted = overview.rounds.filter((r) => r.status === 'live' || r.status === 'done');
+    const rows = computeAggregateStandings(overview.rosterIds, overview.rounds, overview.entries, overview.tieBreakRule);
+    const low = findLowRound(overview.rosterIds, overview.rounds, overview.entries);
+    // Holes the field has completed: every finished round in full, plus this round's thru if it's live.
+    const holesPlayed = counted.reduce((sum, r) => sum + (r.status === 'done' ? 18 : r.index === round.roundIndex ? thru : 0), 0);
+    return { counted, rows, low, holesPlayed, totalHoles: overview.rounds.length * 18, doneCount: overview.rounds.filter((r) => r.status === 'done').length };
+  }, [overview, round.roundIndex, thru]);
+  const showOverall = overall !== null && view === 'overall';
+  const nameOfPlayer = (id: string) => overview?.roster.find((p) => p.id === id)?.name ?? '';
+
   function handleTabNavigate(tab: InRoundTab) {
     if (tab === 'leaderboard') return;
     if (tab === 'scorecard') navigation.navigate('TournamentScorecard', { tournamentId, matchId });
@@ -183,10 +206,21 @@ export function TournamentLeaderboardScreen({ navigation, route }: Props) {
               <Text style={styles.headerTitle}>Leaderboard</Text>
               <Text style={styles.headerSubtitle}>
                 {round.matchName}
-                {courseName ? ` · ${courseName}` : ''}
+                {showOverall
+                  ? ` · after ${overall.doneCount} of ${round.roundsCount} rounds`
+                  : overall
+                    ? ` · Round ${round.roundIndex}${courseName ? ` · ${courseName}` : ''}`
+                    : courseName
+                      ? ` · ${courseName}`
+                      : ''}
               </Text>
             </View>
-            {s36Locked ? (
+            {overall ? (
+              <View style={styles.statusPill}>
+                {matchStatus === 'finished' ? <Check size={12} color={palette.white} /> : <View style={styles.statusDot} />}
+                <Text style={styles.statusPillLabel}>{matchStatus === 'finished' ? `R${round.roundIndex} final` : `R${round.roundIndex} · THRU ${thru}`}</Text>
+              </View>
+            ) : s36Locked ? (
               <View style={styles.lockedPill}>
                 <Lock size={11} color="rgba(255,255,255,0.72)" />
                 <Text style={styles.lockedPillLabel}>LOCKED</Text>
@@ -198,9 +232,55 @@ export function TournamentLeaderboardScreen({ navigation, route }: Props) {
               </View>
             )}
           </View>
+          {overall ? (
+            <View style={styles.viewToggle}>
+              {(['round', 'overall'] as const).map((v) => (
+                <Pressable key={v} style={[styles.viewToggleOption, view === v && styles.viewToggleOptionActive]} onPress={() => setView(v)}>
+                  <Text style={[styles.viewToggleLabel, view === v && styles.viewToggleLabelActive]}>{v === 'round' ? `Round ${round.roundIndex}` : 'Overall'}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
         </View>
 
-        {s36Locked ? (
+        {showOverall ? (
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+            <View style={styles.captionRow}>
+              <CircleDot size={11} color={colors.statusSuccess} />
+              <Text style={styles.captionText}>
+                Aggregate nett to par · {overall.holesPlayed} of {overall.totalHoles} holes
+              </Text>
+            </View>
+            <MultiRoundStandingsTable
+              rows={overall.rows}
+              roundIndexes={overall.counted.map((r) => r.index)}
+              nameOf={nameOfPlayer}
+              colorIndexOf={(id) => overview!.rosterIds.indexOf(id)}
+              viewerId={viewerId ?? undefined}
+              showMovement
+            />
+            {overall.doneCount < round.roundsCount && hasSharedPlace(overall.rows) ? <TieBreakCard title="Tied places" notes={[sharedPlaceNote(overview!.tieBreakRule)]} /> : null}
+            {overall.low ? (
+              <View style={styles.lowRoundCard}>
+                <View style={styles.lowRoundIcon}>
+                  <TrendingUp size={18} color={colors.primary} />
+                </View>
+                <View>
+                  <Text style={styles.lowRoundLabel}>Low round · R{overall.low.roundIndex}</Text>
+                  <Text style={styles.lowRoundValue}>
+                    {nameOfPlayer(overall.low.playerId).split(' ')[0]} · {overall.low.nett} nett ({formatToPar(overall.low.toPar)})
+                  </Text>
+                </View>
+              </View>
+            ) : null}
+            {overall.rows.some((r) => r.missedRounds.length > 0) ? (
+              <View style={styles.dnsNote}>
+                <Info size={14} color={palette.multiRound.note.icon} />
+                <Text style={styles.dnsNoteText}>DNS players stay on the board but rank after everyone who has completed every round.</Text>
+              </View>
+            ) : null}
+          </ScrollView>
+        ) : s36Locked ? (
           <View style={styles.lockedFill}>
             <View style={styles.lockedPlate}>
               <Trophy size={36} color={colors.primary} />
@@ -515,7 +595,7 @@ export function TournamentLeaderboardScreen({ navigation, route }: Props) {
                   <Text
                     style={[
                       styles.totalCell,
-                      { color: row.toPar < 0 ? colors.statusSuccess : row.toPar > 0 ? colors.textSecondary : colors.textSecondary },
+                      { color: row.toPar < 0 ? colors.statusSuccess : row.toPar > 0 ? colors.statusDanger : colors.textSecondary },
                     ]}
                   >
                     {row.thru > 0 ? toParLabel(row.toPar) : '–'}
@@ -524,6 +604,10 @@ export function TournamentLeaderboardScreen({ navigation, route }: Props) {
               );
             })}
           </View>
+
+          {isMultiRound && hasSharedPlace(standings.filter((r) => r.thru > 0)) ? (
+            <TieBreakCard title="Tied places" notes={[sharedPlaceNote(tieBreakRule)]} />
+          ) : null}
 
           {/* BEST GROSS */}
           {bestGrossRow ? (
@@ -614,6 +698,84 @@ export function TournamentLeaderboardScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
+  viewToggle: {
+    flexDirection: 'row',
+    marginTop: spacing[3] + 2,
+    padding: 3,
+    borderRadius: radius.pill,
+    backgroundColor: palette.multiRound.timeline.pillFill,
+  },
+  viewToggleOption: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewToggleOptionActive: {
+    backgroundColor: palette.white,
+  },
+  viewToggleLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 14,
+    color: palette.multiRound.timeline.labelActive,
+  },
+  viewToggleLabelActive: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  lowRoundCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    padding: spacing[3] + 2,
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    borderRadius: radius.lg - 2,
+  },
+  lowRoundIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.md - 2,
+    backgroundColor: colors.surfaceBrandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lowRoundLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: colors.textDisabled,
+  },
+  lowRoundValue: {
+    fontFamily: getFontFamily('display', '700'),
+    fontWeight: '700',
+    fontSize: 16,
+    color: colors.textPrimary,
+    marginTop: 2,
+  },
+  dnsNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[2],
+    padding: spacing[3],
+    backgroundColor: palette.multiRound.note.fill,
+    borderWidth: 1,
+    borderColor: palette.multiRound.note.border,
+    borderRadius: radius.md,
+  },
+  dnsNoteText: {
+    flex: 1,
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    lineHeight: 17,
+    color: palette.multiRound.note.text,
+  },
   page: { flex: 1, backgroundColor: colors.surfacePage },
   safeArea: { flex: 1 },
   centerFill: { flex: 1, alignItems: 'center', justifyContent: 'center' },

@@ -1,3 +1,5 @@
+import type { CourseSelection } from '../components/CoursePicker';
+
 export type RootStackParamList = {
   Landing: undefined;
   Home: undefined;
@@ -31,7 +33,6 @@ export type RootStackParamList = {
     matchName: string;
     courseName: string;
     gameModeName: string;
-    isHost: boolean;
   };
   Leaderboard: {
     matchId: string;
@@ -84,12 +85,37 @@ export type RootStackParamList = {
     tournamentId: string;
     matchId: string;
   };
+  /** MR11 — the organiser sets up a later round of a multi-round tournament on the day. `selection` arrives back from TournamentRoundCourse's "Save". */
+  TournamentSetupRound: {
+    tournamentId: string;
+    roundIndex: number;
+    selection?: CourseSelection;
+  };
+  /** MR11's "Change" — the MR2b course picker for that round; hands its selection back to TournamentSetupRound. */
+  TournamentRoundCourse: {
+    tournamentId: string;
+    roundIndex: number;
+    selection: CourseSelection;
+    subtitle: string;
+  };
+  /** MR10 — recap after a non-final round of a multi-round tournament (TournamentFinish hands over here once it's finished). */
+  TournamentRoundRecap: {
+    tournamentId: string;
+    matchId: string;
+  };
+  /** MR13 — final summary once the last round of a multi-round tournament is finished. */
+  TournamentComplete: {
+    tournamentId: string;
+  };
 };
 
 /** Screens inside the tournament creation wizard (S1–S6b today). All draft state lives in TournamentDraftContext, not route params — see that file for why. */
 export type TournamentStackParamList = {
   TournamentFormat: undefined;
-  TournamentCourse: undefined;
+  /** MR2 — multi-round schedule (dates + Round 1 course + optional planned courses). Single-round skips straight to TournamentCourse. */
+  TournamentRounds: undefined;
+  /** S2, and MR2b when multi-round. `round` (1-based) picks which round's course it edits — Round 1 (the default) is the played course, 2+ a planned one. */
+  TournamentCourse: { round?: number } | undefined;
   TournamentRules: undefined;
   TournamentPlayers: undefined;
   TournamentSideGames: undefined;

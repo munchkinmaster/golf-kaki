@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Activity, CircleCheckBig, Info, ListOrdered, Lock, Table2 } from 'lucide-react-native';
+import { Activity, ArrowRight, Check, CircleCheckBig, Eye, Info, ListOrdered, Lock, Table2, Trophy } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +11,11 @@ import { ScoreCell } from '../components/ScoreCell';
 import { strokesReceivedOnHole } from '../data/handicap';
 import { SYSTEM36_TOTAL_HOLES, s36Handicap, s36PointsForHole, stablefordPointsForHole } from '../data/system36';
 import { useFinishRedirect } from '../hooks/useFinishRedirect';
+import { useTournamentOverview } from '../hooks/useTournamentOverview';
+import { formatToPar } from '../components/MultiRoundLobby';
+import { fetchCourseCatalog } from '../data/courses';
+import { computeAggregateStandings, ordinal, pickCurrentRound, roundsThrough } from '../data/multiRound';
+import { formatRoundDate } from '../data/roundDates';
 import { useTournamentRound } from '../hooks/useTournamentRound';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
@@ -18,15 +23,6 @@ import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutt
 type Props = NativeStackScreenProps<RootStackParamList, 'TournamentScorecardGrid'>;
 
 type NineSide = 'front' | 'back';
-
-const HOLE_COL_WIDTH = 31;
-const LABEL_COL_WIDTH = 74;
-// Caps how far the label column stretches on a wide viewport — flex:1
-// unbounded gave it nearly all the slack, leaving the hole columns pinned at
-// their minimum and the name column looking oversized. Roughly half of what
-// it was ballooning to, so the hole columns above pick up the rest.
-const LABEL_COL_MAX_WIDTH = 112;
-const TOTAL_COL_WIDTH = 44;
 
 // Low-opacity brand emblem in the header's top-right corner — same asset/
 // convention as Card.tsx's watermark, applied here directly since this
@@ -103,6 +99,20 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
     useCallback(() => navigation.navigate('TournamentFinish', { tournamentId, matchId }), [navigation, tournamentId, matchId]),
   );
 
+  // MR8 — a multi-round tournament's card gets round tabs; done rounds are view-only.
+  const overview = useTournamentOverview(tournamentId, round);
+  const [courseName, setCourseName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!round.courseId || round.roundsCount < 2) return;
+    let cancelled = false;
+    fetchCourseCatalog()
+      .then((catalog) => !cancelled && setCourseName(catalog.find((c) => c.id === round.courseId)?.name ?? null))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [round.courseId, round.roundsCount]);
+
   const [nineOverride, setNineOverride] = useState<NineSide | null>(null);
   const [statMode, setStatMode] = useState<GridView>('nett');
 
@@ -146,7 +156,6 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
   const nine = nineOverride ?? defaultNine;
   const [rangeStart, rangeEnd] = nine === 'front' ? [0, 9] : [9, 18];
   const displayHoles = holes.slice(rangeStart, rangeEnd);
-  const totalLabel = nine === 'front' ? 'OUT' : 'IN';
 
   const isSystem36 = round.scoringFormat === 'system_36';
   const isStableford = round.scoringFormat === 'stableford';
@@ -218,6 +227,21 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
   const viewerStbf = viewerId ? sumStbf(viewerId, viewerS36Hcp) : 0;
   const viewerNettS36 = viewerId ? sumNett(viewerId, viewerS36Hcp) : 0;
 
+  const thisRound = overview?.rounds.find((r) => r.matchId === matchId) ?? null;
+  const currentRound = overview ? (pickCurrentRound(overview.rounds)?.current ?? null) : null;
+  // Looking back at a finished round while a later one is the tournament's current round.
+  const viewingPast = thisRound?.status === 'done' && currentRound !== null && currentRound.index !== thisRound.index && currentRound.matchId !== null;
+  const roundPrefix = overview ? `R${round.roundIndex} ` : '';
+  const tournamentAfter = (() => {
+    if (!overview || !viewerId) return null;
+    const rows = computeAggregateStandings(overview.rosterIds, roundsThrough(overview.rounds, round.roundIndex), overview.entries, overview.tieBreakRule);
+    const me = rows.find((r) => r.playerId === viewerId);
+    return me && me.rank !== null ? { toPar: me.totalToPar, place: ordinal(me.rank) } : null;
+  })();
+  const switchRound = (targetMatchId: string) => {
+    if (targetMatchId !== matchId) navigation.replace('TournamentScorecardGrid', { tournamentId, matchId: targetMatchId });
+  };
+
   function handleTabNavigate(tab: InRoundTab) {
     if (tab === 'scorecard') navigation.goBack();
     else if (tab === 'lobby') navigation.navigate('TournamentLobby', { tournamentId, matchId });
@@ -236,8 +260,10 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
           <View style={styles.headerTopRow}>
             <View style={styles.headerTitleGroup}>
               <Text style={styles.headerTitle}>Scorecard</Text>
-              <Text style={styles.headerSubtitle}>
-                {isSystem36
+              <Text style={styles.headerSubtitle} numberOfLines={1}>
+                {overview
+                  ? `${round.matchName}${courseName ? ` · ${courseName}` : ''}`
+                  : isSystem36
                   ? s36Finished
                     ? 'System 36 · final card'
                     : 'System 36 · in progress'
@@ -252,7 +278,12 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
                 {matchStatus === 'finished' ? <ListOrdered size={15} color={colors.primary} /> : <Table2 size={15} color={colors.primary} />}
                 <Text style={styles.scoreButtonLabel}>{matchStatus === 'finished' ? 'Standings' : 'Score'}</Text>
               </Pressable>
-              {s36Finished ? (
+              {overview && matchStatus === 'finished' ? (
+                <View style={styles.statusPill}>
+                  <Lock size={12} color={palette.white} />
+                  <Text style={[styles.statusPillLabel, styles.statusPillLabelFinal]}>R{round.roundIndex} FINAL</Text>
+                </View>
+              ) : s36Finished ? (
                 <View style={styles.finalPill}>
                   <CircleCheckBig size={15} color={colors.primary} />
                   <Text style={styles.finalPillLabel}>FINAL</Text>
@@ -266,7 +297,39 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
             </View>
           </View>
           <View style={styles.headerDivider} />
-          <View style={styles.nineToggle}>
+          {overview ? (
+            <View style={styles.roundTabs}>
+              {overview.rounds.map((r) => {
+                const active = r.matchId === matchId;
+                const disabled = r.matchId === null || r.status === 'planned';
+                return (
+                  <Pressable
+                    key={r.index}
+                    style={[styles.roundTab, active && styles.nineToggleOptionActive]}
+                    disabled={disabled}
+                    onPress={() => r.matchId && switchRound(r.matchId)}
+                    accessibilityLabel={`Round ${r.index}`}
+                  >
+                    {r.status === 'done' ? (
+                      <Check size={13} color={active ? colors.primary : palette.white} />
+                    ) : r.status === 'live' ? (
+                      <View style={styles.liveDot} />
+                    ) : disabled ? (
+                      <Lock size={12} color={palette.multiRound.timeline.labelUpcoming} />
+                    ) : null}
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.nineToggleLabel, active && styles.nineToggleLabelActive, disabled && styles.roundTabLabelDisabled]}
+                    >
+                      Round {r.index}
+                      {r.status === 'live' ? ' · live' : ''}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+          <View style={[styles.nineToggle, overview && styles.nineToggleAfterTabs]}>
             <Pressable style={[styles.nineToggleOption, nine === 'front' && styles.nineToggleOptionActive]} onPress={() => setNineOverride('front')}>
               <Text style={[styles.nineToggleLabel, nine === 'front' && styles.nineToggleLabelActive]}>Front 9</Text>
             </Pressable>
@@ -277,6 +340,18 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
         </View>
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          {viewingPast && thisRound && currentRound?.matchId ? (
+            <View style={styles.pastBanner}>
+              <Eye size={15} color={colors.textMuted} />
+              <Text style={styles.pastBannerText} numberOfLines={1}>
+                Round {thisRound.index} · {formatRoundDate(thisRound.date)} · view only
+              </Text>
+              <Pressable style={styles.pastBannerLink} onPress={() => switchRound(currentRound.matchId!)} hitSlop={8}>
+                <Text style={styles.pastBannerLinkLabel}>Back to R{currentRound.index}</Text>
+                <ArrowRight size={14} color={palette.multiRound.required.text} />
+              </Pressable>
+            </View>
+          ) : null}
           {isSystem36 ? (
             <>
               {/* TRANSPOSED GRID — holes as rows, players as columns (SY8).
@@ -631,82 +706,65 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
             </>
           ) : (
             <>
-          {/* minWidth:'100%' on the scroller's own content + flexGrow on the row
-              wrapper lets the flexible label column stretch to fill a wide
-              viewport (see gridLabelHeader/parLabel/siLabel/playerLabel below),
-              while narrow devices where the 9 fixed hole columns genuinely don't
-              fit still fall back to normal horizontal scrolling. */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.gridScrollContent}>
-            <View style={styles.gridContent}>
-              {/* HOLE HEADER */}
-              <View style={styles.gridRow}>
-                <Text style={styles.gridLabelHeader}>Hole</Text>
-                {displayHoles.map((h) => (
-                  <Text key={h.n} style={styles.gridHeaderCell}>
-                    {h.n}
-                  </Text>
-                ))}
-                <Text style={styles.gridTotalHeader}>{totalLabel}</Text>
-              </View>
-
-              {/* PAR */}
-              <View style={[styles.gridRow, styles.parRow]}>
-                <Text style={styles.parLabel}>Par</Text>
-                {displayHoles.map((h) => (
-                  <Text key={h.n} style={styles.parCell}>
-                    {h.par}
-                  </Text>
-                ))}
-                <Text style={styles.parTotalCell}>{displayHoles.reduce((sum, h) => sum + h.par, 0)}</Text>
-              </View>
-
-              {/* SI */}
-              <View style={styles.gridRow}>
-                <Text style={styles.siLabel}>SI</Text>
-                {displayHoles.map((h) => (
-                  <Text key={h.n} style={styles.siCell}>
-                    {h.si}
-                  </Text>
-                ))}
-                <View style={{ width: TOTAL_COL_WIDTH }} />
-              </View>
-
-              <View style={styles.gridDivider} />
-
-              {/* PLAYERS */}
-              {roster.map((player, index) => {
-                const total =
-                  statMode === 'nett'
-                    ? sumNett(player.id, player.playingHandicap, rangeStart, rangeEnd)
-                    : sumGross(player.id, rangeStart, rangeEnd);
-                const isYou = player.id === viewerId;
-                return (
-                  <View key={player.id} style={[styles.gridRow, styles.playerRow, isYou && styles.playerRowYou]}>
-                    <View style={styles.playerLabel}>
-                      <View style={[styles.playerAvatar, { backgroundColor: getSolidAvatarColor(index) }]}>
-                        <Text style={styles.playerAvatarLabel}>{player.name[0]?.toUpperCase()}</Text>
+          {/* TRANSPOSED GRID — holes as rows, players as columns (MR8), the
+              same layout Stableford's SB8 and System 36's SY8 use above. Single-
+              round tournaments render through here too. */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tGridScrollContent}>
+            <View style={styles.tGridContent}>
+              {/* HEADER */}
+              <View style={[styles.tRow, styles.tHeaderRow]}>
+                <Text style={[styles.tHeadCell, styles.tHCol]}>H</Text>
+                <Text style={[styles.tHeadCell, styles.tParCol]}>Par</Text>
+                <Text style={[styles.tHeadCell, styles.tSiCol]}>SI</Text>
+                {roster.map((player, index) => {
+                  const isYou = player.id === viewerId;
+                  return (
+                    <View key={player.id} style={[styles.tPlayerHead, isYou && styles.tColYou, isYou && styles.tColYouTop]}>
+                      <View style={[styles.tPlayerAvatar, { backgroundColor: getSolidAvatarColor(index) }]}>
+                        <Text style={styles.tPlayerAvatarLabel}>{player.name[0]?.toUpperCase()}</Text>
                       </View>
-                      <Text style={styles.playerName} numberOfLines={1}>
+                      <Text style={[styles.tPlayerName, isYou && styles.tPlayerNameYou]} numberOfLines={1}>
                         {isYou ? 'You' : firstName(player.name)}
                       </Text>
                     </View>
-                    {displayHoles.map((h) => {
-                      const rawValue = scores[player.id]?.[h.n];
-                      const received = strokesReceivedOnHole(player.playingHandicap, h.si);
-                      const value = rawValue === undefined ? undefined : statMode === 'nett' ? rawValue - received : rawValue;
-                      return (
-                        <View key={h.n} style={styles.gridCellWrap}>
-                          {/* Rendered even before a score is in, so the handicap-stroke
-                              dot shows up front — lets a player see ahead of time which
-                              holes they'll get a stroke on for the round. */}
-                          <ScoreCell value={value} par={h.par} strokesReceived={received} size={HOLE_COL_WIDTH} />
-                        </View>
-                      );
-                    })}
-                    <Text style={styles.playerTotalCell}>{total}</Text>
-                  </View>
-                );
-              })}
+                  );
+                })}
+              </View>
+              {/* HOLE ROWS */}
+              {displayHoles.map((h, rowIdx) => (
+                <View key={h.n} style={[styles.tRow, styles.tHoleRow, rowIdx === displayHoles.length - 1 && styles.tHoleRowLast]}>
+                  <Text style={[styles.tNumCell, styles.tHCol]}>{h.n}</Text>
+                  <Text style={[styles.tMetaCell, styles.tParCol]}>{h.par}</Text>
+                  <Text style={[styles.tMetaCell, styles.tSiCol]}>{h.si}</Text>
+                  {roster.map((player) => {
+                    const isYou = player.id === viewerId;
+                    const raw = scores[player.id]?.[h.n];
+                    const received = strokesReceivedOnHole(player.playingHandicap, h.si);
+                    const value = raw === undefined ? undefined : statMode === 'nett' ? raw - received : raw;
+                    return (
+                      <View key={player.id} style={[styles.tCellWrap, isYou && styles.tColYou]}>
+                        {/* Rendered even before a score is in, so the handicap-stroke
+                            dot shows up front — lets a player see ahead of time which
+                            holes they'll get a stroke on for the round. */}
+                        <ScoreCell value={value} par={h.par} strokesReceived={received} size={28} />
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
+              {/* SUMMARY — this nine's total in whichever view the tiles below select */}
+              <View style={[styles.tRow, styles.tSummaryRow, styles.tSummaryRowSingle]}>
+                <Text style={styles.tSummaryLabel}>
+                  {statMode === 'nett' ? (nine === 'front' ? 'Nett out' : 'Nett in') : nine === 'front' ? 'Out' : 'In'}
+                </Text>
+                {roster.map((player) => (
+                  <Text key={player.id} style={styles.tSummaryCell}>
+                    {statMode === 'nett'
+                      ? sumNett(player.id, player.playingHandicap, rangeStart, rangeEnd)
+                      : sumGross(player.id, rangeStart, rangeEnd)}
+                  </Text>
+                ))}
+              </View>
             </View>
           </ScrollView>
 
@@ -716,21 +774,34 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
               style={[styles.totalTile, statMode === 'gross' && styles.totalTileActive]}
               onPress={() => setStatMode('gross')}
             >
-              <Text style={[styles.totalTileLabel, statMode === 'gross' && styles.totalTileLabelInverse]}>Gross</Text>
+              <Text style={[styles.totalTileLabel, statMode === 'gross' && styles.totalTileLabelInverse]}>{roundPrefix}Gross</Text>
               <Text style={[styles.totalTileValue, statMode === 'gross' && styles.totalTileValueInverse]}>{viewerGross}</Text>
             </Pressable>
             <Pressable
               style={[styles.totalTile, statMode === 'nett' && styles.totalTileActive]}
               onPress={() => setStatMode('nett')}
             >
-              <Text style={[styles.totalTileLabel, statMode === 'nett' && styles.totalTileLabelInverse]}>Nett</Text>
+              <Text style={[styles.totalTileLabel, statMode === 'nett' && styles.totalTileLabelInverse]}>{roundPrefix}Nett</Text>
               <Text style={[styles.totalTileValue, statMode === 'nett' && styles.totalTileValueInverse]}>{viewerNett}</Text>
             </Pressable>
             <View style={styles.totalTile}>
-              <Text style={styles.totalTileLabel}>To par</Text>
-              <Text style={styles.totalTileValue}>{viewerToPar === 0 ? 'E' : viewerToPar > 0 ? `+${viewerToPar}` : viewerToPar}</Text>
+              <Text style={styles.totalTileLabel}>{roundPrefix}To par</Text>
+              <Text style={[styles.totalTileValue, viewerToPar < 0 && styles.totalTileValueUnder, viewerToPar > 0 && styles.totalTileValueOver]}>
+                {viewerToPar === 0 ? 'E' : viewerToPar > 0 ? `+${viewerToPar}` : viewerToPar}
+              </Text>
             </View>
           </View>
+          {tournamentAfter ? (
+            <View style={styles.tournamentLine}>
+              <Trophy size={15} color={colors.accent} />
+              <Text style={styles.tournamentLineLabel}>
+                Tournament · {thisRound?.status === 'done' ? `after R${round.roundIndex}` : 'so far'}
+              </Text>
+              <Text style={[styles.tournamentLineValue, tournamentAfter.toPar < 0 && styles.tournamentLineValueUnder, tournamentAfter.toPar > 0 && styles.tournamentLineValueOver]}>{formatToPar(tournamentAfter.toPar)}</Text>
+              <View style={styles.tournamentLineSeparator} />
+              <Text style={styles.tournamentLinePlace}>{tournamentAfter.place}</Text>
+            </View>
+          ) : null}
 
           {/* LEGEND */}
           <View style={styles.legendRow}>
@@ -769,6 +840,107 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
+  // MR8 — a squarer, darker track than the Front/Back pill below, with a gap
+  // between tabs so the active one doesn't butt against its neighbours.
+  roundTabs: {
+    flexDirection: 'row',
+    gap: spacing[1],
+    padding: 3,
+    marginTop: spacing[3] + 2,
+    backgroundColor: palette.multiRound.timeline.roundTabsTrack,
+    borderRadius: radius.md,
+  },
+  roundTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[1] + 1,
+    minHeight: 38,
+    paddingHorizontal: spacing[2],
+    borderRadius: radius.md - 2,
+  },
+  roundTabLabelDisabled: {
+    color: palette.multiRound.timeline.labelUpcoming,
+  },
+  liveDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.accent,
+  },
+  statusPillLabelFinal: {
+    color: palette.white,
+  },
+  pastBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    minHeight: 44,
+    paddingHorizontal: spacing[3],
+    backgroundColor: colors.surfaceMutedTile,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    borderRadius: radius.md,
+  },
+  pastBannerText: {
+    flex: 1,
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  pastBannerLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  pastBannerLinkLabel: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    fontSize: 12,
+    color: palette.multiRound.required.text,
+  },
+  tournamentLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    paddingVertical: spacing[2] + 2,
+    paddingHorizontal: spacing[3] + 1,
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    borderRadius: radius.md,
+  },
+  tournamentLineLabel: {
+    flex: 1,
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  tournamentLineValue: {
+    fontFamily: getFontFamily('numeric', '700'),
+    fontWeight: '700',
+    fontSize: 15,
+    color: colors.textPrimary,
+  },
+  tournamentLineValueUnder: {
+    color: palette.green[600],
+  },
+  tournamentLineValueOver: {
+    color: colors.statusDanger,
+  },
+  tournamentLineSeparator: {
+    width: 1,
+    height: 14,
+    backgroundColor: colors.borderDefault,
+  },
+  tournamentLinePlace: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    fontSize: 12,
+    color: colors.textPrimary,
+  },
   page: { flex: 1, backgroundColor: colors.surfacePage },
   safeArea: { flex: 1 },
   centerFill: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -893,10 +1065,14 @@ const styles = StyleSheet.create({
     marginTop: spacing[3] + 2,
     marginBottom: spacing[1] + 1,
   },
+  nineToggleAfterTabs: {
+    marginTop: spacing[2] + 2,
+  },
   nineToggleOption: {
     flex: 1,
     alignItems: 'center',
-    paddingVertical: spacing[1] + 3,
+    justifyContent: 'center',
+    minHeight: 40,
     borderRadius: radius.pill,
   },
   nineToggleOptionActive: {
@@ -915,145 +1091,6 @@ const styles = StyleSheet.create({
   },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: screenGutter, paddingTop: spacing[4], paddingBottom: spacing[5], gap: spacing[4] },
-  gridScrollContent: { minWidth: '100%' },
-  gridContent: { flexGrow: 1 },
-  gridRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  gridLabelHeader: {
-    flex: 1,
-    minWidth: LABEL_COL_WIDTH,
-    maxWidth: LABEL_COL_MAX_WIDTH,
-    fontFamily: getFontFamily('body', '700'),
-    fontWeight: '700',
-    fontSize: 10,
-    letterSpacing: 0.6,
-    color: colors.textDisabled,
-    textTransform: 'uppercase',
-    paddingLeft: spacing[1] + 2,
-  },
-  gridHeaderCell: {
-    width: HOLE_COL_WIDTH,
-    textAlign: 'center',
-    fontFamily: getFontFamily('numeric', '700'),
-    fontWeight: '700',
-    fontSize: 12,
-    color: colors.textSecondary,
-    paddingVertical: spacing[1] + 2,
-  },
-  gridTotalHeader: {
-    width: TOTAL_COL_WIDTH,
-    textAlign: 'center',
-    fontFamily: getFontFamily('body', '700'),
-    fontWeight: '700',
-    fontSize: 10,
-    color: colors.primary,
-  },
-  parRow: {
-    backgroundColor: colors.surfaceBrandSoft,
-    borderRadius: radius.sm + 2,
-  },
-  parLabel: {
-    flex: 1,
-    minWidth: LABEL_COL_WIDTH,
-    maxWidth: LABEL_COL_MAX_WIDTH,
-    fontFamily: getFontFamily('body', '600'),
-    fontWeight: '600',
-    fontSize: 11,
-    color: colors.textSecondary,
-    paddingVertical: spacing[1] + 2,
-    paddingLeft: spacing[1] + 2,
-  },
-  parCell: {
-    width: HOLE_COL_WIDTH,
-    textAlign: 'center',
-    fontFamily: getFontFamily('numeric', '400'),
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  parTotalCell: {
-    width: TOTAL_COL_WIDTH,
-    textAlign: 'center',
-    fontFamily: getFontFamily('numeric', '700'),
-    fontWeight: '700',
-    fontSize: 12,
-    color: colors.primary,
-  },
-  siLabel: {
-    flex: 1,
-    minWidth: LABEL_COL_WIDTH,
-    maxWidth: LABEL_COL_MAX_WIDTH,
-    fontFamily: getFontFamily('body', '600'),
-    fontWeight: '600',
-    fontSize: 11,
-    color: colors.textDisabled,
-    paddingVertical: spacing[1],
-    paddingLeft: spacing[1] + 2,
-  },
-  siCell: {
-    width: HOLE_COL_WIDTH,
-    textAlign: 'center',
-    fontFamily: getFontFamily('numeric', '400'),
-    fontSize: 10,
-    color: colors.textDisabled,
-  },
-  gridDivider: {
-    height: 1,
-    backgroundColor: colors.borderDefault,
-    marginVertical: spacing[1] + 2,
-  },
-  playerRow: {
-    marginBottom: spacing[1] + 3,
-  },
-  playerRowYou: {
-    backgroundColor: colors.surfaceRaised,
-    borderRadius: radius.sm + 2,
-  },
-  playerLabel: {
-    flex: 1,
-    minWidth: LABEL_COL_WIDTH,
-    maxWidth: LABEL_COL_MAX_WIDTH,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1] + 2,
-    paddingVertical: spacing[1] + 2,
-    paddingLeft: spacing[1] + 2,
-  },
-  playerAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  playerAvatarLabel: {
-    fontFamily: getFontFamily('body', '700'),
-    fontWeight: '700',
-    fontSize: 11,
-    color: palette.white,
-  },
-  playerName: {
-    fontFamily: getFontFamily('body', '600'),
-    fontWeight: '600',
-    fontSize: 11,
-    color: colors.textPrimary,
-    flexShrink: 1,
-  },
-  gridCellWrap: {
-    width: HOLE_COL_WIDTH,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playerTotalCell: {
-    width: TOTAL_COL_WIDTH,
-    textAlign: 'center',
-    fontFamily: getFontFamily('numeric', '700'),
-    fontWeight: '700',
-    fontSize: 13,
-    color: colors.textPrimary,
-  },
   totalsRow: {
     flexDirection: 'row',
     gap: spacing[2],
@@ -1091,6 +1128,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: colors.textPrimary,
     marginTop: 2,
+  },
+  totalTileValueUnder: {
+    color: palette.green[600],
+  },
+  totalTileValueOver: {
+    color: colors.statusDanger,
   },
   totalTileValueInverse: {
     fontFamily: getFontFamily('numeric', '700'),
@@ -1201,6 +1244,10 @@ const styles = StyleSheet.create({
   tSummaryRow: {
     backgroundColor: colors.surfaceBrandSoft,
     marginTop: spacing[1],
+  },
+  // Stroke play has just the one summary row, so it rounds on all corners (MR8's OUT bar).
+  tSummaryRowSingle: {
+    borderRadius: radius.sm,
   },
   tSummaryRowLast: {
     marginTop: 2,

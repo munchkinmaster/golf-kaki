@@ -1,0 +1,101 @@
+/* ============================================================
+   Golf Kaki — Color tokens
+   Drawn from the brand emblem: parchment cream, deep fairway
+   green, and a bright flag-orange accent.
+   ============================================================ */
+
+:root {
+  /* ---- Fairway green (primary) ---- */
+  --green-950: #0A2C0C;
+  --green-900: #0E3A10;
+  --green-800: #134914; /* brand deep green — warm yellow-green */
+  --green-700: #195C12; /* wordmark green */
+  --green-600: #1E6E16; /* tagline green */
+  --green-500: #237E1A; /* tagline green (light) */
+  --green-400: #499A3E;
+  --green-300: #7AB86F;
+  --green-200: #AED4A9;
+  --green-100: #DFEEDC;
+  --green-50:  #F0F6EE;
+
+  /* ---- Flag orange (accent) ---- */
+  --orange-700: #C75F1E;
+  --orange-600: #E0742E;
+  --orange-500: #FF914D; /* brand accent (flag) */
+  --orange-400: #FFA86E;
+  --orange-300: #FFC79E;
+  --orange-200: #FFDCC2;
+  --orange-100: #FFEEE0;
+
+  /* ---- Sand / parchment (neutral surfaces) ---- */
+  --sand-50:  #FCFAF3;
+  --sand-100: #F7F2E6; /* brand background */
+  --sand-200: #EFE8D5;
+  --sand-300: #E3D9C0;
+  --sand-400: #CFC3A4;
+  --sand-500: #B3A581;
+
+  /* ---- Ink (warm, green-tinted neutrals for text) ---- */
+  --ink-900: #1C2B22;
+  --ink-700: #3A4A40;
+  --ink-500: #5E6B62;
+  --ink-400: #8A958C;
+  --ink-300: #B4BCB5;
+
+  --white: #FFFFFF;
+
+  /* ---- Golf score colours (scorecard notation) ---- */
+  --score-eagle:  #C98A23; /* gold — 2 under or better */
+  --score-birdie: #E0742E; /* orange — 1 under */
+  --score-par:    #1E6E16; /* green — even */
+  --score-bogey:  #4E6E8E; /* slate blue — 1 over */
+  --score-double: #B23B2E; /* red — 2 over or worse */
+
+  /* ---- Functional / status ---- */
+  --status-success: #237E1A;
+  --status-warning: #E0742E;
+  --status-danger:  #B23B2E;
+  --status-info:    #4E6E8E;
+
+  /* ============================================================
+     Semantic aliases — prefer these in components
+     ============================================================ */
+
+  /* Brand */
+  --primary:        var(--green-800);
+  --primary-hover:  var(--green-900);
+  --primary-active: var(--green-950);
+  --accent:         var(--orange-500);
+  --accent-hover:   var(--orange-600);
+  --accent-active:  var(--orange-700);
+
+  /* Surfaces */
+  --surface-page:    var(--sand-100);
+  --surface-card:    var(--white);
+  --surface-raised:  var(--sand-50);
+  --surface-sunken:  var(--sand-200);
+  --surface-inverse: var(--green-800);
+  --surface-accent-soft: var(--orange-100);
+  --surface-brand-soft:  var(--green-50);
+
+  /* Text */
+  --text-primary:   var(--ink-900);
+  --text-secondary: var(--ink-700);
+  --text-muted:     var(--ink-500);
+  --text-disabled:  var(--ink-400);
+  --text-inverse:   var(--sand-50);
+  --text-brand:     var(--green-800);
+  --text-accent:    var(--orange-600);
+  --text-on-accent: var(--white);
+
+  /* Borders */
+  --border-subtle:  var(--sand-200);
+  --border-default: var(--sand-300);
+  --border-strong:  var(--sand-400);
+  --border-brand:   var(--green-800);
+  --border-focus:   var(--green-500);
+
+  /* Misc */
+  --overlay-scrim: rgba(14, 58, 40, 0.45);
+  --focus-ring:    rgba(26, 126, 72, 0.35);
+}

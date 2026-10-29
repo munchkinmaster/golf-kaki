@@ -28,6 +28,8 @@ export type TournamentRoundPlayer = TournamentLobbyPlayer;
 /** Everything a round's `load()` fetches, as one value — lets the fetch (shared across every screen watching this match, see liveMatchSync.ts) stay separate from applying it to any one screen's own state. */
 type TournamentRoundData = {
   matchName: string;
+  roundsCount: number;
+  roundIndex: number;
   handicapAllowancePct: number;
   standingsBasis: TournamentStandingsBasis;
   scoringFormat: TournamentScoringFormat;
@@ -49,6 +51,8 @@ export function useTournamentRound(tournamentId: string, matchId: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [matchName, setMatchName] = useState('');
+  const [roundsCount, setRoundsCount] = useState(1);
+  const [roundIndex, setRoundIndex] = useState(1);
   const [handicapAllowancePct, setHandicapAllowancePct] = useState(100);
   const [standingsBasis, setStandingsBasis] = useState<TournamentStandingsBasis>('nett');
   const [scoringFormat, setScoringFormat] = useState<TournamentScoringFormat>('stroke_play');
@@ -67,7 +71,7 @@ export function useTournamentRound(tournamentId: string, matchId: string) {
   const isHostViewer = hostId !== null && hostId === viewerId;
 
   const fetchRoundData = useCallback(async (): Promise<TournamentRoundData> => {
-    const lobby = await fetchTournamentLobby(tournamentId);
+    const lobby = await fetchTournamentLobby(tournamentId, matchId);
     const catalog = await fetchCourseCatalog();
     const course = catalog.find((c) => c.id === lobby.courseId);
     if (!course) throw new Error('Could not find this round’s course.');
@@ -77,6 +81,8 @@ export function useTournamentRound(tournamentId: string, matchId: string) {
 
     return {
       matchName: lobby.name,
+      roundsCount: lobby.roundsCount,
+      roundIndex: lobby.roundIndex,
       handicapAllowancePct: lobby.handicapAllowancePct,
       standingsBasis: lobby.standingsBasis,
       scoringFormat: lobby.scoringFormat,
@@ -97,6 +103,8 @@ export function useTournamentRound(tournamentId: string, matchId: string) {
 
   const applyRoundData = useCallback((data: TournamentRoundData) => {
     setMatchName(data.matchName);
+    setRoundsCount(data.roundsCount);
+    setRoundIndex(data.roundIndex);
     setHandicapAllowancePct(data.handicapAllowancePct);
     setStandingsBasis(data.standingsBasis);
     setScoringFormat(data.scoringFormat);
@@ -129,6 +137,10 @@ export function useTournamentRound(tournamentId: string, matchId: string) {
       [
         { table: 'scores', filter: `match_id=eq.${matchId}` },
         { table: 'matches', filter: `id=eq.${matchId}` },
+        // card_confirmed_at (Finish's Confirm scores list) lives here — without
+        // this watch, other players' confirmations only showed up on the 20s
+        // fallback poll.
+        { table: 'match_players', filter: `match_id=eq.${matchId}` },
       ],
       (data) => {
         applyRoundData(data);
@@ -214,6 +226,9 @@ export function useTournamentRound(tournamentId: string, matchId: string) {
     hostId,
     isHostViewer,
     matchName,
+    /** 1 for a single-round tournament — a multi-round one hands Finish over to MR10/MR13. */
+    roundsCount,
+    roundIndex,
     courseId,
     handicapAllowancePct,
     standingsBasis,

@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ArrowRight, Calculator, Circle, CircleCheckBig, Hash, Info, ListChecks, Sparkles, User, Users } from 'lucide-react-native';
+import { ArrowRight, Calculator, Circle, CircleCheckBig, Hash, Info, ListChecks, Medal, Sigma, Sparkles, User, Users } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,7 +13,7 @@ import { TournamentLockedNotice } from '../components/TournamentLockedNotice';
 import { TournamentWizardHeader } from '../components/TournamentWizardHeader';
 import type { TournamentStackParamList } from '../navigation/types';
 import type { TournamentFormat } from '../state/TournamentDraftContext';
-import { useTournamentDraft } from '../state/TournamentDraftContext';
+import { MAX_ROUNDS, MIN_ROUNDS, resizeRoundDrafts, useTournamentDraft } from '../state/TournamentDraftContext';
 import { colors, getFontFamily, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<TournamentStackParamList, 'TournamentFormat'>;
@@ -57,12 +57,22 @@ export function TournamentFormatScreen({ navigation }: Props) {
   const locked = draft.tournamentId !== null;
 
   const canContinue = draft.name.trim().length > 0;
+  const isMultiRound = draft.roundStructure === 'multi';
+  // Multi-round is scoped to stroke play only for now — Stableford and
+  // System 36 would each need their own cross-round aggregate rules.
+  const multiRoundAvailable = draft.format === 'stroke_play';
+
+  const selectFormat = (format: TournamentFormat) =>
+    update(format === 'stroke_play' ? { format } : { format, roundStructure: 'single' });
+  const selectMultiRound = () => update({ roundStructure: 'multi', standingsBasis: 'nett', rounds: resizeRoundDrafts(draft.rounds, draft.roundsCount) });
+  const selectRoundsCount = (roundsCount: number) => update({ roundsCount, rounds: resizeRoundDrafts(draft.rounds, roundsCount) });
+  const roundCounts = Array.from({ length: MAX_ROUNDS - MIN_ROUNDS + 1 }, (_, i) => MIN_ROUNDS + i);
 
   return (
     <View style={styles.page}>
       <StatusBar style="dark" />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <TournamentWizardHeader step="format" onBack={() => navigation.goBack()} />
+        <TournamentWizardHeader step="format" multiRound={isMultiRound} onBack={() => navigation.goBack()} />
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           {locked ? <TournamentLockedNotice /> : null}
@@ -108,7 +118,7 @@ export function TournamentFormatScreen({ navigation }: Props) {
                     name={f.name}
                     description={f.description}
                     selected={draft.format === f.format}
-                    onPress={() => update({ format: f.format })}
+                    onPress={() => selectFormat(f.format)}
                   />
                 ) : (
                   <DisabledFormatCard key={f.format} icon={f.icon} name={f.name} description={f.description} />
@@ -137,14 +147,63 @@ export function TournamentFormatScreen({ navigation }: Props) {
           <View>
             <Text style={styles.fieldLabel}>Round structure</Text>
             <View style={styles.row}>
-              <View style={[styles.structureOption, styles.structureOptionSelected]}>
-                <Text style={styles.structureOptionLabelSelected}>Single round</Text>
-              </View>
-              <View style={styles.structureOptionDisabled}>
-                <Text style={styles.structureOptionLabelDisabled}>Multi-round</Text>
-              </View>
+              <Pressable
+                style={[styles.structureOption, isMultiRound ? styles.structureOptionUnselected : styles.structureOptionSelected]}
+                onPress={() => update({ roundStructure: 'single' })}
+              >
+                <Text style={isMultiRound ? styles.structureOptionLabel : styles.structureOptionLabelSelected}>Single round</Text>
+              </Pressable>
+              {multiRoundAvailable ? (
+                <Pressable
+                  style={[styles.structureOption, isMultiRound ? styles.structureOptionSelected : styles.structureOptionUnselected]}
+                  onPress={selectMultiRound}
+                >
+                  <Text style={isMultiRound ? styles.structureOptionLabelSelected : styles.structureOptionLabel}>Multi-round</Text>
+                </Pressable>
+              ) : (
+                <View style={styles.structureOptionDisabled}>
+                  <Text style={styles.structureOptionLabelDisabled}>Multi-round</Text>
+                </View>
+              )}
             </View>
+            {multiRoundAvailable ? null : <Text style={styles.helperText}>Multi-round is stroke play only for now.</Text>}
           </View>
+
+          {isMultiRound ? (
+            <>
+              <View>
+                <Text style={styles.fieldLabel}>Number of rounds</Text>
+                <View style={styles.row}>
+                  {roundCounts.map((n) => {
+                    const selected = draft.roundsCount === n;
+                    return (
+                      <Pressable
+                        key={n}
+                        style={[styles.structureOption, selected ? styles.structureOptionSelected : styles.structureOptionUnselected]}
+                        onPress={() => selectRoundsCount(n)}
+                      >
+                        <Text style={[styles.roundCountLabel, selected && styles.roundCountLabelSelected]}>{n}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View>
+                <Text style={styles.fieldLabel}>Standings</Text>
+                <View style={styles.cardStack}>
+                  <FormatCard
+                    icon={Sigma}
+                    name="Aggregate total"
+                    description="Add every round — lowest combined nett wins"
+                    selected={draft.standingsMode === 'aggregate'}
+                    onPress={() => update({ standingsMode: 'aggregate' })}
+                  />
+                  <DisabledFormatCard icon={Medal} name="Best N of rounds" description="Drop the worst round(s)" />
+                </View>
+              </View>
+            </>
+          ) : null}
           </View>
         </ScrollView>
 
@@ -155,7 +214,7 @@ export function TournamentFormatScreen({ navigation }: Props) {
             size="lg"
             block
             disabled={!canContinue}
-            onPress={() => navigation.navigate('TournamentCourse')}
+            onPress={() => navigation.navigate(isMultiRound ? 'TournamentRounds' : 'TournamentCourse')}
             icon={<ArrowRight size={19} color={colors.textOnAccent} />}
             iconPosition="right"
           />
@@ -480,6 +539,28 @@ const styles = StyleSheet.create({
   },
   structureOptionSelected: {
     backgroundColor: colors.primary,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+  },
+  structureOptionUnselected: {
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+  },
+  structureOptionLabel: {
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 14,
+    color: colors.textDisabled,
+  },
+  roundCountLabel: {
+    fontFamily: getFontFamily('numeric', '700'),
+    fontWeight: '700',
+    fontSize: 16,
+    color: colors.textDisabled,
+  },
+  roundCountLabelSelected: {
+    color: palette.white,
   },
   structureOptionLabelSelected: {
     fontFamily: getFontFamily('body', '700'),

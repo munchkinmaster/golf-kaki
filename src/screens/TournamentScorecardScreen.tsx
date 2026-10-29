@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ArrowRight, Calculator, Check, ChevronLeft, ChevronRight, Coins, Lock, Minus, Plus, Repeat, Table2 } from 'lucide-react-native';
+import { ArrowRight, Calculator, Check, ChevronLeft, ChevronRight, Coins, Lock, Minus, Plus, Repeat, Table2, Trophy } from 'lucide-react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,8 +17,13 @@ import type { ScoreClass } from '../data/strokePlay';
 import { SYSTEM36_TOTAL_HOLES, s36Handicap, s36PointsForHole, stablefordTotal } from '../data/system36';
 import { confirmTournamentCard } from '../data/tournaments';
 import { useFinishRedirect } from '../hooks/useFinishRedirect';
+import { useTournamentOverview } from '../hooks/useTournamentOverview';
+import { formatToPar } from '../components/MultiRoundLobby';
+import { fetchCourseCatalog } from '../data/courses';
+import { computeAggregateStandings, ordinal } from '../data/multiRound';
 import { useTournamentRound } from '../hooks/useTournamentRound';
 import type { TournamentRoundPlayer } from '../hooks/useTournamentRound';
+import { refreshMatchSync } from '../lib/liveMatchSync';
 import type { RootStackParamList } from '../navigation/types';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
@@ -60,6 +65,36 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
     loading,
     useCallback(() => navigation.navigate('TournamentFinish', { tournamentId, matchId }), [navigation, tournamentId, matchId]),
   );
+
+  // MR7 — a multi-round round gets "Round 2 of 3 · course" and the viewer's Overall strip.
+  const overview = useTournamentOverview(tournamentId, round);
+  const [courseName, setCourseName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!round.courseId || round.roundsCount < 2) return;
+    let cancelled = false;
+    fetchCourseCatalog()
+      .then((catalog) => !cancelled && setCourseName(catalog.find((c) => c.id === round.courseId)?.name ?? null))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [round.courseId, round.roundsCount]);
+  const overallStrip = useMemo(() => {
+    if (!overview || !viewerId) return null;
+    const rows = computeAggregateStandings(overview.rosterIds, overview.rounds, overview.entries, overview.tieBreakRule);
+    const me = rows.find((r) => r.playerId === viewerId);
+    if (!me || me.rank === null) return null;
+    const leader = rows.find((r) => r.rank === 1)!;
+    const next = rows.find((r) => r.playerId !== me.playerId && r.rank !== null);
+    const gap =
+      me.rank === 1
+        ? next && next.rank !== 1
+          ? `${next.totalToPar - me.totalToPar} clear`
+          : 'tied'
+        : `${me.totalToPar - leader.totalToPar} back`;
+    return { toPar: me.totalToPar, place: ordinal(me.rank), gap };
+  }, [overview, viewerId]);
+  const roundPrefix = round.roundsCount > 1 ? `R${round.roundIndex} ` : '';
 
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [activeHoleN, setActiveHoleN] = useState<number | null>(null);
@@ -214,7 +249,12 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
     // "I'm done" signal the Finish screen's Confirm scores list looks for,
     // so it's recorded here rather than inferred from hole-completeness.
     if (holePos >= playOrder.length - 1) {
-      if (selectedPlayerId && canEditPlayer(selectedPlayerId)) confirmTournamentCard(matchId, selectedPlayerId).catch(() => {});
+      // Re-sync once the write lands so Finish flips to "confirmed" right away
+      // instead of waiting on a realtime event or the 20s fallback poll.
+      if (selectedPlayerId && canEditPlayer(selectedPlayerId))
+        confirmTournamentCard(matchId, selectedPlayerId)
+          .then(() => refreshMatchSync(`tournament-round-${matchId}`))
+          .catch(() => {});
       navigation.navigate('TournamentFinish', { tournamentId, matchId });
     } else {
       goHole(1);
@@ -271,8 +311,12 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
             </Pressable>
             <View style={styles.headerTitleGroup}>
               <Text style={styles.headerTitle}>{round.matchName}</Text>
-              <Text style={styles.headerSubtitle}>
-                {isSystem36 ? 'System 36 · no HCP entered' : `${isStableford ? 'Stableford' : 'Stroke play'} · Nett ${round.handicapAllowancePct}%`}
+              <Text style={styles.headerSubtitle} numberOfLines={1}>
+                {round.roundsCount > 1
+                  ? `Round ${round.roundIndex} of ${round.roundsCount}${courseName ? ` · ${courseName}` : ''}`
+                  : isSystem36
+                    ? 'System 36 · no HCP entered'
+                    : `${isStableford ? 'Stableford' : 'Stroke play'} · Nett ${round.handicapAllowancePct}%`}
               </Text>
             </View>
             <View style={styles.headerActions}>
@@ -312,6 +356,16 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
             </Pressable>
           </View>
         </View>
+        {overallStrip ? (
+          <Pressable style={styles.overallStrip} onPress={() => navigation.navigate('TournamentLeaderboard', { tournamentId, matchId })}>
+            <Trophy size={16} color={colors.accent} />
+            <Text style={styles.overallStripLabel}>Overall</Text>
+            <Text style={[styles.overallStripToPar, overallStrip.toPar > 0 && styles.overallStripToParOver]}>{formatToPar(overallStrip.toPar)}</Text>
+            <View style={styles.overallStripDivider} />
+            <Text style={styles.overallStripPlace}>{overallStrip.place}</Text>
+            <Text style={styles.overallStripGap}>{overallStrip.gap}</Text>
+          </Pressable>
+        ) : null}
 
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
           {/* BIG STROKE ENTRY */}
@@ -490,15 +544,15 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
           ) : (
             <View style={styles.totalsRow}>
               <View style={styles.totalTile}>
-                <Text style={styles.totalTileLabel}>Gross</Text>
+                <Text style={styles.totalTileLabel}>{roundPrefix}Gross</Text>
                 <Text style={styles.totalTileValue}>{grossVal}</Text>
               </View>
               <View style={[styles.totalTile, styles.totalTileNett]}>
-                <Text style={styles.totalTileLabelInverse}>Nett</Text>
+                <Text style={styles.totalTileLabelInverse}>{roundPrefix}Nett</Text>
                 <Text style={styles.totalTileValueInverse}>{nettVal}</Text>
               </View>
               <View style={styles.totalTile}>
-                <Text style={styles.totalTileLabel}>To par</Text>
+                <Text style={styles.totalTileLabel}>{roundPrefix}To par</Text>
                 <Text style={[styles.totalTileValue, toPar > 0 && styles.totalTileValueOver]}>
                   {toPar > 0 ? `+${toPar}` : toPar}
                 </Text>
@@ -662,6 +716,47 @@ function HoleRow({
 }
 
 const styles = StyleSheet.create({
+  overallStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    minHeight: 44,
+    paddingHorizontal: screenGutter,
+    paddingVertical: spacing[2] + 2,
+    backgroundColor: palette.green[900],
+  },
+  overallStripLabel: {
+    flex: 1,
+    fontFamily: getFontFamily('body', '500'),
+    fontWeight: '500',
+    fontSize: 13,
+    color: palette.multiRound.timeline.labelActive,
+  },
+  overallStripToPar: {
+    fontFamily: getFontFamily('numeric', '700'),
+    fontWeight: '700',
+    fontSize: 14,
+    color: palette.multiRound.timeline.done,
+  },
+  overallStripToParOver: {
+    color: palette.white,
+  },
+  overallStripDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: palette.multiRound.timeline.upcoming,
+  },
+  overallStripPlace: {
+    fontFamily: getFontFamily('numeric', '700'),
+    fontWeight: '700',
+    fontSize: 14,
+    color: palette.white,
+  },
+  overallStripGap: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 12,
+    color: palette.multiRound.timeline.labelUpcoming,
+  },
   page: { flex: 1, backgroundColor: colors.surfacePage },
   safeArea: { flex: 1 },
   centerFill: { flex: 1, alignItems: 'center', justifyContent: 'center' },
