@@ -94,6 +94,10 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
   // One round of a multi-round event isn't a result on its own — level netts
   // share the place here; the tie-break only settles the final total (MR13).
   const isMultiRound = round.roundsCount > 1;
+  // Multi-round: every label names the round so a round's result never reads
+  // as the tournament's final standings.
+  const roundName = `Round ${round.roundIndex}`;
+  const standingsName = isMultiRound ? `${roundName} standings` : 'Final standings';
   const standings = computeTournamentStandings(rosterIds, perPlayerThru, gross, holes, playingHandicaps, playOrder, isMultiRound ? 'shared_place' : round.tieBreakRule);
   const viewerRow = standings.find((r) => r.playerId === viewerId);
   const viewerPlayer = roster.find((p) => p.id === viewerId);
@@ -237,7 +241,9 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.hero}>
           <View style={styles.heroTopRow}>
-            <Text style={styles.heroOverline}>{isFinished ? 'Round complete' : 'In progress'}</Text>
+            <Text style={styles.heroOverline}>
+              {`${isMultiRound ? `${roundName} of ${round.roundsCount} · ` : ''}${isFinished ? 'Round complete' : 'In progress'}`}
+            </Text>
             <Pressable onPress={() => navigation.navigate('Home')} hitSlop={8}>
               <X size={20} color="rgba(255,255,255,0.7)" />
             </Pressable>
@@ -357,8 +363,8 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                 </Text>
                 <Text style={styles.gateSubtitle}>
                   {isHostViewer
-                    ? 'Final standings and the Skins settlement show up here once every card is complete — or finish early below if you need to.'
-                    : 'Final standings and the Skins settlement show up here once every card is complete.'}
+                    ? `${standingsName} and the Skins settlement show up here once every card is complete — or finish early below if you need to.`
+                    : `${standingsName} and the Skins settlement show up here once every card is complete.`}
                 </Text>
               </View>
             </View>
@@ -420,7 +426,7 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.finishedTitle}>
-                      {`You finished ${standings.some((r) => r !== viewerRow && r.rank === viewerRow.rank) ? 'tied ' : ''}${ordinal(viewerRow.rank)} nett`}
+                      {`You finished ${standings.some((r) => r !== viewerRow && r.rank === viewerRow.rank) ? 'tied ' : ''}${ordinal(viewerRow.rank)} nett${isMultiRound ? ` in ${roundName}` : ''}`}
                     </Text>
                     <Text style={styles.finishedSubtitle}>Nice round out there.</Text>
                   </View>
@@ -429,7 +435,7 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
 
               <View>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionLabel}>Final standings · {isSystem36 ? 'Stableford' : isStableford ? 'points' : 'nett'}</Text>
+                  <Text style={styles.sectionLabel}>{standingsName} · {isSystem36 ? 'Stableford' : isStableford ? 'points' : 'nett'}</Text>
                   <Text style={styles.sectionCaption}>{roster.length} players</Text>
                 </View>
                 {isSystem36 ? (
@@ -609,7 +615,7 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
                     <Award size={19} color={colors.accent} />
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.grossLabel}>Best gross</Text>
+                    <Text style={styles.grossLabel}>{isMultiRound ? `Best gross · ${roundName}` : 'Best gross'}</Text>
                     <Text style={styles.grossValue}>
                       {roster.find((p) => p.id === displayBestGrossRow.playerId)?.name.split(' ')[0]} · {displayBestGrossRow.gross} (
                       {toParLabel(displayBestGrossRow.gross - parTotal(displayBestGrossRow.thru, holes, playOrder))})
