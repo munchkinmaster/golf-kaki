@@ -19,6 +19,7 @@ import { groupPastRounds } from '../data/pastGames';
 import { moneyLabel } from '../data/round';
 import { useNotificationCount } from '../hooks/useNotificationCount';
 import type { RootStackParamList } from '../navigation/types';
+import { goToTab } from '../navigation/tabs';
 import { useAuth } from '../state/AuthContext';
 import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
@@ -178,11 +179,7 @@ export function RoundsScreen({ navigation, route }: Props) {
 
         <BottomNav
           active="rounds"
-          onNavigate={(navTab) => {
-            if (navTab === 'home') navigation.navigate('Home');
-            if (navTab === 'kaki') navigation.navigate('Kaki');
-            if (navTab === 'profile') navigation.navigate('Profile');
-          }}
+          onNavigate={(tab) => goToTab(navigation, tab)}
           onStart={() => navigation.navigate('SelectCourse')}
         />
 

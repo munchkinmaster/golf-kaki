@@ -22,6 +22,7 @@ import { fetchEarlierActivity, formatRelativeTime } from '../data/notifications'
 import type { TournamentNotice } from '../data/tournamentHome';
 import { fetchTournamentNotices } from '../data/tournamentHome';
 import type { RootStackParamList } from '../navigation/types';
+import { goToTab } from '../navigation/tabs';
 import { useAuth } from '../state/AuthContext';
 import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
@@ -123,7 +124,7 @@ export function NotificationsScreen({ navigation }: Props) {
       }
       navigation.navigate('Recap', { matchId: item.matchId, matchName: item.matchName, courseName: item.courseName, gameModeName: item.gameModeName });
     } else {
-      navigation.navigate('Kaki');
+      goToTab(navigation, 'kaki');
     }
   }
 

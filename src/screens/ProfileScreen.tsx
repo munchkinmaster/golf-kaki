@@ -27,6 +27,7 @@ import { fetchRoundSummaries, profileRoundStats } from '../data/rounds';
 import { buildTrophyBadges, pickFeaturedBadge, trophyCounts } from '../data/trophies';
 import { useNotificationCount } from '../hooks/useNotificationCount';
 import type { RootStackParamList } from '../navigation/types';
+import { goToTab } from '../navigation/tabs';
 import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
@@ -282,11 +283,7 @@ export function ProfileScreen({ navigation }: Props) {
 
         <BottomNav
           active="profile"
-          onNavigate={(tab) => {
-            if (tab === 'home') navigation.navigate('Home');
-            if (tab === 'kaki') navigation.navigate('Kaki');
-            if (tab === 'rounds') navigation.navigate('Rounds');
-          }}
+          onNavigate={(tab) => goToTab(navigation, tab)}
           onStart={() => navigation.navigate('SelectCourse')}
         />
       </SafeAreaView>

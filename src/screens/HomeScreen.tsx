@@ -29,6 +29,7 @@ import type { ActiveTournament, TournamentNotice } from '../data/tournamentHome'
 import { fetchActiveTournaments } from '../data/tournamentHome';
 import { supabase } from '../lib/supabase';
 import type { RootStackParamList } from '../navigation/types';
+import { goToTab } from '../navigation/tabs';
 import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, getPlayerColors, layout, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
@@ -424,11 +425,7 @@ export function HomeScreen({ navigation }: Props) {
 
         <BottomNav
           active="home"
-          onNavigate={(tab) => {
-            if (tab === 'profile') navigation.navigate('Profile');
-            if (tab === 'kaki') navigation.navigate('Kaki');
-            if (tab === 'rounds') navigation.navigate('Rounds');
-          }}
+          onNavigate={(tab) => goToTab(navigation, tab)}
           onStart={() => navigation.navigate('SelectCourse')}
         />
       </SafeAreaView>

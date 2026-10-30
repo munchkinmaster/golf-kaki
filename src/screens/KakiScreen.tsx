@@ -26,6 +26,7 @@ import type { AddCandidate, Friend, FriendRequest } from '../data/kaki';
 import { acceptFriendRequest, fetchKakiOverview, removeKakiRelationship, sendFriendRequest } from '../data/kaki';
 import { useNotificationCount } from '../hooks/useNotificationCount';
 import type { RootStackParamList } from '../navigation/types';
+import { goToTab } from '../navigation/tabs';
 import { useAuth } from '../state/AuthContext';
 import { colors, getFontFamily, getPlayerColors, motion, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
@@ -185,11 +186,7 @@ export function KakiScreen({ navigation }: Props) {
 
         <BottomNav
           active="kaki"
-          onNavigate={(tab) => {
-            if (tab === 'home') navigation.navigate('Home');
-            if (tab === 'profile') navigation.navigate('Profile');
-            if (tab === 'rounds') navigation.navigate('Rounds');
-          }}
+          onNavigate={(tab) => goToTab(navigation, tab)}
           onStart={() => navigation.navigate('SelectCourse')}
         />
       </SafeAreaView>
