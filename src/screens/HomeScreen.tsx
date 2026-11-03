@@ -301,9 +301,14 @@ export function HomeScreen({ navigation }: Props) {
             </View>
           ) : null}
 
-          {activeTournaments[0] ? (
+          {/* Every active tournament gets its own card, most urgent first —
+              showing only the first let a stray tournament in setup hide the
+              real one's "Begin Round 2" (2026-11-01). */}
+          {activeTournaments.length > 0 ? (
             <View style={styles.tournamentSection}>
-              <TournamentHomeCard tournament={activeTournaments[0]} onAction={() => openTournament(activeTournaments[0]!)} />
+              {activeTournaments.map((t) => (
+                <TournamentHomeCard key={t.tournamentId} tournament={t} onAction={() => openTournament(t)} />
+              ))}
             </View>
           ) : null}
 
@@ -606,6 +611,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing[6],
   },
   tournamentSection: {
+    gap: spacing[3],
     marginBottom: spacing[6],
   },
   liveCardTop: {
