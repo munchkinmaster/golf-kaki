@@ -47,12 +47,16 @@ function formatRoundDate(d: Date): string {
 export function TournamentPreRoundScreen({ navigation }: Props) {
   const { session } = useAuth();
   const viewerId = session?.user.id;
-  const { draft, update } = useTournamentDraft();
+  const { draft, update, createOnce } = useTournamentDraft();
 
   const [catalog, setCatalog] = useState<CatalogCourse[]>([]);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [creating, setCreating] = useState(false);
+  // `creating` drives the button's busy state, but as state it only updates
+  // on the next render — two taps in the same frame both read false. This
+  // ref is the actual guard.
+  const creatingRef = useRef(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -173,7 +177,8 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
   }
 
   async function handleCreate() {
-    if (creating) return;
+    if (creatingRef.current) return;
+    creatingRef.current = true;
     setCreateError(null);
     setCreating(true);
     try {
@@ -181,41 +186,42 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
       let matchId = draft.matchId;
 
       // Might already exist — the host's first invite on S4 created the real
-      // tournament/match row. Only insert when it doesn't yet.
+      // tournament/match row. Only insert when it doesn't yet. createOnce also
+      // joins an S4 invite's create that's still in flight, rather than
+      // inserting a second tournament alongside it.
       if (!tournamentId || !matchId) {
-        if (!viewerId || !draft.courseId || !draft.comboId) {
-          setCreating(false);
-          return;
-        }
-        const created = await createTournament({
-          hostId: viewerId,
-          tournamentCode: draft.code,
-          name: draft.name,
-          playAs: draft.playAs,
-          roundStructure: draft.roundStructure,
-          scoringFormat: draft.format,
-          standingsBasis: draft.standingsBasis,
-          handicapAllowancePct: draft.handicapAllowancePct,
-          tieBreakRule: draft.tieBreakRule,
-          courseId: draft.courseId,
-          comboId: draft.comboId,
-          startHole: draft.startHole,
-          players: draft.players.map((p) => ({
-            id: p.id,
-            isHost: p.isHost,
-            status: p.status,
-            handicapIndex: p.handicapIndex,
-            teeColor: p.tee,
-            playingHandicap: p.playingHandicap,
-            handicapOverride: p.handicapOverride,
-          })),
-          sideGames: draft.sideGames,
-          rounds: buildRoundPlans(draft),
-          standingsMode: draft.standingsMode,
-        });
+        const { courseId, comboId } = draft;
+        if (!viewerId || !courseId || !comboId) return;
+        const created = await createOnce(() =>
+          createTournament({
+            hostId: viewerId,
+            tournamentCode: draft.code,
+            name: draft.name,
+            playAs: draft.playAs,
+            roundStructure: draft.roundStructure,
+            scoringFormat: draft.format,
+            standingsBasis: draft.standingsBasis,
+            handicapAllowancePct: draft.handicapAllowancePct,
+            tieBreakRule: draft.tieBreakRule,
+            courseId,
+            comboId,
+            startHole: draft.startHole,
+            players: draft.players.map((p) => ({
+              id: p.id,
+              isHost: p.isHost,
+              status: p.status,
+              handicapIndex: p.handicapIndex,
+              teeColor: p.tee,
+              playingHandicap: p.playingHandicap,
+              handicapOverride: p.handicapOverride,
+            })),
+            sideGames: draft.sideGames,
+            rounds: buildRoundPlans(draft),
+            standingsMode: draft.standingsMode,
+          }),
+        );
         tournamentId = created.tournamentId;
         matchId = created.matchId;
-        update({ tournamentId, matchId });
       }
 
       const parent = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
@@ -232,6 +238,7 @@ export function TournamentPreRoundScreen({ navigation }: Props) {
     } catch {
       setCreateError('Could not create the tournament — please try again.');
     } finally {
+      creatingRef.current = false;
       setCreating(false);
     }
   }

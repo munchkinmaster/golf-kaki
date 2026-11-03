@@ -6,6 +6,7 @@ import { localDateString, resizeRoundDates } from '../data/roundDates';
 import type { SkinsConfig } from '../data/skins';
 import { generateTournamentCodePreview } from '../data/tournaments';
 import type { TournamentRoundPlan, TournamentStandingsMode } from '../data/tournaments';
+import { singleFlight } from '../lib/singleFlight';
 
 /**
  * Local wizard state for S1–S6b of the tournament creation flow. Deliberately
@@ -131,11 +132,24 @@ export function buildRoundPlans(draft: TournamentDraft): TournamentRoundPlan[] |
   );
 }
 
+type CreatedIds = { tournamentId: string; matchId: string };
+
 type TournamentDraftContextValue = {
   draft: TournamentDraft;
-  update: (patch: Partial<TournamentDraft>) => void;
+  /** A patch, or a function of the latest draft — use the function form when the patch depends on current state (e.g. appending a player) and two calls can overlap. */
+  update: (patch: Partial<TournamentDraft> | ((prev: TournamentDraft) => Partial<TournamentDraft>)) => void;
   /** Patches one MR2 round (0-based) against the latest draft — safe to call several times in one effect, unlike update({ rounds }) built from a stale render's array. */
   updateRound: (index: number, patch: Partial<RoundDraft>) => void;
+  /**
+   * Runs `create` (the real tournament + match insert) at most once for this
+   * draft and records the ids on it. A call that overlaps one already in
+   * flight gets that same result back with `created: false` instead of
+   * inserting again — two rapid taps used to create two tournaments a second
+   * apart (2026-11-01, Malaysia Open 6NPC + WKRW), since createTournament
+   * retries a code collision with a fresh code. A failed create can be
+   * retried.
+   */
+  createOnce: (create: () => Promise<CreatedIds>) => Promise<CreatedIds & { created: boolean }>;
   reset: () => void;
 };
 
@@ -143,16 +157,28 @@ const TournamentDraftContext = createContext<TournamentDraftContextValue | null>
 
 export function TournamentDraftProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<TournamentDraft>(freshDraft);
+  const [createFlight] = useState(() => singleFlight<CreatedIds>());
 
-  const update = useCallback((patch: Partial<TournamentDraft>) => {
-    setDraft((prev) => ({ ...prev, ...patch }));
+  const update = useCallback((patch: Partial<TournamentDraft> | ((prev: TournamentDraft) => Partial<TournamentDraft>)) => {
+    setDraft((prev) => ({ ...prev, ...(typeof patch === 'function' ? patch(prev) : patch) }));
   }, []);
   const updateRound = useCallback((index: number, patch: Partial<RoundDraft>) => {
     setDraft((prev) => ({ ...prev, rounds: prev.rounds.map((r, i) => (i === index ? { ...r, ...patch } : r)) }));
   }, []);
-  const reset = useCallback(() => setDraft(freshDraft()), []);
+  const createOnce = useCallback(
+    async (create: () => Promise<CreatedIds>) => {
+      const { value: ids, started } = await createFlight.run(create);
+      if (started) setDraft((prev) => ({ ...prev, ...ids }));
+      return { ...ids, created: started };
+    },
+    [createFlight],
+  );
+  const reset = useCallback(() => {
+    createFlight.reset();
+    setDraft(freshDraft());
+  }, [createFlight]);
 
-  const value = useMemo(() => ({ draft, update, updateRound, reset }), [draft, update, updateRound, reset]);
+  const value = useMemo(() => ({ draft, update, updateRound, createOnce, reset }), [draft, update, updateRound, createOnce, reset]);
 
   return <TournamentDraftContext.Provider value={value}>{children}</TournamentDraftContext.Provider>;
 }

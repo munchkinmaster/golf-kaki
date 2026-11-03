@@ -34,7 +34,7 @@ export function TournamentPlayersScreen({ navigation }: Props) {
   const { session } = useAuth();
   const { profile } = useProfile();
   const viewerId = session?.user.id;
-  const { draft, update } = useTournamentDraft();
+  const { draft, update, createOnce } = useTournamentDraft();
 
   const [catalog, setCatalog] = useState<CatalogCourse[]>([]);
   const [ratings, setRatings] = useState<Partial<Record<TeeColor, Rating>>>({});
@@ -224,48 +224,58 @@ export function TournamentPlayersScreen({ navigation }: Props) {
     setInviteError(null);
     setInviteBusyId(friend.id);
 
+    const invitedRow = {
+      id: invited.id,
+      isHost: false,
+      status: 'invited' as const,
+      handicapIndex: invited.handicapIndex,
+      teeColor: invited.tee,
+      playingHandicap: invited.playingHandicap,
+      handicapOverride: invited.handicapOverride,
+    };
+
     try {
       if (!draft.tournamentId || !draft.matchId) {
-        if (!viewerId || !draft.courseId || !draft.comboId) throw new Error('missing setup');
-        const { tournamentId, matchId } = await createTournament({
-          hostId: viewerId,
-          tournamentCode: draft.code,
-          name: draft.name,
-          playAs: draft.playAs,
-          roundStructure: draft.roundStructure,
-          scoringFormat: draft.format,
-          standingsBasis: draft.standingsBasis,
-          handicapAllowancePct: draft.handicapAllowancePct,
-          tieBreakRule: draft.tieBreakRule,
-          courseId: draft.courseId,
-          comboId: draft.comboId,
-          startHole: draft.startHole,
-          players: nextPlayers.map((p) => ({
-            id: p.id,
-            isHost: p.isHost,
-            status: p.status,
-            handicapIndex: p.handicapIndex,
-            teeColor: p.tee,
-            playingHandicap: p.playingHandicap,
-            handicapOverride: p.handicapOverride,
-          })),
-          sideGames: draft.sideGames,
-          rounds: buildRoundPlans(draft),
-          standingsMode: draft.standingsMode,
-        });
-        update({ players: nextPlayers, tournamentId, matchId });
+        const { courseId, comboId } = draft;
+        if (!viewerId || !courseId || !comboId) throw new Error('missing setup');
+        // A second friend tapped before the first invite's create lands joins
+        // that same create rather than starting another tournament — and then
+        // still needs inviting itself, since it wasn't in that create's roster.
+        const { matchId, created } = await createOnce(() =>
+          createTournament({
+            hostId: viewerId,
+            tournamentCode: draft.code,
+            name: draft.name,
+            playAs: draft.playAs,
+            roundStructure: draft.roundStructure,
+            scoringFormat: draft.format,
+            standingsBasis: draft.standingsBasis,
+            handicapAllowancePct: draft.handicapAllowancePct,
+            tieBreakRule: draft.tieBreakRule,
+            courseId,
+            comboId,
+            startHole: draft.startHole,
+            players: nextPlayers.map((p) => ({
+              id: p.id,
+              isHost: p.isHost,
+              status: p.status,
+              handicapIndex: p.handicapIndex,
+              teeColor: p.tee,
+              playingHandicap: p.playingHandicap,
+              handicapOverride: p.handicapOverride,
+            })),
+            sideGames: draft.sideGames,
+            rounds: buildRoundPlans(draft),
+            standingsMode: draft.standingsMode,
+          }),
+        );
+        if (!created) await inviteTournamentPlayer(matchId, invitedRow);
       } else {
-        await inviteTournamentPlayer(draft.matchId, {
-          id: invited.id,
-          isHost: false,
-          status: 'invited',
-          handicapIndex: invited.handicapIndex,
-          teeColor: invited.tee,
-          playingHandicap: invited.playingHandicap,
-          handicapOverride: invited.handicapOverride,
-        });
-        update({ players: nextPlayers });
+        await inviteTournamentPlayer(draft.matchId, invitedRow);
       }
+      // Appended against the latest draft, not this render's `nextPlayers` —
+      // an overlapping invite's player would otherwise be dropped.
+      update((prev) => ({ players: prev.players.some((p) => p.id === invited.id) ? prev.players : [...prev.players, invited] }));
     } catch {
       setInviteError('Could not invite — please try again.');
     } finally {
