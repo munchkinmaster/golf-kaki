@@ -23,7 +23,7 @@ import { useProfile } from '../state/ProfileContext';
 import type { TournamentPlayerDraft } from '../state/TournamentDraftContext';
 import { buildRoundPlans, useTournamentDraft } from '../state/TournamentDraftContext';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
-import { supabase } from '../lib/supabase';
+import { useFocusedRealtime } from '../hooks/useFocusedRealtime';
 
 type Props = NativeStackScreenProps<TournamentStackParamList, 'TournamentPlayers'>;
 
@@ -105,31 +105,11 @@ export function TournamentPlayersScreen({ navigation }: Props) {
   // (Lobby, Scorecard, Leaderboard) already covers this with a realtime
   // channel + poll fallback; this is the one that was missing it.
   const channelId = useRef(Math.random().toString(36).slice(2)).current;
-  useEffect(() => {
-    if (!draft.matchId) return;
-    let syncTimer: ReturnType<typeof setTimeout> | null = null;
-    const scheduleSync = () => {
-      if (syncTimer) clearTimeout(syncTimer);
-      syncTimer = setTimeout(() => {
-        loadLiveRoster();
-      }, 250);
-    };
-
-    const channel = supabase
-      .channel(`tournament-players-${draft.matchId}-${channelId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'match_players', filter: `match_id=eq.${draft.matchId}` }, scheduleSync)
-      .subscribe();
-
-    const pollTimer = setInterval(() => {
-      loadLiveRoster();
-    }, 20000);
-
-    return () => {
-      if (syncTimer) clearTimeout(syncTimer);
-      clearInterval(pollTimer);
-      supabase.removeChannel(channel);
-    };
-  }, [draft.matchId, channelId, loadLiveRoster]);
+  useFocusedRealtime(
+    draft.matchId ? `tournament-players-${draft.matchId}-${channelId}` : null,
+    [{ table: 'match_players', filter: `match_id=eq.${draft.matchId}` }],
+    loadLiveRoster,
+  );
 
   const course = catalog.find((c) => c.id === draft.courseId);
   const combo = course?.combos.find((c) => c.id === draft.comboId);

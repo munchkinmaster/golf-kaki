@@ -54,7 +54,13 @@ export type ActiveTournament = {
   notice: TournamentNotice | null;
 };
 
-/** Every tournament the viewer is seated in that has more than one round. */
+/**
+ * Every tournament the viewer is seated in that has more than one round and
+ * isn't complete yet. Complete = every round's match has finished — exactly
+ * when pickCurrentRound would call it 'complete' — checked here in one cheap
+ * query so fetchActiveTournaments doesn't run a full fetchTournamentResults
+ * for every finished tournament in the viewer's history on every Home focus.
+ */
 async function fetchViewerMultiRoundTournaments(viewerId: string): Promise<{ id: string; name: string; host_id: string }[]> {
   return withRetry(async () => {
     const { data: seats, error: seatsError } = await supabase.from('match_players').select('match_id').eq('player_id', viewerId).eq('status', 'joined');
@@ -69,7 +75,23 @@ async function fetchViewerMultiRoundTournaments(viewerId: string): Promise<{ id:
 
     const { data: tournaments, error: tError } = await supabase.from('tournaments').select('id, name, host_id').in('id', tournamentIds).gt('rounds_count', 1);
     if (tError) throw tError;
-    return tournaments as { id: string; name: string; host_id: string }[];
+    const multiRound = tournaments as { id: string; name: string; host_id: string }[];
+    if (multiRound.length === 0) return [];
+
+    const { data: rounds, error: rError } = await supabase
+      .from('tournament_rounds')
+      .select('tournament_id, matches ( status )')
+      .in(
+        'tournament_id',
+        multiRound.map((t) => t.id),
+      );
+    if (rError) throw rError;
+    const unfinished = new Set(
+      (rounds as unknown as { tournament_id: string; matches: { status: string } | null }[])
+        .filter((r) => r.matches?.status !== 'finished')
+        .map((r) => r.tournament_id),
+    );
+    return multiRound.filter((t) => unfinished.has(t.id));
   });
 }
 

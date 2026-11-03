@@ -49,8 +49,9 @@ const registry = new Map<string, Entry<unknown>>();
  * Fallback poll interval. Was 20s; the poll now also pauses while the app is
  * hidden and refetches on return (which covered the main way realtime events
  * get missed), so it only has to catch the rarer foreground websocket drop.
+ * Shared with useFocusedRealtime's per-screen poll.
  */
-const POLL_MS = 60000;
+export const POLL_MS = 60000;
 
 /**
  * Join the shared subscription for `key`, creating it if this is the first

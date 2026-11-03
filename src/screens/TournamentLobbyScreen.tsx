@@ -9,7 +9,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { BottomSheet } from '../components/BottomSheet';
-import { supabase } from '../lib/supabase';
 import { Button } from '../components/Button';
 import type { InRoundTab } from '../components/InRoundTabBar';
 import { InRoundTabBar } from '../components/InRoundTabBar';
@@ -29,6 +28,7 @@ import { formatRoundDate, localDateString } from '../data/roundDates';
 import type { TournamentResults } from '../data/tournamentResults';
 import { fetchTournamentResults } from '../data/tournamentResults';
 import { useFinishRedirect } from '../hooks/useFinishRedirect';
+import { useFocusedRealtime } from '../hooks/useFocusedRealtime';
 import type { TournamentLobby, TournamentLobbyPlayer, TournamentPlayerSeatPatch, TournamentRound } from '../data/tournaments';
 import { fetchTournamentLobby, fetchTournamentRounds, setSkinsParticipant, updateTournamentPlayerSeat } from '../data/tournaments';
 import type { RootStackParamList } from '../navigation/types';
@@ -162,37 +162,21 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
   // opt-in, or the host starting the round should show up without the
   // viewer having to navigate away and back — same proven pattern as
   // MatchLobbyScreen's own lobby channel / useTournamentRound's in-round one.
+  // Only while this screen is in view: it stays mounted under the scorecard
+  // for the whole round, and the focus reload above catches it up on return.
   const channelId = useRef(Math.random().toString(36).slice(2)).current;
-  useEffect(() => {
-    let syncTimer: ReturnType<typeof setTimeout> | null = null;
-    const scheduleSync = () => {
-      if (syncTimer) clearTimeout(syncTimer);
-      syncTimer = setTimeout(() => {
-        load().catch(() => {});
-      }, 250);
-    };
-
-    const channel = supabase
-      .channel(`tournament-lobby-${matchId}-${channelId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches', filter: `id=eq.${matchId}` }, scheduleSync)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'match_players', filter: `match_id=eq.${matchId}` }, scheduleSync)
+  useFocusedRealtime(
+    `tournament-lobby-${matchId}-${channelId}`,
+    [
+      { table: 'matches', filter: `id=eq.${matchId}` },
+      { table: 'match_players', filter: `match_id=eq.${matchId}` },
       // A multi-round organiser setting up the next round (MR11) links its match here.
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_rounds', filter: `tournament_id=eq.${tournamentId}` }, scheduleSync)
-      .subscribe();
-
-    // postgres_changes isn't guaranteed delivery — bounds how long any client
-    // can stay out of sync without noticing (same fallback useTournamentRound uses).
-    // 20s, not 6s — see useLiveRound's identical change for why.
-    const pollTimer = setInterval(() => {
+      { table: 'tournament_rounds', filter: `tournament_id=eq.${tournamentId}` },
+    ],
+    () => {
       load().catch(() => {});
-    }, 20000);
-
-    return () => {
-      if (syncTimer) clearTimeout(syncTimer);
-      clearInterval(pollTimer);
-      supabase.removeChannel(channel);
-    };
-  }, [matchId, tournamentId, channelId, load]);
+    },
+  );
 
   // Previously the host's own "Start scoring" tap navigated THEM straight to
   // S7, but everyone else just sat on the Lobby tab until they noticed the
