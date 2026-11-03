@@ -32,6 +32,7 @@ import { useFinishRedirect } from '../hooks/useFinishRedirect';
 import type { TournamentLobby, TournamentLobbyPlayer, TournamentPlayerSeatPatch, TournamentRound } from '../data/tournaments';
 import { fetchTournamentLobby, fetchTournamentRounds, setSkinsParticipant, updateTournamentPlayerSeat } from '../data/tournaments';
 import type { RootStackParamList } from '../navigation/types';
+import { goToTab } from '../navigation/tabs';
 import { useAuth } from '../state/AuthContext';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
@@ -332,7 +333,7 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
-            <Pressable style={styles.backButton} onPress={() => navigation.navigate('Home')}>
+            <Pressable style={styles.backButton} onPress={() => goToTab(navigation, 'home')}>
               <ChevronLeft size={20} color="rgba(255,255,255,0.8)" />
             </Pressable>
             <View style={styles.headerTitleGroup}>

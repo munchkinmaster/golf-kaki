@@ -20,6 +20,7 @@ import { computeSystem36Standings } from '../data/system36';
 import { finishTournamentRound } from '../data/tournaments';
 import { useTournamentRound } from '../hooks/useTournamentRound';
 import type { RootStackParamList } from '../navigation/types';
+import { goToTab } from '../navigation/tabs';
 import { colors, getFontFamily, getSolidAvatarColor, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'TournamentFinish'>;
@@ -244,7 +245,7 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
             <Text style={styles.heroOverline}>
               {`${isMultiRound ? `${roundName} of ${round.roundsCount} · ` : ''}${isFinished ? 'Round complete' : 'In progress'}`}
             </Text>
-            <Pressable onPress={() => navigation.navigate('Home')} hitSlop={8}>
+            <Pressable onPress={() => goToTab(navigation, 'home')} hitSlop={8}>
               <X size={20} color="rgba(255,255,255,0.7)" />
             </Pressable>
           </View>
@@ -713,7 +714,7 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
               <Text style={styles.scorecardButtonLabel}>Scorecard</Text>
             </Pressable>
             {isFinished ? (
-              <Pressable style={styles.doneButton} onPress={() => navigation.navigate('Home')}>
+              <Pressable style={styles.doneButton} onPress={() => goToTab(navigation, 'home')}>
                 <Text style={styles.doneButtonLabel}>Done</Text>
               </Pressable>
             ) : (

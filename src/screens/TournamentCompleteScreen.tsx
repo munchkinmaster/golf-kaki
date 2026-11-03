@@ -15,6 +15,7 @@ import type { TournamentResults } from '../data/tournamentResults';
 import { fetchTournamentResults } from '../data/tournamentResults';
 import { fetchTournamentLobby } from '../data/tournaments';
 import type { RootStackParamList } from '../navigation/types';
+import { goToTab } from '../navigation/tabs';
 import { useAuth } from '../state/AuthContext';
 import { colors, getFontFamily, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
@@ -115,7 +116,7 @@ export function TournamentCompleteScreen({ navigation, route }: Props) {
           overline="Tournament complete"
           title={name}
           subtitle={`${rounds.length} rounds · ${holes} holes${firstDate && lastDate ? ` · ${formatDayMonth(firstDate)} – ${formatDayMonth(lastDate)}` : ''}`}
-          onClose={() => navigation.navigate('Home')}
+          onClose={() => goToTab(navigation, 'home')}
         >
           {champion ? (
             <View style={styles.championCard}>
@@ -212,7 +213,7 @@ export function TournamentCompleteScreen({ navigation, route }: Props) {
           </View>
         </ScrollView>
 
-        <RecapActions secondary="Share" secondaryIcon={<Share2 size={16} color={colors.primary} />} onSecondary={share} onDone={() => navigation.navigate('Home')} />
+        <RecapActions secondary="Share" secondaryIcon={<Share2 size={16} color={colors.primary} />} onSecondary={share} onDone={() => goToTab(navigation, 'home')} />
       </SafeAreaView>
     </View>
   );

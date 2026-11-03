@@ -37,6 +37,7 @@ import {
 import { useFinishRedirect } from '../hooks/useFinishRedirect';
 import { useLiveRound } from '../hooks/useLiveRound';
 import type { RootStackParamList } from '../navigation/types';
+import { goToTab } from '../navigation/tabs';
 import { useProfile } from '../state/ProfileContext';
 import { colors, getFontFamily, palette, radius, screenGutter, shadows, spacing } from '../theme/tokens';
 
@@ -349,7 +350,7 @@ export function ScorecardScreen({ navigation, route }: Props) {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.header}>
           <View style={styles.headerTopRow}>
-            <Pressable style={styles.backButton} onPress={() => navigation.navigate('Home')}>
+            <Pressable style={styles.backButton} onPress={() => goToTab(navigation, 'home')}>
               <ChevronLeft size={20} color="rgba(255,255,255,0.8)" />
             </Pressable>
             <View style={styles.headerTitleGroup}>

@@ -14,6 +14,7 @@ import type { TournamentResults } from '../data/tournamentResults';
 import { fetchTournamentResults } from '../data/tournamentResults';
 import { fetchTournamentLobby } from '../data/tournaments';
 import type { RootStackParamList } from '../navigation/types';
+import { goToTab } from '../navigation/tabs';
 import { useAuth } from '../state/AuthContext';
 import { colors, getFontFamily, palette, radius, screenGutter, spacing } from '../theme/tokens';
 
@@ -92,7 +93,7 @@ export function TournamentRoundRecapScreen({ navigation, route }: Props) {
           overline={`Round ${round.index} of ${count} complete`}
           title={name}
           subtitle={[courseLabel(round.courseId, round.comboId), formatRoundDate(round.date)].filter(Boolean).join(' · ')}
-          onClose={() => navigation.navigate('Home')}
+          onClose={() => goToTab(navigation, 'home')}
         >
           <HeroStatTiles gross={played?.gross ?? null} nett={played?.nett ?? null} toPar={played?.toPar ?? null} />
         </RecapHero>
@@ -160,7 +161,7 @@ export function TournamentRoundRecapScreen({ navigation, route }: Props) {
           secondary="Scorecard"
           secondaryIcon={<List size={16} color={colors.primary} />}
           onSecondary={() => navigation.navigate('TournamentScorecardGrid', { tournamentId, matchId })}
-          onDone={() => navigation.navigate('Home')}
+          onDone={() => goToTab(navigation, 'home')}
         />
       </SafeAreaView>
     </View>
