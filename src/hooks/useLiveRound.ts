@@ -251,7 +251,9 @@ export function useLiveRound(matchId: string) {
       `round-${matchId}`,
       fetchRoundData,
       [
-        { table: 'scores', filter: `match_id=eq.${matchId}` },
+        // Score writes are by far the most frequent change mid-round, and
+        // nothing else in RoundData derives from them — reload just scores.
+        { table: 'scores', filter: `match_id=eq.${matchId}`, refetch: async (prev) => ({ ...prev, scores: await fetchScores(matchId) }) },
         { table: 'game_matchups', filter: `match_id=eq.${matchId}` },
         { table: 'matches', filter: `id=eq.${matchId}` },
       ],

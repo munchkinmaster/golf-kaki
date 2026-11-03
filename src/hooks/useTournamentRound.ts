@@ -135,7 +135,9 @@ export function useTournamentRound(tournamentId: string, matchId: string) {
       `tournament-round-${matchId}`,
       fetchRoundData,
       [
-        { table: 'scores', filter: `match_id=eq.${matchId}` },
+        // Score writes are by far the most frequent change mid-round, and
+        // nothing else in TournamentRoundData derives from them — reload just scores.
+        { table: 'scores', filter: `match_id=eq.${matchId}`, refetch: async (prev) => ({ ...prev, scores: await fetchScores(matchId) }) },
         { table: 'matches', filter: `id=eq.${matchId}` },
         // card_confirmed_at (Finish's Confirm scores list) lives here — without
         // this watch, other players' confirmations only showed up on the 20s

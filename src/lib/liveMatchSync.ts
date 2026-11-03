@@ -23,7 +23,14 @@ import type { NativeEventSubscription } from 'react-native';
 
 import { supabase } from './supabase';
 
-type TableWatch = { table: string; filter: string };
+/**
+ * A table to watch over realtime. `refetch`, if given, is a cheaper partial
+ * reload for a change on this table alone: it takes the last full result and
+ * returns it with just the affected part re-fetched (e.g. only `scores`
+ * after a score write, instead of the whole round). Without it, a change
+ * triggers a full `fetchFn` reload.
+ */
+export type TableWatch<T> = { table: string; filter: string; refetch?: (prev: T) => Promise<T> };
 type Listener<T> = { onData: (data: T) => void; onError: (err: unknown) => void };
 
 type Entry<T> = {
@@ -63,7 +70,7 @@ const POLL_MS = 60000;
 export function joinMatchSync<T>(
   key: string,
   fetchFn: () => Promise<T>,
-  tables: TableWatch[],
+  tables: TableWatch<T>[],
   onData: (data: T) => void,
   onError: (err: unknown) => void,
   isSettled?: (data: T) => boolean,
@@ -73,6 +80,7 @@ export function joinMatchSync<T>(
   if (!entry) {
     const listeners = new Set<Listener<T>>();
     let inFlight: Promise<void> | null = null;
+    let inFlightFull = false;
 
     const isSettledNow = () => entry!.lastData !== null && (isSettled?.(entry!.lastData) ?? false);
 
@@ -95,12 +103,26 @@ export function joinMatchSync<T>(
       }
     };
 
-    const fetchAndBroadcast = () => {
-      // A poll tick and a debounced realtime event can land close together;
-      // if a fetch for this key is already in flight, let its result cover
-      // whoever asked instead of firing a second overlapping request.
-      if (inFlight) return;
-      inFlight = fetchFn()
+    // What the next sync still has to fetch: everything, or just the partial
+    // refetches of the tables that changed. Realtime changes accumulate here
+    // over the debounce window (and while another fetch is in flight), so a
+    // burst of score writes costs one scores reload, not one per write.
+    let pendingFull = false;
+    const pendingPartials = new Set<(prev: T) => Promise<T>>();
+
+    const runSync = () => {
+      if (inFlight) return; // picked up when the in-flight fetch settles
+      const prev = entry!.lastData;
+      const wantsFull = pendingFull;
+      const partials = [...pendingPartials];
+      pendingFull = false;
+      pendingPartials.clear();
+      if (!wantsFull && partials.length === 0) return;
+
+      inFlightFull = wantsFull || prev === null;
+      const work =
+        wantsFull || prev === null ? fetchFn() : partials.reduce<Promise<T>>((acc, refetch) => acc.then(refetch), Promise.resolve(prev));
+      inFlight = work
         .then((data) => {
           entry!.lastData = data;
           listeners.forEach((l) => l.onData(data));
@@ -111,20 +133,35 @@ export function joinMatchSync<T>(
         })
         .finally(() => {
           inFlight = null;
+          // A realtime change that landed mid-fetch may not be in what this
+          // fetch read — run it now rather than leaving it to the next poll.
+          if (registry.get(key) === entry && (pendingFull || pendingPartials.size > 0)) runSync();
         });
     };
 
-    const scheduleSync = () => {
+    const fetchAndBroadcast = () => {
+      // A poll tick, a resume and a forced refresh can land close together;
+      // if a full fetch for this key is already in flight, let its result
+      // cover whoever asked instead of firing a second overlapping request.
+      // (A partial one in flight doesn't cover it — queue the full behind it.)
+      if (inFlight && inFlightFull) return;
+      pendingFull = true;
+      runSync();
+    };
+
+    const scheduleSync = (watch: TableWatch<T>) => {
+      if (watch.refetch) pendingPartials.add(watch.refetch);
+      else pendingFull = true;
       if (entry!.syncTimer) clearTimeout(entry!.syncTimer);
       entry!.syncTimer = setTimeout(() => {
         entry!.syncTimer = null;
-        fetchAndBroadcast();
+        runSync();
       }, 250);
     };
 
     let channelBuilder = supabase.channel(key);
     for (const t of tables) {
-      channelBuilder = channelBuilder.on('postgres_changes', { event: '*', schema: 'public', table: t.table, filter: t.filter }, scheduleSync);
+      channelBuilder = channelBuilder.on('postgres_changes', { event: '*', schema: 'public', table: t.table, filter: t.filter }, () => scheduleSync(t));
     }
     const channel = channelBuilder.subscribe();
 
