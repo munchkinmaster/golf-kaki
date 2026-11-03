@@ -24,7 +24,7 @@ import { Card } from '../components/Card';
 import { NotificationBell } from '../components/NotificationBell';
 import type { AddCandidate, Friend, FriendRequest } from '../data/kaki';
 import { acceptFriendRequest, fetchKakiOverview, removeKakiRelationship, sendFriendRequest } from '../data/kaki';
-import { useNotificationCount } from '../hooks/useNotificationCount';
+import { invalidateNotificationCount, useNotificationCount } from '../hooks/useNotificationCount';
 import type { RootStackParamList } from '../navigation/types';
 import { goToTab } from '../navigation/tabs';
 import { useAuth } from '../state/AuthContext';
@@ -68,14 +68,14 @@ export function KakiScreen({ navigation }: Props) {
     if (!person) return;
     setRequests((prev) => prev.filter((r) => r.id !== id));
     setFriends((prev) => [{ ...person, strokes18: 0 }, ...prev]);
-    acceptFriendRequest(person.relationshipId).catch(() => userId && load(userId));
+    acceptFriendRequest(person.relationshipId).catch(() => userId && load(userId)).finally(invalidateNotificationCount);
   }
 
   function dismissRequest(id: string) {
     const person = requests.find((r) => r.id === id);
     if (!person) return;
     setRequests((prev) => prev.filter((r) => r.id !== id));
-    removeKakiRelationship(person.relationshipId).catch(() => userId && load(userId));
+    removeKakiRelationship(person.relationshipId).catch(() => userId && load(userId)).finally(invalidateNotificationCount);
   }
 
   function toggleAddCandidate(id: string) {

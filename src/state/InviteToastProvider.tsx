@@ -7,6 +7,7 @@ import { Avatar } from '../components/Avatar';
 import type { MatchInvite } from '../data/matches';
 import { fetchMatchInvites } from '../data/matches';
 import { getInitials } from '../data/profile';
+import { invalidateNotificationCount } from '../hooks/useNotificationCount';
 import { supabase } from '../lib/supabase';
 import { navigationRef } from '../navigation/navigationRef';
 import { colors, getFontFamily, getPlayerColors, motion, palette, radius, shadows, spacing } from '../theme/tokens';
@@ -45,6 +46,8 @@ export function InviteToastProvider({ children }: { children: ReactNode }) {
         (payload) => {
           const row = payload.new as { match_id: string; status: string };
           if (row.status !== 'invited' || seenMatchIds.current.has(row.match_id)) return;
+          // A new invite raises the bell count on every tab.
+          invalidateNotificationCount();
           fetchMatchInvites(viewerId)
             .then((invites) => {
               const invite = invites.find((i) => i.matchId === row.match_id);

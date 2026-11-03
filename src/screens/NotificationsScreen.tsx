@@ -22,6 +22,7 @@ import { fetchEarlierActivity, formatRelativeTime } from '../data/notifications'
 import type { TournamentNotice } from '../data/tournamentHome';
 import { fetchTournamentNotices } from '../data/tournamentHome';
 import type { RootStackParamList } from '../navigation/types';
+import { invalidateNotificationCount } from '../hooks/useNotificationCount';
 import { goToTab } from '../navigation/tabs';
 import { useAuth } from '../state/AuthContext';
 import { colors, getFontFamily, getPlayerColors, palette, radius, screenGutter, spacing } from '../theme/tokens';
@@ -68,6 +69,7 @@ export function NotificationsScreen({ navigation }: Props) {
     setMatchInvites((prev) => prev.filter((i) => i.matchId !== invite.matchId));
     try {
       await acceptMatchInvite(invite.matchId, viewerId!);
+      invalidateNotificationCount();
       if (invite.tournamentId) {
         // Tournament scoring/leaderboard screens don't exist yet (later phase) —
         // TournamentLobby is the only tournament screen built so far, regardless
@@ -98,22 +100,22 @@ export function NotificationsScreen({ navigation }: Props) {
 
   function handleDeclineInvite(invite: MatchInvite) {
     setMatchInvites((prev) => prev.filter((i) => i.matchId !== invite.matchId));
-    declineMatchInvite(invite.matchId, viewerId!).catch(() => setMatchInvites((prev) => [...prev, invite]));
+    declineMatchInvite(invite.matchId, viewerId!).catch(() => setMatchInvites((prev) => [...prev, invite])).finally(invalidateNotificationCount);
   }
 
   function handleAcceptFriendRequest(request: FriendRequest) {
     setFriendRequests((prev) => prev.filter((r) => r.relationshipId !== request.relationshipId));
-    acceptFriendRequest(request.relationshipId).catch(() => setFriendRequests((prev) => [...prev, request]));
+    acceptFriendRequest(request.relationshipId).catch(() => setFriendRequests((prev) => [...prev, request])).finally(invalidateNotificationCount);
   }
 
   function handleIgnoreFriendRequest(request: FriendRequest) {
     setFriendRequests((prev) => prev.filter((r) => r.relationshipId !== request.relationshipId));
-    removeKakiRelationship(request.relationshipId).catch(() => setFriendRequests((prev) => [...prev, request]));
+    removeKakiRelationship(request.relationshipId).catch(() => setFriendRequests((prev) => [...prev, request])).finally(invalidateNotificationCount);
   }
 
   function handleAttestBadge(badge: AttestableBadge) {
     setAttestableBadges((prev) => prev.filter((b) => !(b.playerId === badge.playerId && b.badgeType === badge.badgeType)));
-    attestBadge(badge.playerId, badge.badgeType, viewerId!).catch(() => setAttestableBadges((prev) => [...prev, badge]));
+    attestBadge(badge.playerId, badge.badgeType, viewerId!).catch(() => setAttestableBadges((prev) => [...prev, badge])).finally(invalidateNotificationCount);
   }
 
   function openEarlierItem(item: EarlierItem) {
