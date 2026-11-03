@@ -7,13 +7,11 @@
  */
 
 import { fetchCourseCatalog, getComboHoles } from './courses';
-import { fetchLedgerStrokesForGroup } from './kaki';
-import { fetchMatchups, gameModeDisplayName } from './matches';
+import { gameModeDisplayName } from './matches';
 import type { HolesCount, MatchupPair } from './matches';
 import { buildAllPairs, buildPlayOrder, computeThru, grossTotal, money, pairKey, runningUp } from './round';
-import type { GrossMap, Hole, RoundSchedule, StrokeDeal } from './round';
+import type { GrossMap, Hole, HoleScoreMap, RoundSchedule, StrokeDeal } from './round';
 import { withRetry } from '../lib/retry';
-import { fetchScores } from './scores';
 import { supabase } from '../lib/supabase';
 
 export type RoundPlayer = { playerId: string; name: string };
@@ -96,24 +94,126 @@ function buildDeals(rosterIds: string[], matchups: MatchupPair[], ledger: Record
   return { frontNineDeals, backNineDeals: backNineComplete ? backNineDeals : null };
 }
 
-async function summarizeMatch(match: MatchRow, roster: RoundPlayer[], viewerId: string, course: Awaited<ReturnType<typeof fetchCourseCatalog>>[number] | undefined): Promise<RoundSummary> {
+/**
+ * PostgREST silently truncates a response at the project's max-rows (1000 —
+ * supabase/config.toml, and the hosted default) instead of erroring, and a
+ * long `.in()` list makes for a long request URL. A bulk read across every
+ * match a viewer has played can hit both, so it goes in chunks of ids, each
+ * paged until a short page. Each query must order by a unique key so pages
+ * don't overlap or skip.
+ */
+const PAGE_SIZE = 1000;
+const ID_CHUNK = 50;
+
+async function selectAllIn<R>(
+  ids: string[],
+  query: (chunk: string[], from: number, to: number) => PromiseLike<{ data: unknown; error: unknown }>,
+): Promise<R[]> {
+  const rows: R[] = [];
+  for (let i = 0; i < ids.length; i += ID_CHUNK) {
+    const chunk = ids.slice(i, i + ID_CHUNK);
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data, error } = await query(chunk, from, from + PAGE_SIZE - 1);
+      if (error) throw error;
+      const page = data as R[];
+      rows.push(...page);
+      if (page.length < PAGE_SIZE) break;
+    }
+  }
+  return rows;
+}
+
+/** Every score in these matches, as one ScoreMap per match — the bulk form of scores.ts's fetchScores. */
+async function fetchScoresForMatches(matchIds: string[]): Promise<Map<string, HoleScoreMap>> {
+  const rows = await selectAllIn<{ match_id: string; player_id: string; hole_number: number; gross_strokes: number }>(matchIds, (chunk, from, to) =>
+    supabase
+      .from('scores')
+      .select('match_id, player_id, hole_number, gross_strokes')
+      .in('match_id', chunk)
+      .order('match_id')
+      .order('player_id')
+      .order('hole_number')
+      .range(from, to),
+  );
+  const byMatch = new Map<string, HoleScoreMap>();
+  for (const row of rows) {
+    let scores = byMatch.get(row.match_id);
+    if (!scores) byMatch.set(row.match_id, (scores = {}));
+    (scores[row.player_id] ??= {})[row.hole_number] = row.gross_strokes;
+  }
+  return byMatch;
+}
+
+/** Every pair's persisted deal in these matches, per match — the bulk form of matches.ts's fetchMatchups. */
+async function fetchMatchupsForMatches(matchIds: string[]): Promise<Map<string, MatchupPair[]>> {
+  const rows = await selectAllIn<{ match_id: string; player_a_id: string; player_b_id: string; front_nine_strokes: number; back_nine_strokes: number | null }>(
+    matchIds,
+    (chunk, from, to) =>
+      supabase
+        .from('game_matchups')
+        .select('match_id, player_a_id, player_b_id, front_nine_strokes, back_nine_strokes')
+        .in('match_id', chunk)
+        .order('match_id')
+        .order('player_a_id')
+        .order('player_b_id')
+        .range(from, to),
+  );
+  const byMatch = new Map<string, MatchupPair[]>();
+  for (const row of rows) {
+    const list = byMatch.get(row.match_id) ?? [];
+    list.push({ playerAId: row.player_a_id, playerBId: row.player_b_id, frontNineStrokes: row.front_nine_strokes, backNineStrokes: row.back_nine_strokes });
+    byMatch.set(row.match_id, list);
+  }
+  return byMatch;
+}
+
+/**
+ * Ledger strokes between any two of these players, keyed by pairKey — the
+ * bulk form of kaki.ts's fetchLedgerStrokesForGroup, run once over every
+ * match's roster combined. A pair only ever reads its own key, so the extra
+ * cross-match pairs this returns are simply never looked up.
+ */
+async function fetchLedgerStrokesForPlayers(playerIds: string[]): Promise<Record<string, number>> {
+  if (playerIds.length < 2) return {};
+  const rows = await selectAllIn<{ player_a_id: string; player_b_id: string; net_strokes_per_9: number }>(playerIds, (chunk, from, to) =>
+    supabase
+      .from('kaki_relationships')
+      .select('player_a_id, player_b_id, net_strokes_per_9')
+      .eq('status', 'accepted')
+      .in('player_a_id', chunk)
+      .in('player_b_id', playerIds)
+      .order('player_a_id')
+      .order('player_b_id')
+      .range(from, to),
+  );
+  const strokes: Record<string, number> = {};
+  for (const row of rows) {
+    // kaki_relationships already stores player_a_id < player_b_id, so this is already canonical.
+    strokes[`${row.player_a_id}:${row.player_b_id}`] = row.net_strokes_per_9 * 2;
+  }
+  return strokes;
+}
+
+function summarizeMatch(
+  match: MatchRow,
+  roster: RoundPlayer[],
+  viewerId: string,
+  course: Awaited<ReturnType<typeof fetchCourseCatalog>>[number] | undefined,
+  scoreMap: HoleScoreMap,
+  matchups: MatchupPair[],
+  ledger: Record<string, number>,
+): RoundSummary {
   const rosterIds = roster.map((p) => p.playerId);
   const allHoles: Hole[] = course ? getComboHoles(course, match.combo_id) : [];
   const holes = match.holes_to_play === 9 ? allHoles.slice(0, 9) : allHoles;
   const isTournament = match.tournament_id !== null;
 
-  // A tournament roster has no pairwise stroke deals to seed (fetchMatchups/
-  // fetchLedgerStrokesForGroup would just return empty/irrelevant data for
-  // it either way) — skip the whole match-play engine below and leave
-  // viewerUp/viewerMoney null, same as a viewer who isn't in the roster at
-  // all. viewerGross still comes from the mode-agnostic grossTotal, since a
-  // tournament round's gross legitimately belongs in "best gross" stats.
-  const [scoreMap, matchups, ledger] = await Promise.all([
-    fetchScores(match.id),
-    isTournament ? Promise.resolve([]) : fetchMatchups(match.id),
-    isTournament ? Promise.resolve({}) : fetchLedgerStrokesForGroup(rosterIds),
-  ]);
-
+  // A tournament roster has no pairwise stroke deals to seed (its matchups/
+  // ledger aren't even fetched — see fetchRoundSummariesOnce) — skip the
+  // whole match-play engine below and leave viewerUp/viewerMoney null, same
+  // as a viewer who isn't in the roster at all. viewerGross still comes from
+  // the mode-agnostic grossTotal, since a tournament round's gross
+  // legitimately belongs in "best gross" stats.
   const gross: GrossMap = {};
   rosterIds.forEach((id) => {
     gross[id] = holes.map((h) => scoreMap[id]?.[h.n] ?? h.par);
@@ -223,17 +323,30 @@ async function fetchRoundSummariesOnce(viewerId: string, status: 'live' | 'finis
     playersByMatch.set(row.match_id, list);
   }
 
-  const catalog = await fetchCourseCatalog();
-  const tournamentInfo = await fetchTournamentInfo(matches);
+  // One bulk read per table across every match, rather than a scores +
+  // matchups + ledger round-trip per match — Profile reads every finished
+  // round the viewer has ever played, so the per-match version grew without
+  // bound. Tournament matches have no pairwise deals, so they're left out of
+  // the matchups/ledger reads.
+  const matchPlayIds = matches.filter((m) => m.tournament_id === null).map((m) => m.id);
+  const matchPlayPlayerIds = [...new Set(matchPlayIds.flatMap((id) => (playersByMatch.get(id) ?? []).map((p) => p.playerId)))];
+  const [catalog, tournamentInfo, scoresByMatch, matchupsByMatch, ledger] = await Promise.all([
+    fetchCourseCatalog(),
+    fetchTournamentInfo(matches),
+    fetchScoresForMatches(matches.map((m) => m.id)),
+    fetchMatchupsForMatches(matchPlayIds),
+    fetchLedgerStrokesForPlayers(matchPlayPlayerIds),
+  ]);
 
-  const summaries = await Promise.all(
-    matches.map((match) =>
-      summarizeMatch(
-        match,
-        playersByMatch.get(match.id) ?? [],
-        viewerId,
-        catalog.find((c) => c.id === match.course_id),
-      ),
+  const summaries = matches.map((match) =>
+    summarizeMatch(
+      match,
+      playersByMatch.get(match.id) ?? [],
+      viewerId,
+      catalog.find((c) => c.id === match.course_id),
+      scoresByMatch.get(match.id) ?? {},
+      matchupsByMatch.get(match.id) ?? [],
+      ledger,
     ),
   );
   return summaries.map((summary) => ({ ...summary, ...(tournamentInfo.get(summary.matchId) ?? {}) }));
