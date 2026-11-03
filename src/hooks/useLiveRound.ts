@@ -264,6 +264,7 @@ export function useLiveRound(matchId: string) {
         setError(err instanceof Error ? err.message : "Couldn't load this round.");
         setLoading(false);
       },
+      (data) => data.matchStatus === 'finished',
     );
   }, [matchId, fetchRoundData, applyRoundData]);
 
