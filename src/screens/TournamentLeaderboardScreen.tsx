@@ -268,7 +268,7 @@ export function TournamentLeaderboardScreen({ navigation, route }: Props) {
                 <View>
                   <Text style={styles.lowRoundLabel}>Low round · R{overall.low.roundIndex}</Text>
                   <Text style={styles.lowRoundValue}>
-                    {nameOfPlayer(overall.low.playerId).split(' ')[0]} · {overall.low.nett} nett ({formatToPar(overall.low.toPar)})
+                    {nameOfPlayer(overall.low.playerId)} · {overall.low.nett} nett ({formatToPar(overall.low.toPar)})
                   </Text>
                 </View>
               </View>

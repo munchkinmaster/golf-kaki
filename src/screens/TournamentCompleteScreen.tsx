@@ -129,7 +129,7 @@ export function TournamentCompleteScreen({ navigation, route }: Props) {
               <View style={styles.championBody}>
                 <Text style={styles.championOverline}>{champions.length > 1 ? 'Joint champions' : championOnCountback ? 'Champion · on countback' : 'Champion'}</Text>
                 <Text style={styles.championName} numberOfLines={1}>
-                  {champions.map((c) => `${firstNameOf(c.playerId)}${youSuffix(c.playerId)}`).join(' & ')}
+                  {champions.map((c) => `${nameOf(c.playerId)}${youSuffix(c.playerId)}`).join(' & ')}
                 </Text>
               </View>
               <View style={styles.championScore}>
@@ -161,7 +161,7 @@ export function TournamentCompleteScreen({ navigation, route }: Props) {
           <View style={styles.statRow}>
             <View style={styles.statTile}>
               <Text style={styles.statLabel}>Low round</Text>
-              <Text style={styles.statValue}>{lowRound ? `${firstNameOf(lowRound.playerId)} · ${lowRound.nett}` : '–'}</Text>
+              <Text style={styles.statValue}>{lowRound ? `${nameOf(lowRound.playerId)} · ${lowRound.nett}` : '–'}</Text>
               <Text style={styles.statMeta}>
                 {lowRound
                   ? `R${lowRound.roundIndex} · ${(() => {
@@ -174,7 +174,7 @@ export function TournamentCompleteScreen({ navigation, route }: Props) {
             </View>
             <View style={styles.statTile}>
               <Text style={styles.statLabel}>Best gross</Text>
-              <Text style={styles.statValue}>{bestGross ? `${firstNameOf(bestGross.playerId)} · ${bestGross.gross}` : '–'}</Text>
+              <Text style={styles.statValue}>{bestGross ? `${nameOf(bestGross.playerId)} · ${bestGross.gross}` : '–'}</Text>
               <Text style={styles.statMeta}>{bestGross ? `${formatToPar(bestGross.overPar)} over ${holes}` : ''}</Text>
             </View>
           </View>
