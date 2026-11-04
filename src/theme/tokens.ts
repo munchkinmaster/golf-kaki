@@ -212,6 +212,17 @@ const multiRound = {
     close: 'rgba(255,255,255,0.7)',
   },
   leaderFill: '#FBF6E9', // standings row for the current leader / champion (MR9, MR10, MR13)
+  // MR8 playing handicap (design_handoff_mr8_playing_handicap) — the scorecard's
+  // PH row and "Playing handicap by round" card. `auto` is a Play HC worked out
+  // from index + tee, `manual` one typed in on the lobby (always paired with a
+  // pencil icon, so it never relies on colour alone).
+  playHc: {
+    rowFill: '#FBF6E9',
+    label: '#9A6B12',
+    icon: '#C8971C',
+    auto: { fill: '#EAF4E8', border: '#CDE3C8', text: '#1E6B3C' },
+    manual: { fill: '#FFF1E6', border: '#F4C9A6', text: '#B4561A' },
+  },
 } as const;
 
 // ---- Solid player-avatar cycle ---- (tournament flow's Field roster, S4/S6b/S6c/S9 —

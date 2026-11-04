@@ -1,11 +1,12 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Activity, ArrowRight, Check, CircleCheckBig, Eye, Info, ListOrdered, Lock, Table2, Trophy } from 'lucide-react-native';
+import { Activity, ArrowRight, Check, CircleCheckBig, Eye, Flag, Info, ListOrdered, Lock, Table2, Trophy } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import { InRoundTabBar } from '../components/InRoundTabBar';
+import { PlayHcChip, PlayHcSwatch } from '../components/PlayHcChip';
 import type { InRoundTab } from '../components/InRoundTabBar';
 import { ScoreCell } from '../components/ScoreCell';
 import { strokesReceivedOnHole } from '../data/handicap';
@@ -730,6 +731,20 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
                   );
                 })}
               </View>
+              {/* MR8 PH ROW — each player's playing handicap for the round on this tab, the same value the stroke dots below are spent from */}
+              {overview ? (
+                <View style={[styles.tRow, styles.phRow]}>
+                  <View style={styles.phLabelCell}>
+                    <Flag size={11} color={palette.multiRound.playHc.icon} />
+                    <Text style={styles.phLabel}>R{round.roundIndex} PH</Text>
+                  </View>
+                  {roster.map((player) => (
+                    <View key={player.id} style={[styles.tCellWrap, styles.phCell, player.id === viewerId && styles.tColYou]}>
+                      <PlayHcChip value={player.playingHandicap} manual={player.handicapOverride} />
+                    </View>
+                  ))}
+                </View>
+              ) : null}
               {/* HOLE ROWS */}
               {displayHoles.map((h, rowIdx) => (
                 <View key={h.n} style={[styles.tRow, styles.tHoleRow, rowIdx === displayHoles.length - 1 && styles.tHoleRowLast]}>
@@ -800,6 +815,66 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
               <Text style={[styles.tournamentLineValue, tournamentAfter.toPar < 0 && styles.tournamentLineValueUnder, tournamentAfter.toPar > 0 && styles.tournamentLineValueOver]}>{formatToPar(tournamentAfter.toPar)}</Text>
               <View style={styles.tournamentLineSeparator} />
               <Text style={styles.tournamentLinePlace}>{tournamentAfter.place}</Text>
+            </View>
+          ) : null}
+
+          {/* MR8 PLAYING HANDICAP BY ROUND — read-only; overrides are made on the lobby */}
+          {overview ? (
+            <View style={styles.phCard}>
+              <View style={styles.phCardTitleRow}>
+                <Flag size={12} color={palette.multiRound.playHc.icon} />
+                <Text style={styles.phCardTitle}>Playing handicap by round</Text>
+              </View>
+              <View style={styles.phCardHeadRow}>
+                <Text style={[styles.phCardHead, styles.phCardPlayerCol]}>Player</Text>
+                {overview.rounds.map((r) => (
+                  <Text key={r.index} style={[styles.phCardHead, styles.phCardRoundCol, r.index === round.roundIndex && styles.phCardHeadActive]}>
+                    R{r.index}
+                  </Text>
+                ))}
+              </View>
+              {overview.rosterIds.map((id) => {
+                const isYou = id === viewerId;
+                const name = overview.roster.find((p) => p.id === id)?.name ?? '';
+                const seatIndex = roster.findIndex((p) => p.id === id);
+                return (
+                  <View key={id} style={[styles.phCardRow, isYou && styles.phCardRowYou]}>
+                    <View style={[styles.phCardPlayerCol, styles.phCardPlayer]}>
+                      <View style={[styles.phCardAvatar, { backgroundColor: getSolidAvatarColor(seatIndex >= 0 ? seatIndex : overview.rosterIds.indexOf(id)) }]}>
+                        <Text style={styles.phCardAvatarLabel}>{name[0]?.toUpperCase()}</Text>
+                      </View>
+                      <Text style={[styles.phCardName, isYou && styles.phCardNameYou]} numberOfLines={1}>
+                        {isYou ? 'You' : name}
+                      </Text>
+                    </View>
+                    {overview.rounds.map((r) => {
+                      const hc = overview.playHc[id]?.[r.index];
+                      const dns = overview.entries[id]?.[r.index]?.kind === 'dns';
+                      return (
+                        <View key={r.index} style={styles.phCardRoundCol}>
+                          {dns ? (
+                            <Text style={styles.phCardMuted}>DNS</Text>
+                          ) : hc ? (
+                            <PlayHcChip value={hc.value} manual={hc.manual} />
+                          ) : (
+                            <Text style={styles.phCardMuted}>TBC</Text>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                );
+              })}
+              <View style={styles.phCardLegend}>
+                <View style={styles.phCardLegendItem}>
+                  <PlayHcSwatch manual={false} />
+                  <Text style={styles.phCardLegendText}>Auto · from index at tee-off</Text>
+                </View>
+                <View style={styles.phCardLegendItem}>
+                  <PlayHcSwatch manual />
+                  <Text style={styles.phCardLegendText}>Manual override</Text>
+                </View>
+              </View>
             </View>
           ) : null}
 
@@ -940,6 +1015,151 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 12,
     color: colors.textPrimary,
+  },
+  // MR8 PH row — part of the header block, between the player heads and hole 1.
+  phRow: {
+    minHeight: 30,
+    backgroundColor: palette.multiRound.playHc.rowFill,
+    borderBottomWidth: 1.5,
+    borderBottomColor: colors.borderDefault,
+  },
+  // Spans the H / Par / SI columns.
+  phLabelCell: {
+    width: 82,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingLeft: spacing[1] + 2,
+  },
+  phLabel: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    fontSize: 10,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: palette.multiRound.playHc.label,
+  },
+  phCell: {
+    paddingVertical: spacing[1],
+  },
+  phCard: {
+    marginTop: spacing[2],
+    backgroundColor: colors.surfaceCard,
+    borderWidth: 1.5,
+    borderColor: colors.borderDefault,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+  },
+  phCardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: 9,
+    paddingBottom: 7,
+    paddingHorizontal: spacing[3],
+  },
+  phCardTitle: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    fontSize: 10,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: colors.textDisabled,
+  },
+  phCardHeadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingBottom: spacing[1] + 1,
+  },
+  phCardHead: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    fontSize: 9,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: palette.soon.labelUpcoming,
+  },
+  phCardHeadActive: {
+    color: colors.primary,
+  },
+  phCardPlayerCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  phCardRoundCol: {
+    width: 44,
+    alignItems: 'center',
+    textAlign: 'center',
+  },
+  phCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 34,
+    paddingVertical: 6,
+    paddingHorizontal: spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+  },
+  phCardRowYou: {
+    backgroundColor: colors.surfaceBrandSoft,
+  },
+  phCardPlayer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    paddingRight: spacing[2],
+  },
+  phCardAvatar: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  phCardAvatarLabel: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    fontSize: 9,
+    color: palette.white,
+  },
+  phCardName: {
+    flexShrink: 1,
+    fontFamily: getFontFamily('body', '600'),
+    fontWeight: '600',
+    fontSize: 12,
+    color: colors.textPrimary,
+  },
+  phCardNameYou: {
+    fontFamily: getFontFamily('body', '700'),
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  phCardMuted: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 11,
+    color: palette.soon.labelUpcoming,
+  },
+  phCardLegend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: spacing[4],
+    rowGap: spacing[1],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    backgroundColor: palette.multiRound.playHc.rowFill,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+  },
+  phCardLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  phCardLegendText: {
+    fontFamily: getFontFamily('body', '400'),
+    fontSize: 10,
+    color: colors.textMuted,
   },
   page: { flex: 1, backgroundColor: colors.surfacePage },
   safeArea: { flex: 1 },

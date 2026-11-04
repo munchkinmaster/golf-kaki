@@ -30,10 +30,15 @@ export type RosterPlayer = {
   status: 'joined' | 'invited';
 };
 
+/** A seat's playing handicap for one round, and whether it was typed in on the lobby rather than worked out from index + tee (MR8). */
+export type RoundPlayHc = { value: number; manual: boolean };
+
 export type TournamentResults = {
   rounds: TournamentRound[];
   roster: RosterPlayer[];
   entries: RoundEntries;
+  /** playHc[playerId][roundIndex] — joined seats of every set-up round. */
+  playHc: Record<string, Record<number, RoundPlayHc>>;
   tieBreakRule: TournamentTieBreakRule;
 };
 
@@ -43,6 +48,7 @@ type SeatRow = {
   status: 'joined' | 'invited';
   handicap_at_time: number | null;
   playing_handicap: number | null;
+  handicap_override: boolean;
   profiles: { display_name: string };
 };
 
@@ -50,7 +56,7 @@ async function fetchSeats(matchId: string): Promise<SeatRow[]> {
   return withRetry(async () => {
     const { data, error } = await supabase
       .from('match_players')
-      .select('player_id, is_host, status, handicap_at_time, playing_handicap, profiles ( display_name )')
+      .select('player_id, is_host, status, handicap_at_time, playing_handicap, handicap_override, profiles ( display_name )')
       .eq('match_id', matchId)
       .order('joined_at');
     if (error) throw error;
@@ -87,7 +93,14 @@ export async function fetchTournamentResults(tournamentId: string): Promise<Tour
   const rosterJoinedIds = roster.filter((p) => p.status === 'joined').map((p) => p.id);
 
   const entries: RoundEntries = {};
+  const playHc: TournamentResults['playHc'] = {};
   setUp.forEach((round, i) => {
+    seatsByRound[i]!
+      .filter((s) => s.status === 'joined')
+      .forEach((s) => {
+        (playHc[s.player_id] ??= {})[round.index] = { value: s.playing_handicap ?? 0, manual: s.handicap_override };
+      });
+
     const course = catalog.find((c) => c.id === round.courseId);
     if (!course || !round.comboId) return;
     const holes = getComboHoles(course, round.comboId);
@@ -123,5 +136,5 @@ export async function fetchTournamentResults(tournamentId: string): Promise<Tour
       });
   });
 
-  return { rounds, roster, entries, tieBreakRule };
+  return { rounds, roster, entries, playHc, tieBreakRule };
 }

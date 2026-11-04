@@ -16,7 +16,7 @@ import type { PlayerRoundEntry, RoundEntries } from '../data/multiRound';
 import { deriveRoundStatus, withLiveRound } from '../data/multiRound';
 import { computeThru } from '../data/round';
 import { computeTournamentStandings } from '../data/strokePlay';
-import type { RosterPlayer, TournamentResults } from '../data/tournamentResults';
+import type { RosterPlayer, RoundPlayHc, TournamentResults } from '../data/tournamentResults';
 import { fetchTournamentResults } from '../data/tournamentResults';
 import type { TournamentRound, TournamentTieBreakRule } from '../data/tournaments';
 import type { useTournamentRound } from './useTournamentRound';
@@ -27,6 +27,8 @@ export type TournamentOverview = {
   roster: RosterPlayer[];
   /** Joined roster ids — the players on the overall board. */
   rosterIds: string[];
+  /** playHc[playerId][roundIndex] — this round's taken live from the screen's own roster. */
+  playHc: Record<string, Record<number, RoundPlayHc>>;
   tieBreakRule: TournamentTieBreakRule;
 };
 
@@ -72,12 +74,18 @@ export function useTournamentOverview(tournamentId: string, round: ReturnType<ty
   return useMemo(() => {
     if (!results) return null;
     const merged = withLiveRound(results.rounds, results.entries, roundIndex, deriveRoundStatus(matchStatus), live);
+    const playHc: TournamentOverview['playHc'] = {};
+    for (const [playerId, byRound] of Object.entries(results.playHc)) playHc[playerId] = { ...byRound };
+    roster.forEach((p) => {
+      (playHc[p.id] ??= {})[roundIndex] = { value: p.playingHandicap, manual: p.handicapOverride };
+    });
     return {
       rounds: merged.rounds,
       entries: merged.entries,
       roster: results.roster,
       rosterIds: results.roster.filter((p) => p.status === 'joined').map((p) => p.id),
+      playHc,
       tieBreakRule: tieBreakRule ?? results.tieBreakRule,
     };
-  }, [results, roundIndex, matchStatus, live, tieBreakRule]);
+  }, [results, roundIndex, matchStatus, live, roster, tieBreakRule]);
 }
