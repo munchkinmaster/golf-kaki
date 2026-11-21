@@ -35,6 +35,7 @@ import { fetchScores, finishMatchAndSettleLedger, saveScore, upsertMatchupBackNi
 import type { LedgerDeal } from '../data/scores';
 import { useAuth } from '../state/AuthContext';
 import { joinMatchSync, refreshMatchSync } from '../lib/liveMatchSync';
+import { LocalEdits } from '../lib/localEdits';
 
 export type LiveRoundPlayer = MatchupEditorPlayer & { isHost: boolean };
 
@@ -53,6 +54,10 @@ type RoundData = {
   scores: HoleScoreMap;
   matchupRows: MatchupPair[];
   pairSettings: PairSetting[];
+  /** Date.now() when the `scores` read started — what LocalEdits.release compares against. */
+  scoresFetchedAt: number;
+  /** Same, for the `game_matchups` read behind `pairSettings`. */
+  pairsFetchedAt: number;
 };
 
 function seedPair(playerAId: string, playerBId: string, existing: MatchupPair | undefined, ledgerNet18: number): PairSetting {
@@ -127,12 +132,12 @@ export function useLiveRound(matchId: string) {
   const [pairSettings, setPairSettings] = useState<PairSetting[]>([]);
   const [matchupRows, setMatchupRows] = useState<MatchupPair[]>([]);
 
-  // Cells/pairs this specific screen instance has locally edited and not yet
-  // seen echoed back — see applyRoundData below for why these exist and are
-  // never cleared. Refs (not state): they gate a merge inside a setter, not
-  // something a render needs to react to.
-  const touchedScoresRef = useRef<Set<string>>(new Set());
-  const touchedPairsRef = useRef<Set<string>>(new Set());
+  // Cells/pairs this specific screen instance has written and the server
+  // hasn't confirmed back yet — see applyRoundData below and lib/localEdits.ts.
+  // Refs (not state): they gate a merge inside a setter, not something a
+  // render needs to react to.
+  const scoreEditsRef = useRef(new LocalEdits());
+  const pairEditsRef = useRef(new LocalEdits());
 
   const rosterIds = useMemo(() => roster.map((p) => p.playerId), [roster]);
   const schedule: RoundSchedule = useMemo(() => ({ holesToPlay, strokesBasis, startHole }), [holesToPlay, strokesBasis, startHole]);
@@ -148,6 +153,7 @@ export function useLiveRound(matchId: string) {
     const nextHoles = lobby.holesToPlay === 9 ? allHoles.slice(0, 9) : allHoles;
 
     const nextRosterIds = lobby.players.map((p) => p.playerId);
+    const fetchedAt = Date.now();
     const [scoreMap, matchups, ledger] = await Promise.all([
       fetchScores(matchId),
       fetchMatchups(matchId),
@@ -174,6 +180,8 @@ export function useLiveRound(matchId: string) {
       scores: scoreMap,
       matchupRows: matchups,
       pairSettings: nextPairSettings,
+      scoresFetchedAt: fetchedAt,
+      pairsFetchedAt: fetchedAt,
     };
   }, [matchId]);
 
@@ -192,7 +200,17 @@ export function useLiveRound(matchId: string) {
   // keep that local value instead of the incoming one — it only stops
   // reflecting the fetch once a later write from elsewhere touches that same
   // cell again, which arrives as its own fresh broadcast.
+  //
+  // (That last sentence was the intent, but the old never-cleared Set didn't
+  // do it: once a device had edited a cell, it ignored every later value for
+  // it — 2026-11-20, a hole showed 7 on one phone and 6 on the other for the
+  // rest of the round. LocalEdits now lets go of a cell as soon as a fetch
+  // that started after this device's write landed has been applied.)
   const applyRoundData = useCallback((data: RoundData) => {
+    const scoreEdits = scoreEditsRef.current;
+    const pairEdits = pairEditsRef.current;
+    scoreEdits.release(data.scoresFetchedAt);
+    pairEdits.release(data.pairsFetchedAt);
     setHostId(data.hostId);
     setMatchCode(data.matchCode);
     setMatchStatus(data.matchStatus);
@@ -204,13 +222,13 @@ export function useLiveRound(matchId: string) {
     setRoster(data.roster);
     setHoles(data.holes);
     setScores((prev) => {
-      if (touchedScoresRef.current.size === 0) return data.scores;
+      if (scoreEdits.size === 0) return data.scores;
       const merged: HoleScoreMap = {};
       new Set([...Object.keys(prev), ...Object.keys(data.scores)]).forEach((playerId) => {
         const playerHoles = { ...data.scores[playerId] };
         Object.keys(prev[playerId] ?? {}).forEach((holeStr) => {
           const holeN = Number(holeStr);
-          if (touchedScoresRef.current.has(`${playerId}:${holeN}`)) playerHoles[holeN] = prev[playerId]![holeN];
+          if (scoreEdits.has(`${playerId}:${holeN}`)) playerHoles[holeN] = prev[playerId]![holeN];
         });
         merged[playerId] = playerHoles;
       });
@@ -218,10 +236,10 @@ export function useLiveRound(matchId: string) {
     });
     setMatchupRows(data.matchupRows);
     setPairSettings((prev) => {
-      if (touchedPairsRef.current.size === 0) return data.pairSettings;
+      if (pairEdits.size === 0) return data.pairSettings;
       return data.pairSettings.map((p) => {
         const key = pairKey(p.playerAId, p.playerBId);
-        if (!touchedPairsRef.current.has(key)) return p;
+        if (!pairEdits.has(key)) return p;
         return prev.find((pp) => pp.playerAId === p.playerAId && pp.playerBId === p.playerBId) ?? p;
       });
     });
@@ -253,7 +271,14 @@ export function useLiveRound(matchId: string) {
       [
         // Score writes are by far the most frequent change mid-round, and
         // nothing else in RoundData derives from them — reload just scores.
-        { table: 'scores', filter: `match_id=eq.${matchId}`, refetch: async (prev) => ({ ...prev, scores: await fetchScores(matchId) }) },
+        {
+          table: 'scores',
+          filter: `match_id=eq.${matchId}`,
+          refetch: async (prev) => {
+            const scoresFetchedAt = Date.now();
+            return { ...prev, scores: await fetchScores(matchId), scoresFetchedAt };
+          },
+        },
         { table: 'game_matchups', filter: `match_id=eq.${matchId}` },
         { table: 'matches', filter: `id=eq.${matchId}` },
       ],
@@ -390,9 +415,8 @@ export function useLiveRound(matchId: string) {
     if (!hole) return;
     const current = scores[playerId]?.[hole.n] ?? hole.par;
     const next = Math.max(1, current + delta);
-    touchedScoresRef.current.add(`${playerId}:${hole.n}`);
     setScores((prev) => ({ ...prev, [playerId]: { ...prev[playerId], [hole.n]: next } }));
-    saveScore(matchId, playerId, hole.n, next).catch(() => {
+    scoreEditsRef.current.write(`${playerId}:${hole.n}`, () => saveScore(matchId, playerId, hole.n, next)).catch(() => {
       setError("Couldn't save that score — try again.");
       load().catch(() => {});
     });
@@ -400,14 +424,14 @@ export function useLiveRound(matchId: string) {
 
   function persistPair(pair: PairSetting) {
     const mode: StrokeMode = pair.aGives ? 'give' : 'get';
-    upsertMatchup(matchId, pair.playerAId, pair.playerBId, pair.strokes, mode).catch(() => {
+    const key = pairKey(pair.playerAId, pair.playerBId);
+    pairEditsRef.current.write(key, () => upsertMatchup(matchId, pair.playerAId, pair.playerBId, pair.strokes, mode)).catch(() => {
       setError("Couldn't save that stroke change — try again.");
       load().catch(() => {});
     });
   }
 
   function updatePair(a: string, b: string, updater: (p: PairSetting) => PairSetting) {
-    touchedPairsRef.current.add(pairKey(a, b));
     setPairSettings((prev) => {
       const current = prev.find((p) => p.playerAId === a && p.playerBId === b);
       if (!current) return prev;
