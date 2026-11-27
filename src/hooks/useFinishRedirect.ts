@@ -1,3 +1,4 @@
+import { useNavigation } from '@react-navigation/native';
 import { useEffect, useRef } from 'react';
 
 import type { MatchStatus } from '../data/matches';
@@ -12,15 +13,21 @@ import type { MatchStatus } from '../data/matches';
  * Scorecard or Lobby to review a round that finished a while ago doesn't
  * get force-navigated away again.
  *
- * `loading` MUST be passed and MUST be the same hook's own loading flag —
- * useLiveRound/useTournamentRound both initialize matchStatus to 'lobby'
- * before their first fetch resolves, so without this every screen showing
- * an ALREADY-finished round bounced straight back to Finish the instant
- * data loaded (a false 'lobby' -> 'finished' edge from the placeholder
- * default, not a real transition) — confirmed live: opening the Scorecard
- * grid for a finished round looked like it "couldn't display" because it
- * redirected away before anything rendered. While loading, matchStatus is
- * meaningless, so nothing is tracked or fired until the real value is in.
+ * `hasData` MUST be true only once the caller's data hook has delivered a
+ * REAL result at least once (useLiveRound/useTournamentRound's `hasData`).
+ * Both hooks initialize matchStatus to a 'lobby' placeholder, and both flip
+ * `loading` to false on a failed fetch too — so gating on `loading` alone
+ * let a failed first load (flaky mobile network on browser resume) record
+ * the placeholder 'lobby' as "not finished", and the next successful
+ * refetch then read as a fresh 'lobby' -> 'finished' edge for a round that
+ * had finished days ago, pushing its recap on top of whatever the viewer
+ * was doing (2026-11-20: the Malaysia Open recap kept resurfacing).
+ *
+ * It also only fires while the calling screen is FOCUSED. React Navigation
+ * keeps earlier stack screens mounted underneath the current one; without
+ * this, a Scorecard/Lobby buried in the stack could push a recap over an
+ * unrelated screen (and several buried screens would each push their own).
+ * An edge seen while unfocused is consumed, not deferred.
  *
  * Exists because the host's own "Finish round" tap only ever navigated
  * THEM — every other player just had their status pill/thru count update
@@ -30,13 +37,14 @@ import type { MatchStatus } from '../data/matches';
  * tapping the stepper (see useLiveRound/useTournamentRound's matching
  * canEdit guards for the other half of that fix).
  */
-export function useFinishRedirect(matchStatus: MatchStatus, loading: boolean, onFinish: () => void) {
+export function useFinishRedirect(matchStatus: MatchStatus, hasData: boolean, onFinish: () => void) {
+  const navigation = useNavigation();
   const wasFinished = useRef<boolean | null>(null);
   useEffect(() => {
-    if (loading) return;
+    if (!hasData) return;
     const nowFinished = matchStatus === 'finished';
     const justFinished = wasFinished.current === false && nowFinished;
     wasFinished.current = nowFinished;
-    if (justFinished) onFinish();
-  }, [matchStatus, loading, onFinish]);
+    if (justFinished && navigation.isFocused()) onFinish();
+  }, [matchStatus, hasData, onFinish, navigation]);
 }

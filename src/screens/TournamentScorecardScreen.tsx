@@ -63,7 +63,7 @@ export function TournamentScorecardScreen({ navigation, route }: Props) {
 
   useFinishRedirect(
     matchStatus,
-    loading,
+    round.hasData,
     useCallback(() => navigation.navigate('TournamentFinish', { tournamentId, matchId }), [navigation, tournamentId, matchId]),
   );
 

@@ -96,7 +96,7 @@ export function TournamentScorecardGridScreen({ navigation, route }: Props) {
 
   useFinishRedirect(
     matchStatus,
-    loading,
+    round.hasData,
     useCallback(() => navigation.navigate('TournamentFinish', { tournamentId, matchId }), [navigation, tournamentId, matchId]),
   );
 

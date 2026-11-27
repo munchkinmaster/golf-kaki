@@ -49,6 +49,9 @@ export function useTournamentRound(tournamentId: string, matchId: string) {
   const viewerId = session?.user.id ?? null;
 
   const [loading, setLoading] = useState(true);
+  // True once a REAL fetch has landed — `loading` also goes false on a failed
+  // fetch, leaving matchStatus at its 'lobby' placeholder (see useFinishRedirect).
+  const [hasData, setHasData] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matchName, setMatchName] = useState('');
   const [roundsCount, setRoundsCount] = useState(1);
@@ -148,6 +151,7 @@ export function useTournamentRound(tournamentId: string, matchId: string) {
         applyRoundData(data);
         setError(null);
         setLoading(false);
+        setHasData(true);
       },
       (err) => {
         setError(err instanceof Error ? err.message : "Couldn't load this round.");
@@ -224,6 +228,7 @@ export function useTournamentRound(tournamentId: string, matchId: string) {
 
   return {
     loading,
+    hasData,
     error,
     viewerId,
     hostId,

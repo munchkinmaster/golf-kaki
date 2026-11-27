@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { navigationRef } from './src/navigation/navigationRef';
+import { NAVIGATION_STATE_KEY, parseNavState, serializeNavState } from './src/navigation/persistedNavState';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { AuthProvider, useAuth } from './src/state/AuthContext';
 import { InviteToastProvider } from './src/state/InviteToastProvider';
@@ -36,15 +37,14 @@ export default function App() {
   );
 }
 
-const NAVIGATION_STATE_KEY = 'golfkaki.navigationState';
-
 /**
  * Mobile browsers reclaim memory from backgrounded tabs by reloading them, which drops
  * React Navigation's in-memory state and lands back on whatever RootNavigator's
  * `initialRouteName` is — Home, not wherever the player actually was (e.g. mid-scorecard).
  * Persisting navigation state to AsyncStorage and restoring it here fixes that. Restoring
  * is gated on there being a live session — a signed-out/expired session should always land
- * on Landing, not resume a stale deep route with no way to fetch its data.
+ * on Landing, not resume a stale deep route with no way to fetch its data — and on the
+ * saved stack being recent and not parked on a recap (see parseNavState).
  */
 function AppNavigation() {
   const { session, loading } = useAuth();
@@ -56,8 +56,7 @@ function AppNavigation() {
     (async () => {
       try {
         if (session) {
-          const saved = await AsyncStorage.getItem(NAVIGATION_STATE_KEY);
-          if (saved) setInitialState(JSON.parse(saved));
+          setInitialState(parseNavState(await AsyncStorage.getItem(NAVIGATION_STATE_KEY), Date.now()));
         }
       } catch {
         // corrupt/unreadable saved state — fall through to RootNavigator's own default route
@@ -76,7 +75,7 @@ function AppNavigation() {
       ref={navigationRef}
       initialState={initialState}
       onStateChange={(state) => {
-        AsyncStorage.setItem(NAVIGATION_STATE_KEY, JSON.stringify(state)).catch(() => {});
+        AsyncStorage.setItem(NAVIGATION_STATE_KEY, serializeNavState(state, Date.now())).catch(() => {});
       }}
     >
       <RootNavigator />

@@ -157,12 +157,13 @@ export function LeaderboardScreen({ navigation, route }: Props) {
     blockedBy,
     stakePerHole,
     matchStatus,
+    hasData,
     refresh: refreshRound,
   } = useLiveRound(matchId);
 
   useFinishRedirect(
     matchStatus,
-    loading,
+    hasData,
     useCallback(() => navigation.navigate('Finish', { matchId, matchName, courseName, gameModeName }), [navigation, matchId, matchName, courseName, gameModeName]),
   );
 

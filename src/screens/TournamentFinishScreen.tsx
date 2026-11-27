@@ -1,3 +1,4 @@
+import { useIsFocused } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Award, ChevronRight, CircleCheckBig, Coins, Crown, Flag, GitCompare, List, Medal, Trophy, Wallet, X } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
@@ -63,11 +64,14 @@ export function TournamentFinishScreen({ navigation, route }: Props) {
   // A finished round of a MULTI-round tournament gets the MR10 round recap
   // (or MR13 after the final round) instead of this single-round summary —
   // this screen still owns confirming cards and finishing the round.
+  // Only while focused: a Finish screen buried in the stack must not push a
+  // recap over whatever the viewer is actually looking at.
+  const isFocused = useIsFocused();
   useEffect(() => {
-    if (loading || matchStatus !== 'finished' || round.roundsCount < 2) return;
+    if (!isFocused || !round.hasData || matchStatus !== 'finished' || round.roundsCount < 2) return;
     if (round.roundIndex >= round.roundsCount) navigation.replace('TournamentComplete', { tournamentId });
     else navigation.replace('TournamentRoundRecap', { tournamentId, matchId });
-  }, [loading, matchStatus, round.roundsCount, round.roundIndex, navigation, tournamentId, matchId]);
+  }, [isFocused, round.hasData, matchStatus, round.roundsCount, round.roundIndex, navigation, tournamentId, matchId]);
 
   if (loading) {
     return (

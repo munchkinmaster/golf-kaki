@@ -113,12 +113,13 @@ export function ScorecardScreen({ navigation, route }: Props) {
     blockedBy,
     adjustScore,
     matchStatus,
+    hasData,
     refresh: refreshRound,
   } = useLiveRound(matchId);
 
   useFinishRedirect(
     matchStatus,
-    loading,
+    hasData,
     useCallback(() => navigation.navigate('Finish', { matchId, matchName, courseName, gameModeName }), [navigation, matchId, matchName, courseName, gameModeName]),
   );
 

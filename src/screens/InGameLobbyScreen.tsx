@@ -30,11 +30,12 @@ export function InGameLobbyScreen({ navigation, route }: Props) {
     adjustPairStrokes,
     setPairAGives,
     matchStatus,
+    hasData,
   } = useLiveRound(matchId);
 
   useFinishRedirect(
     matchStatus,
-    loading,
+    hasData,
     useCallback(() => navigation.navigate('Finish', { matchId, matchName, courseName, gameModeName }), [navigation, matchId, matchName, courseName, gameModeName]),
   );
 

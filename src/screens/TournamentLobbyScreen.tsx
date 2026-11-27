@@ -203,7 +203,7 @@ export function TournamentLobbyScreen({ navigation, route }: Props) {
   // land on the recap too, not be left reading "THRU 18" forever.
   useFinishRedirect(
     lobby?.matchStatus ?? 'lobby',
-    loading,
+    lobby !== null,
     useCallback(() => navigation.navigate('TournamentFinish', { tournamentId, matchId }), [navigation, tournamentId, matchId]),
   );
 
